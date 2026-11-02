@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="3ec0c9c0-a755-4100-ac18-663d31ea1339"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>/* hebrew */
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("c3c6b38a-7f9a-4300-8686-ffd4ba64b2af") format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("f97d9aa7-d3d5-45bb-a599-1d04647e68d2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("fae97c81-26d1-404f-8261-c1d3f53b16f6") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* hebrew */
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 500;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("c3c6b38a-7f9a-4300-8686-ffd4ba64b2af") format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 500;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("f97d9aa7-d3d5-45bb-a599-1d04647e68d2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 500;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("fae97c81-26d1-404f-8261-c1d3f53b16f6") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* hebrew */
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("c3c6b38a-7f9a-4300-8686-ffd4ba64b2af") format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("f97d9aa7-d3d5-45bb-a599-1d04647e68d2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("fae97c81-26d1-404f-8261-c1d3f53b16f6") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("728c45f4-6891-49b5-87b6-0e2576094fff") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("241dad68-d794-463c-88db-a868e79fcba2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("f1719ff5-e260-4e51-8beb-4496898704a8") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("5817c884-a0cb-445f-ab59-14e011452663") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("d9c77503-7689-464d-87ff-6fc82db03ddb") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("07e80d0e-c646-4d3c-a885-a23190d89aa3") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("728c45f4-6891-49b5-87b6-0e2576094fff") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("241dad68-d794-463c-88db-a868e79fcba2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("f1719ff5-e260-4e51-8beb-4496898704a8") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("5817c884-a0cb-445f-ab59-14e011452663") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("d9c77503-7689-464d-87ff-6fc82db03ddb") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("07e80d0e-c646-4d3c-a885-a23190d89aa3") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<script src="f69058c2-4014-4efc-be51-a8d3feca4eee"></script>
+<style>
+html,body{margin:0;background:#e9e4d9;-webkit-font-smoothing:antialiased}
+a{color:#1c2333}a:hover{color:#5b6476}
+@keyframes snBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes snShiver{0%,100%{transform:translate(0,0)}25%{transform:translate(.28px,-.2px)}50%{transform:translate(-.22px,.16px)}75%{transform:translate(.16px,.26px)}}
+@keyframes snPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.28);opacity:.65}}
+@keyframes snSwim{0%,100%{transform:translate(-14px,0)}50%{transform:translate(14px,-6px)}}
+@keyframes snBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+</style>
+</helmet>
+
+<section data-screen-label="Variations" style="padding:64px 56px 40px;font-family:'Fredoka',system-ui,sans-serif;color:#1c2333;display:flex;flex-direction:column;gap:28px">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:760px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5b6476">Turn 1 · Variations on key screens</div>
+    <div style="font-size:40px;font-weight:600;letter-spacing:-0.01em">Pond, Puzzle, Claim</div>
+    <div style="font-size:17px;line-height:1.5;color:#5b6476">Option A for each is the playable prototype (Snarl Prototype.dc.html). These are B and C alternatives.</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+    <div id="1a" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">1a</div><div style="font-size:16px;font-weight:500">Pond B · Ritual first</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0f1d38;color:#e8edf6;display:flex;flex-direction:column;position:relative">
+        <div style="padding:28px 22px 0;display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;color:#97a5c3">Monday · Nov 9</div><div style="font-size:28px;font-weight:600">Good morning</div></div>
+          <div style="position:relative;width:44px;height:44px;border-radius:50%;background:#f3ecd0;overflow:hidden"><div style="position:absolute;inset:0;border-radius:50%;background:#0f1d38;opacity:.88;transform:translateX(57%)"></div></div>
+        </div>
+        <div style="margin:18px 16px 0;border-radius:26px;background:#0d1527;border:1px solid rgba(232,237,246,.12);display:flex;flex-direction:column">
+          <div style="display:flex;gap:14px;align-items:center;padding:14px 16px;border-bottom:1px solid rgba(232,237,246,.08)">
+            <div style="width:52px;height:52px;flex:none">{{art.dailySil}}</div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div style="font-size:16px;font-weight:500">Daily Snarl</div><div style="font-size:13px;color:#97a5c3">A rare one · 1,284 freed it</div></div>
+            <div style="height:40px;padding:0 16px;border-radius:20px;background:#e8edf6;color:#0d1527;display:flex;align-items:center;font-size:15px;font-weight:500">Untangle</div>
+          </div>
+          <div style="display:flex;gap:14px;align-items:center;padding:14px 16px">
+            <div style="width:52px;height:52px;flex:none;border-radius:26px;border:1px solid rgba(232,237,246,.2);display:grid;place-items:center;font-size:15px;font-weight:600">G$</div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div style="font-size:16px;font-weight:500">152.37 G$</div><div style="font-size:13px;color:#97a5c3">Your daily UBI is ready</div></div>
+            <div style="height:40px;padding:0 16px;border-radius:20px;border:1px solid rgba(232,237,246,.3);display:flex;align-items:center;font-size:15px;font-weight:500">Claim</div>
+          </div>
+        </div>
+        <div style="flex:1;position:relative">
+          <sc-for list="{{pondA}}" as="p" hint-placeholder-count="5"><div style="position:absolute;left:{{p.x}};top:{{p.y}};width:{{p.s}};height:{{p.s}};animation:{{p.anim}}">{{p.art}}</div></sc-for>
+        </div>
+        <div style="padding:0 16px 26px;display:flex;gap:10px">
+          <div style="height:56px;flex:1;border-radius:28px;border:1px solid rgba(232,237,246,.14);display:flex;align-items:center;justify-content:center;font-size:16px">Journal</div>
+          <div style="height:56px;flex:1;border-radius:28px;border:1px solid rgba(232,237,246,.14);display:flex;align-items:center;justify-content:center;font-size:16px">Shop</div>
+          <div style="height:56px;flex:1.4;border-radius:28px;background:#e8edf6;color:#0d1527;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:500">Play</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1b" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">1b</div><div style="font-size:16px;font-weight:500">Pond C · Paper, pond as a window</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#f3efe6;color:#1c2333;display:flex;flex-direction:column;align-items:center;position:relative">
+        <div style="padding:28px 22px 0;width:100%;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:26px;font-weight:600;letter-spacing:-0.02em">snarl</div>
+          <div style="display:flex;gap:8px"><div style="height:40px;padding:0 14px;border-radius:20px;border:1px solid rgba(28,35,51,.14);display:flex;align-items:center;font-size:14px">Journal</div><div style="height:40px;padding:0 14px;border-radius:20px;border:1px solid rgba(28,35,51,.14);display:flex;align-items:center;font-size:14px">Shop</div></div>
+        </div>
+        <div style="margin-top:22px;display:flex;flex-direction:column;align-items:center;gap:6px">
+          <div style="position:relative;width:40px;height:40px;border-radius:50%;background:#cdb978;overflow:hidden"><div style="position:absolute;inset:0;border-radius:50%;background:#f3efe6;opacity:.9;transform:translateX(43%)"></div></div>
+          <div style="font-size:13px;color:#5b6476">Day 4 of 7</div>
+        </div>
+        <div style="margin-top:16px;width:320px;height:320px;border-radius:50%;background:#e8e1d2;position:relative;overflow:hidden">
+          <sc-for list="{{pondC}}" as="p" hint-placeholder-count="5"><div style="position:absolute;left:{{p.x}};top:{{p.y}};width:{{p.s}};height:{{p.s}};animation:{{p.anim}}">{{p.art}}</div></sc-for>
+        </div>
+        <div style="margin-top:auto;padding:0 16px 26px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="padding:14px;border-radius:22px;background:#fbf8f2;border:1px solid rgba(28,35,51,.12);display:flex;flex-direction:column;gap:2px"><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5b6476">Daily Snarl</div><div style="font-size:17px;font-weight:500">Untangle</div></div>
+            <div style="padding:14px;border-radius:22px;background:#fbf8f2;border:1px solid rgba(28,35,51,.12);display:flex;flex-direction:column;gap:2px"><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5b6476">Daily G$</div><div style="font-size:17px;font-weight:500">Claim 152.37</div></div>
+          </div>
+          <div style="height:58px;border-radius:29px;background:#1c2333;color:#f3efe6;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500">Play · World 1</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1c" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">1c</div><div style="font-size:16px;font-weight:500">Puzzle B · Rings as the counter</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0d1527;color:#e8edf6;display:flex;flex-direction:column;position:relative">
+        <div style="padding:30px 22px 0;display:flex;justify-content:space-between;align-items:center">
+          <div style="width:44px;height:44px;border-radius:22px;border:1px solid rgba(232,237,246,.14);display:grid;place-items:center;font-size:13px">Pond</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:180px">
+            <sc-for list="{{rings}}" as="r" hint-placeholder-count="7"><div style="width:14px;height:14px;border-radius:50%;border:2.5px solid oklch(0.80 0.15 65);box-sizing:border-box"></div></sc-for>
+          </div>
+          <div style="font-size:14px;color:#97a5c3;width:44px;text-align:right">3/6</div>
+        </div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 8px"><div style="width:100%;aspect-ratio:1">{{art.puzzleB}}</div></div>
+        <div style="display:flex;justify-content:space-around;padding:0 24px 34px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:56px;height:56px;border-radius:28px;background:rgba(232,237,246,.07);border:1px solid rgba(232,237,246,.12)"></div><div style="font-size:13px;color:#97a5c3">Undo</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:56px;height:56px;border-radius:28px;background:rgba(232,237,246,.07);border:1px solid rgba(232,237,246,.12)"></div><div style="font-size:13px;color:#97a5c3">Calm</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:56px;height:56px;border-radius:28px;background:rgba(232,237,246,.07);border:1px solid rgba(232,237,246,.12);display:grid;place-items:center;font-size:18px;font-weight:600">2</div><div style="font-size:13px;color:#97a5c3">Nudge</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1d" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">1d</div><div style="font-size:16px;font-weight:500">Puzzle C · Bead progress line</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0d1527;color:#e8edf6;display:flex;flex-direction:column;position:relative">
+        <div style="padding:30px 22px 0;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;justify-content:space-between;font-size:14px;color:#97a5c3"><div>World 1 · 4</div><div>Moves 3 · par 6</div></div>
+          <div style="display:flex;align-items:center">
+            <sc-for list="{{progress}}" as="p" hint-placeholder-count="9">
+              <div style="flex:1;display:flex;align-items:center"><div style="flex:1;height:3px;background:{{p.line}}"></div><div style="width:12px;height:12px;border-radius:6px;background:{{p.bead}}"></div></div>
+            </sc-for>
+          </div>
+          <div style="font-size:15px;text-align:center">7 crossings left</div>
+        </div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 14px"><div style="width:100%;aspect-ratio:1">{{art.puzzleC}}</div></div>
+        <div style="margin:0 20px 30px;height:60px;border-radius:30px;background:rgba(232,237,246,.07);border:1px solid rgba(232,237,246,.12);display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;text-align:center;font-size:16px">
+          <div>Undo</div><div style="border-left:1px solid rgba(232,237,246,.12);border-right:1px solid rgba(232,237,246,.12)">Calm view</div><div>Nudge · 3</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1e" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">1e</div><div style="font-size:16px;font-weight:500">Claim B · Week at a glance</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0f1d38;color:#e8edf6;display:flex;flex-direction:column;justify-content:flex-end;position:relative">
+        <div style="position:absolute;inset:0;background:rgba(3,6,12,.5)"></div>
+        <div style="position:relative;border-radius:32px 32px 0 0;background:#152039;padding:14px 24px 30px;display:flex;flex-direction:column;gap:22px">
+          <div style="align-self:center;width:40px;height:5px;border-radius:3px;background:rgba(232,237,246,.15)"></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#97a5c3">Your daily GoodDollar</div><div style="font-size:52px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums">152.37 <span style="font-size:24px">G$</span></div></div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:14px;color:#97a5c3">This week</div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center">
+              <sc-for list="{{week}}" as="d" hint-placeholder-count="7">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:30px;height:30px;border-radius:15px;background:{{d.bg}};border:1.5px solid {{d.border}};box-sizing:border-box"></div><div style="font-size:12px;color:#97a5c3">{{d.l}}</div></div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="font-size:14px;line-height:1.45;color:#97a5c3">GoodDollar UBI is shared daily among verified people. The amount changes a little each day.</div>
+          <div style="height:58px;border-radius:29px;background:#e8edf6;color:#0d1527;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500">Claim 152.37 G$</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1f" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">1f</div><div style="font-size:16px;font-weight:500">Claim C · Paired with the moon</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0f1d38;color:#e8edf6;display:flex;flex-direction:column;position:relative">
+        <div style="flex:1;position:relative">
+          <sc-for list="{{pondB}}" as="p" hint-placeholder-count="4"><div style="position:absolute;left:{{p.x}};top:{{p.y}};width:{{p.s}};height:{{p.s}};animation:{{p.anim}}">{{p.art}}</div></sc-for>
+        </div>
+        <div style="margin:0 16px 26px;border-radius:30px;background:#0d1527;border:1px solid rgba(232,237,246,.12);padding:20px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:16px;align-items:center">
+            <div style="position:relative;width:64px;height:64px;border-radius:50%;background:#f3ecd0;overflow:hidden;flex:none"><div style="position:absolute;inset:0;border-radius:50%;background:#0d1527;opacity:.88;transform:translateX(43%)"></div></div>
+            <div style="display:flex;flex-direction:column;gap:2px"><div style="font-size:22px;font-weight:600">Day 4 of 7</div><div style="font-size:14px;color:#97a5c3;line-height:1.35">Two small things keep the moon growing.</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;border-top:1px solid rgba(232,237,246,.08)">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid rgba(232,237,246,.08)"><div style="display:flex;flex-direction:column;gap:2px"><div style="font-size:16px">Daily Snarl</div><div style="font-size:13px;color:#97a5c3">Moon Moth · freed 08:14</div></div><div style="font-size:14px;color:#97a5c3">Done</div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0 0"><div style="display:flex;flex-direction:column;gap:2px"><div style="font-size:16px">Daily G$</div><div style="font-size:13px;color:#97a5c3">152.37 G$ ready</div></div><div style="height:40px;padding:0 18px;border-radius:20px;background:#e8edf6;color:#0d1527;display:flex;align-items:center;font-size:15px;font-weight:500">Claim</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section data-screen-label="GoodDollar screens" style="padding:40px 56px;font-family:'Fredoka',system-ui,sans-serif;color:#1c2333;display:flex;flex-direction:column;gap:28px">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:760px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5b6476">Screens 12–15 · G$ moments</div>
+    <div style="font-size:40px;font-weight:600;letter-spacing:-0.01em">Calm, not like a wallet</div>
+    <div style="font-size:17px;line-height:1.5;color:#5b6476">Every amount is shown plainly before it moves. G$ never gates a puzzle.</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+    <div id="12" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">12</div><div style="font-size:16px;font-weight:500">Connect and verify</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0d1527;color:#e8edf6;display:flex;flex-direction:column;padding:30px 24px 30px;box-sizing:border-box;gap:22px">
+        <div style="font-size:15px;color:#97a5c3">Close</div>
+        <div style="font-size:32px;font-weight:600;line-height:1.1;letter-spacing:-0.01em">Optional, and only once</div>
+        <div style="font-size:16px;line-height:1.5;color:#97a5c3">Every puzzle stays free without a wallet. Verifying lets you claim GoodDollar UBI each day and earn small rewards.</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="border-radius:22px;border:1px solid rgba(232,237,246,.14);padding:16px;display:flex;gap:14px;align-items:center">
+            <div style="width:32px;height:32px;border-radius:16px;background:#e8edf6;color:#0d1527;display:grid;place-items:center;font-size:15px;font-weight:600;flex:none">1</div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div style="font-size:16px;font-weight:500">Connect a wallet</div><div style="font-size:13px;color:#97a5c3">MiniPay found on this phone</div></div>
+            <div style="font-size:14px;color:#97a5c3">Done</div>
+          </div>
+          <div style="border-radius:22px;border:1.5px solid #e8edf6;padding:16px;display:flex;gap:14px;align-items:center">
+            <div style="width:32px;height:32px;border-radius:16px;border:1.5px solid #e8edf6;display:grid;place-items:center;font-size:15px;font-weight:600;flex:none;box-sizing:border-box">2</div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div style="font-size:16px;font-weight:500">Face check</div><div style="font-size:13px;color:#97a5c3">About 30 seconds, by GoodDollar</div></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:15px">
+          <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#97a5c3">Unlocks</div>
+          <div>Daily G$ claim, beside the Daily Snarl</div>
+          <div>A small, capped Daily Snarl reward</div>
+          <div>Gifts and the weekly Golden Knot</div>
+        </div>
+        <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px">
+          <div style="height:58px;border-radius:29px;background:#e8edf6;color:#0d1527;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500">Start face check</div>
+          <div style="height:46px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#97a5c3">Keep playing without</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="13" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">13</div><div style="font-size:16px;font-weight:500">Claim card · three states</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0f1d38;color:#e8edf6;display:flex;flex-direction:column;gap:14px;padding:30px 16px;box-sizing:border-box">
+        <div style="font-size:15px;color:#97a5c3;padding:0 6px">On the pond, beside the Daily Snarl</div>
+        <sc-for list="{{claimStates}}" as="c" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#97a5c3;padding:0 6px">{{c.tag}}</div>
+            <div style="border-radius:26px;background:#0d1527;border:1px solid rgba(232,237,246,.12);padding:16px;display:flex;flex-direction:column;gap:4px">
+              <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#97a5c3">Daily G$</div>
+              <div style="font-size:28px;font-weight:600;font-variant-numeric:tabular-nums">{{c.title}}</div>
+              <div style="font-size:13px;color:#97a5c3">{{c.sub}}</div>
+              <div style="margin-top:10px;height:40px;border-radius:20px;background:{{c.bg}};color:{{c.ink}};border:1px solid rgba(232,237,246,.2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500">{{c.btn}}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div id="14a" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">14a</div><div style="font-size:16px;font-weight:500">Gift a Snarl · pick</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0d1527;color:#e8edf6;display:flex;flex-direction:column;padding:30px 20px;box-sizing:border-box;gap:20px">
+        <div style="font-size:15px;color:#97a5c3">Back</div>
+        <div style="font-size:30px;font-weight:600;line-height:1.1">Gift a Snarl</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <sc-for list="{{giftPick}}" as="g" hint-placeholder-count="6">
+            <div style="aspect-ratio:1;border-radius:20px;border:1.5px solid {{g.border}};background:rgba(232,237,246,.04);padding:14px;box-sizing:border-box;position:relative">{{g.art}}</div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:15px">Add a G$ tip</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <sc-for list="{{tips}}" as="t" hint-placeholder-count="4">
+              <div style="height:48px;border-radius:24px;border:1.5px solid {{t.border}};background:{{t.bg}};color:{{t.ink}};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500">{{t.l}}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="font-size:14px;line-height:1.45;color:#97a5c3">Your friend gets a link. If they verify, they also claim their first UBI.</div>
+        <div style="margin-top:auto;height:58px;border-radius:29px;background:#e8edf6;color:#0d1527;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500">Review gift</div>
+      </div>
+    </div>
+
+    <div id="14b" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">14b</div><div style="font-size:16px;font-weight:500">Gift a Snarl · confirm</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0d1527;color:#e8edf6;display:flex;flex-direction:column;padding:30px 20px;box-sizing:border-box;gap:18px">
+        <div style="font-size:15px;color:#97a5c3">Back</div>
+        <div style="border-radius:30px;background:#152039;padding:24px;display:flex;flex-direction:column;align-items:center;gap:8px">
+          <div style="width:170px;height:170px">{{art.giftBig}}</div>
+          <div style="font-size:30px;font-weight:600;color:{{pipColor}}">Pip</div>
+          <div style="font-size:15px;color:#97a5c3;text-align:center">"Swims in circles on purpose. Mostly."</div>
+        </div>
+        <div style="display:flex;flex-direction:column;font-size:16px">
+          <div style="display:flex;justify-content:space-between;padding:12px 4px;border-bottom:1px solid rgba(232,237,246,.08)"><div style="color:#97a5c3">Creature card</div><div>Pip</div></div>
+          <div style="display:flex;justify-content:space-between;padding:12px 4px;border-bottom:1px solid rgba(232,237,246,.08)"><div style="color:#97a5c3">Tip</div><div style="font-variant-numeric:tabular-nums">25.00 G$</div></div>
+          <div style="display:flex;justify-content:space-between;padding:12px 4px;border-bottom:1px solid rgba(232,237,246,.08)"><div style="color:#97a5c3">Network fee</div><div style="font-variant-numeric:tabular-nums">under 0.01 G$</div></div>
+          <div style="display:flex;justify-content:space-between;padding:14px 4px;font-weight:600;font-size:18px"><div>You send</div><div style="font-variant-numeric:tabular-nums">25.00 G$</div></div>
+        </div>
+        <div style="margin-top:auto;height:58px;border-radius:29px;background:#e8edf6;color:#0d1527;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500">Send gift</div>
+      </div>
+    </div>
+
+    <div id="15" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">15</div><div style="font-size:16px;font-weight:500">The Great Untangle</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0d1527;color:#e8edf6;display:flex;flex-direction:column;padding:30px 20px;box-sizing:border-box;gap:16px">
+        <div style="display:flex;justify-content:space-between;font-size:15px;color:#97a5c3"><div>Pond</div><div>Ends Sunday</div></div>
+        <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#97a5c3">This week's community knot</div><div style="font-size:30px;font-weight:600;line-height:1.1">The Great Untangle</div></div>
+        <div style="aspect-ratio:1;width:100%">{{art.untangle}}</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;font-size:15px"><div>62% freed</div><div style="color:#97a5c3">1,204 crossings left</div></div>
+          <div style="height:8px;border-radius:4px;background:rgba(232,237,246,.1);overflow:hidden"><div style="width:62%;height:100%;border-radius:4px;background:#e8edf6"></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="border-radius:20px;border:1px solid rgba(232,237,246,.12);padding:14px;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;color:#97a5c3">Your solves</div><div style="font-size:24px;font-weight:600">9</div></div>
+          <div style="border-radius:20px;border:1px solid rgba(232,237,246,.12);padding:14px;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;color:#97a5c3">Pool</div><div style="font-size:24px;font-weight:600">120K G$</div></div>
+        </div>
+        <div style="font-size:13px;line-height:1.45;color:#97a5c3">When the knot is freed, the pool streams to contributors over 7 days.</div>
+        <div style="margin-top:auto;height:58px;border-radius:29px;background:#e8edf6;color:#0d1527;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500">Add a solve</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section data-screen-label="Edge states" style="padding:40px 56px 96px;font-family:'Fredoka',system-ui,sans-serif;color:#1c2333;display:flex;flex-direction:column;gap:28px">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:760px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5b6476">Empty and edge states</div>
+    <div style="font-size:40px;font-weight:600;letter-spacing:-0.01em">When things are quiet</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+    <div id="e1" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">e1</div><div style="font-size:16px;font-weight:500">First pond, no creatures</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0f1d38;color:#e8edf6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:30px;box-sizing:border-box;position:relative">
+        <div style="position:absolute;top:30px;left:22px;display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:50%;border:1.5px solid rgba(243,236,208,.5);box-sizing:border-box"></div><div style="font-size:15px">New moon</div></div>
+        <div style="width:120px;height:120px;border-radius:50%;border:1.5px dashed rgba(232,237,246,.25)"></div>
+        <div style="font-size:26px;font-weight:600;text-align:center">Your pond is empty</div>
+        <div style="font-size:16px;line-height:1.45;color:#97a5c3;text-align:center;max-width:250px">Everyone you free will swim here.</div>
+        <div style="position:absolute;left:16px;right:16px;bottom:26px;height:60px;border-radius:30px;background:#e8edf6;color:#0d1527;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500">Free your first Snarl</div>
+      </div>
+    </div>
+
+    <div id="e2" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">e2</div><div style="font-size:16px;font-weight:500">Out of Nudges</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0d1527;color:#e8edf6;display:flex;flex-direction:column;position:relative">
+        <div style="padding:30px 22px 0;display:flex;justify-content:center;flex-direction:column;align-items:center"><div style="font-size:44px;font-weight:600;line-height:1;color:oklch(0.80 0.15 65)">{{edgeCross}}</div><div style="font-size:13px;color:#97a5c3">crossings</div></div>
+        <div style="flex:1;display:flex;align-items:center;padding:0 16px"><div style="width:100%;aspect-ratio:1">{{art.outNudge}}</div></div>
+        <div style="margin:0 16px 12px;border-radius:22px;background:#152039;border:1px solid rgba(232,237,246,.12);padding:16px;display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:16px;font-weight:500">No Nudges left today</div>
+          <div style="font-size:14px;line-height:1.45;color:#97a5c3">Three more arrive at midnight. Calm view is always free and shows only the crossing strings.</div>
+        </div>
+        <div style="display:flex;gap:10px;padding:0 16px 30px">
+          <div style="flex:1;height:52px;border-radius:26px;border:1px solid rgba(232,237,246,.12);display:flex;align-items:center;justify-content:center;font-size:16px">Undo</div>
+          <div style="flex:1;height:52px;border-radius:26px;border:1.5px solid #e8edf6;display:flex;align-items:center;justify-content:center;font-size:16px">Calm view</div>
+          <div style="flex:1;height:52px;border-radius:26px;border:1px solid rgba(232,237,246,.12);display:flex;align-items:center;justify-content:center;font-size:16px;color:#97a5c3">Nudge 0</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="e3" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">e3</div><div style="font-size:16px;font-weight:500">Offline</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0f1d38;color:#e8edf6;display:flex;flex-direction:column;position:relative">
+        <div style="margin:30px 16px 0;padding:12px 16px;border-radius:18px;background:rgba(232,237,246,.07);font-size:14px;line-height:1.4">Offline. Puzzles still work. Your claim waits until you're back.</div>
+        <div style="flex:1;position:relative">
+          <sc-for list="{{pondB}}" as="p" hint-placeholder-count="4"><div style="position:absolute;left:{{p.x}};top:{{p.y}};width:{{p.s}};height:{{p.s}};animation:{{p.anim}}">{{p.art}}</div></sc-for>
+        </div>
+        <div style="padding:0 16px 26px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="padding:14px;border-radius:24px;background:#0d1527;border:1px solid rgba(232,237,246,.12);display:flex;flex-direction:column;gap:4px"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#97a5c3">Daily Snarl</div><div style="font-size:17px;font-weight:500">Saved offline</div><div style="font-size:13px;color:#97a5c3">Syncs later</div></div>
+            <div style="padding:14px;border-radius:24px;background:#0d1527;border:1px dashed rgba(232,237,246,.2);display:flex;flex-direction:column;gap:4px;opacity:.7"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#97a5c3">Daily G$</div><div style="font-size:17px;font-weight:500">Waiting</div><div style="font-size:13px;color:#97a5c3">Needs a connection</div></div>
+          </div>
+          <div style="height:60px;border-radius:30px;background:#e8edf6;color:#0d1527;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500">Play · World 1</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="e4" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">e4</div><div style="font-size:16px;font-weight:500">Daily Snarl already solved</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0d1527;color:#e8edf6;display:flex;flex-direction:column;padding:30px 22px;box-sizing:border-box;gap:14px">
+        <div style="font-size:15px;color:#97a5c3">Pond</div>
+        <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#97a5c3;margin-top:8px">Daily Snarl · Monday</div>
+        <div style="aspect-ratio:1;width:100%;padding:24px;box-sizing:border-box">{{art.dailyFree}}</div>
+        <div style="font-size:40px;font-weight:600;line-height:1;color:{{mothColor}}">Moon Moth</div>
+        <div style="font-size:17px;line-height:1.4">You freed it at 08:14, with 1,284 others.</div>
+        <div style="display:flex;flex-direction:column;font-size:15px;margin-top:6px">
+          <div style="display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid rgba(232,237,246,.08)"><div style="color:#97a5c3">Reward</div><div>10 G$ sent</div></div>
+          <div style="display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid rgba(232,237,246,.08)"><div style="color:#97a5c3">Next rare Snarl</div><div>in 15h 46m</div></div>
+        </div>
+        <div style="margin-top:auto;height:58px;border-radius:29px;border:1px solid rgba(232,237,246,.2);display:flex;align-items:center;justify-content:center;font-size:18px">Back to the pond</div>
+      </div>
+    </div>
+
+    <div id="e5" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><div style="padding:4px 10px;border-radius:8px;background:#1c2333;color:#f3efe6;font-family:'JetBrains Mono',monospace;font-size:13px">e5</div><div style="font-size:16px;font-weight:500">Streak dimmed, not lost</div></div>
+      <div style="width:360px;height:780px;border-radius:40px;overflow:hidden;background:#0f1d38;color:#e8edf6;display:flex;flex-direction:column;align-items:center;padding:56px 26px 26px;box-sizing:border-box;gap:18px;position:relative">
+        <div style="position:relative;width:120px;height:120px;border-radius:50%;background:#f3ecd0;overflow:hidden;opacity:.85"><div style="position:absolute;inset:0;border-radius:50%;background:#0f1d38;opacity:.9;transform:translateX(57%)"></div></div>
+        <div style="font-size:28px;font-weight:600;text-align:center;line-height:1.15">The moon dimmed a little</div>
+        <div style="font-size:16px;line-height:1.5;color:#97a5c3;text-align:center">You missed yesterday, so it lost one phase. Your streak is safe. Today's knot brings it back.</div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <sc-for list="{{phases}}" as="p" hint-placeholder-count="7"><div style="width:14px;height:14px;border-radius:7px;background:{{p.bg}};border:1.5px solid rgba(243,236,208,.5);box-sizing:border-box"></div></sc-for>
+        </div>
+        <div style="flex:1"></div>
+        <div style="width:100%;height:58px;border-radius:29px;background:#e8edf6;color:#0d1527;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500">Untangle today's Snarl</div>
+        <div style="font-size:15px;color:#97a5c3">Later</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script="">
+class Component extends DCLogic {
+  state={ready:!!window.SnarlLib};
+  componentDidMount(){ const w=()=>{ if(window.SnarlLib) this.setState({ready:true}); else this.t=setTimeout(w,40); }; w(); }
+  componentWillUnmount(){ clearTimeout(this.t); }
+  build(){
+    if(this.cache) return this.cache;
+    const L=window.SnarlLib, h=React.createElement, C=L.CREATURES;
+    const S=(c,o)=>L.svg(h,c,Object.assign({static:true,r:3.4,sw:1.2},o));
+    const tang=(c,seed,o)=>{ const p=L.scramble(c,seed,10); return S(c,Object.assign({pos:p,state:'tangled',cross:L.crossings(p,c.edges),eyes:'shut'},o)); };
+    const pond=(list,spots,theme)=>list.map((c,k)=>({x:spots[k][0]+'%',y:spots[k][1]+'%',s:(70+(k%3)*12)+'px',anim:(k%2?'snBob ':'snSwim ')+(6+k*2)+'s ease-in-out '+(-k)+'s infinite',art:S(c,{state:'free',eyes:'open',r:5.2,sw:2.3,theme})}));
+    const outPos=L.scramble(C[4],11,10);
+    const sel=0;
+    this.cache={
+      art:{
+        dailySil:S(L.RARE,{state:'silhouette',r:5,sw:2.2}),
+        puzzleB:tang(C[3],7,{static:false}),
+        puzzleC:tang(C[5],3,{static:false}),
+        giftBig:S(C[0],{state:'free',eyes:'open',r:4.5,sw:1.8}),
+        untangle:tang(C[9],21,{r:2.6,sw:.9}),
+        outNudge:S(C[4],{pos:outPos,state:'tangled',cross:L.crossings(outPos,C[4].edges),static:false,calm:true,eyes:'shut'}),
+        dailyFree:S(L.RARE,{state:'free',eyes:'open',r:3.6,sw:1.3})
+      },
+      edgeCross:L.crossings(outPos,C[4].edges).length,
+      pondA:pond([C[0],C[1],C[3],L.TUTORIAL[0],C[2]],[[14,10],[60,6],[30,40],[64,46],[20,70]]),
+      pondB:pond([C[0],C[3],L.TUTORIAL[1],C[2]],[[16,14],[58,10],[24,50],[60,56]]),
+      pondC:pond([C[0],C[1],C[3],L.TUTORIAL[0]],[[12,22],[50,12],[26,52],[56,50]],'paper'),
+      rings:[0,1,2,3,4,5,6],
+      progress:Array.from({length:9},(_,i)=>({line:i<3?'#e8edf6':'rgba(232,237,246,.15)',bead:i<3?'#e8edf6':'rgba(232,237,246,.2)'})),
+      week:['M','T','W','T','F','S','S'].map((l,i)=>({l,bg:i<3?'#e8edf6':'transparent',border:i<=3?'#e8edf6':'rgba(232,237,246,.2)'})),
+      claimStates:[
+        {tag:'Not verified',title:'Free UBI',sub:'Verify once to start claiming',btn:'Verify',bg:'transparent',ink:'#e8edf6'},
+        {tag:'Ready',title:'152.37 G$',sub:'Your daily GoodDollar',btn:'Claim',bg:'#e8edf6',ink:'#0d1527'},
+        {tag:'Claimed',title:'Claimed',sub:'Next claim in 23h 58m',btn:'Done for today',bg:'transparent',ink:'#97a5c3'}
+      ],
+      giftPick:[C[0],C[1],C[2],C[3],L.TUTORIAL[0],L.TUTORIAL[1]].map((c,i)=>({art:S(c,{state:'free',eyes:'open',r:5,sw:2.2}),border:i===sel?'#e8edf6':'rgba(232,237,246,.1)'})),
+      tips:['None','10 G$','25 G$','50 G$'].map((l,i)=>({l,border:i===2?'#e8edf6':'rgba(232,237,246,.14)',bg:i===2?'#e8edf6':'transparent',ink:i===2?'#0d1527':'#e8edf6'})),
+      pipColor:L.color(C[0],'night'), mothColor:L.color(L.RARE,'night'),
+      phases:Array.from({length:7},(_,i)=>({bg:i<3?'#f3ecd0':'transparent'}))
+    };
+    return this.cache;
+  }
+  renderVals(){ if(!window.SnarlLib) return {}; return this.build(); }
+}
+</script>
+
+
+<div id="__claude_design_branding"><style>#__claude_design_branding{position:fixed;right:16px;bottom:16px;z-index:2147483646;display:flex;align-items:center;gap:7px;height:30px;padding:0 5px 0 10px;border-radius:999px;font-family:"Anthropic Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;font-size:12.5px;font-weight:400;line-height:1;letter-spacing:normal;text-transform:none;color:#141413;background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);box-shadow:0 0 0 .5px rgba(31,30,29,.14),0 2px 10px rgba(0,0,0,.09)}
+#__claude_design_branding *{box-sizing:border-box;margin:0}
+#__claude_design_branding a{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+#__claude_design_branding a:hover span{text-decoration:underline}
+#__claude_design_branding svg{flex:none}
+#__claude_design_branding a svg{color:#D97757}
+#__claude_design_branding button{width:20px;height:20px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:currentColor;opacity:.55;border:0;background:none;cursor:pointer;flex:none;font:inherit;transition:opacity .14s}
+#__claude_design_branding button:hover{opacity:1;background:rgba(127,127,127,.22)}
+@media print{#__claude_design_branding{display:none}}</style><a href="https://claude.com/product/design" target="_blank" rel="noopener noreferrer"><svg width="14" height="14" viewBox="0 0 20 21" fill="none" aria-hidden="true"><path fill="currentColor" d="M9.99902 0C15.5258 0.000170936 19.999 4.50643 19.999 10.0547C19.999 11.7656 19.5863 12.9976 18.7861 13.8203C17.9924 14.6362 16.9465 14.9138 15.9854 15.0078C15.05 15.0993 14.0097 15.0262 13.2549 15.0186C12.8524 15.0145 12.5177 15.0267 12.2441 15.0703C11.9682 15.1144 11.8143 15.1813 11.7305 15.2432C11.4745 15.4322 11.3353 15.7121 11.2656 16.1602C11.2303 16.3875 11.2168 16.6362 11.209 16.9131C11.2017 17.1715 11.1986 17.4893 11.1807 17.7705C11.1469 18.2975 11.0495 19.0865 10.4199 19.5908C9.7846 20.0996 8.88652 20.1057 7.85449 19.877C7.36399 19.7682 6.88652 19.6232 6.42578 19.4453C2.66989 17.9949 0.000187748 14.3414 0 10.0547C0 4.50643 4.47223 0.000171048 9.99902 0ZM9.99902 1.60547C5.36781 1.60564 1.60547 5.38391 1.60547 10.0547C1.60566 13.6582 3.84823 16.7296 7.00391 17.9482C7.39027 18.0974 7.79085 18.2184 8.20215 18.3096C9.1375 18.5169 9.384 18.3633 9.41602 18.3379C9.4524 18.3087 9.54558 18.1915 9.5791 17.668C9.5947 17.4239 9.59473 17.1786 9.60352 16.8672C9.61179 16.5742 9.62831 16.2435 9.67969 15.9131C9.78359 15.2455 10.0474 14.4906 10.7764 13.9521C11.1479 13.6778 11.5842 13.5493 11.9912 13.4844C12.4007 13.4191 12.8434 13.4088 13.2705 13.4131C14.1753 13.4222 15.0071 13.4905 15.8291 13.4102C16.6257 13.3322 17.2249 13.1235 17.6357 12.7012C18.0401 12.2855 18.3935 11.5261 18.3936 10.0547C18.3936 5.38391 14.6302 1.60564 9.99902 1.60547ZM5.11621 9.86719C5.86386 9.91468 6.45486 10.5348 6.45508 11.2939C6.45506 12.0838 5.81519 12.7245 5.02539 12.7246C4.28481 12.7246 3.67573 12.1617 3.60254 11.4404L3.59473 11.2939L3.60156 11.1533C3.66942 10.4596 4.23282 9.91186 4.93359 9.86719H5.11621ZM14.9814 7.19141C15.729 7.23889 16.3199 7.85919 16.3203 8.61816C16.3203 9.40801 15.6804 10.0487 14.8906 10.0488C14.1501 10.0487 13.5409 9.48586 13.4678 8.76465L13.46 8.61816L13.4668 8.47754C13.5348 7.78403 14.0983 7.23618 14.7988 7.19141H14.9814ZM6.4541 4.93457C7.20161 4.9822 7.79275 5.60231 7.79297 6.36133C7.79288 7.151 7.15291 7.7917 6.36328 7.79199C5.62274 7.79199 5.01369 7.22903 4.94043 6.50781L4.93262 6.36133L4.93945 6.2207C5.00731 5.52698 5.5707 4.97922 6.27148 4.93457H6.4541ZM11.3867 3.59668C12.1343 3.64419 12.7253 4.26436 12.7256 5.02344C12.7256 5.81326 12.0857 6.45393 11.2959 6.4541C10.5553 6.4541 9.94622 5.89123 9.87305 5.16992L9.86523 5.02344L9.87207 4.88281C9.93996 4.18912 10.5033 3.64133 11.2041 3.59668H11.3867Z"></path></svg><span>Made with Claude Design</span></a><button type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg></button></div></body></html>

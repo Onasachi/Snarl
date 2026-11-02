@@ -1,0 +1,255 @@
+/* Fredoka, self-hosted variable subsets (weight 300–600). */
+@font-face {
+  font-family: "Fredoka";
+  font-style: normal;
+  font-weight: 300 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("/fonts/fredoka-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Fredoka";
+  font-style: normal;
+  font-weight: 300 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("/fonts/fredoka-latin-ext.woff2") format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4,
+    U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Fredoka";
+  font-style: normal;
+  font-weight: 300 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("/fonts/fredoka-hebrew.woff2") format("woff2");
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+
+/* Theme tokens. The warm accent belongs to crossings only, never to UI chrome. */
+:root,
+[data-theme="night"] {
+  --bg: #0d1527;
+  --bg2: #152039;
+  --water: #0f1d38;
+  --card: rgb(232 237 246 / 7%);
+  --card-line: rgb(232 237 246 / 12%);
+  --ink: #e8edf6;
+  --ink2: #97a5c3;
+  --tangled: #58678b;
+  --string: #7290bd;
+  --warm: oklch(0.8 0.15 65);
+  --eye: #0d1527;
+  --moon: #f3ecd0;
+  --creature-l: 0.8;
+  --creature-c: 0.13;
+  --tint-l: 0.91;
+  --tint-c: 0.05;
+}
+
+[data-theme="paper"] {
+  --bg: #f3efe6;
+  --bg2: #fbf8f2;
+  --water: #e8e1d2;
+  --card: rgb(28 35 51 / 5%);
+  --card-line: rgb(28 35 51 / 12%);
+  --ink: #1c2333;
+  --ink2: #5b6476;
+  --tangled: #9ea6b8;
+  --string: #8291b0;
+  --warm: oklch(0.68 0.16 55);
+  --eye: #1c2333;
+  --moon: #cdb978;
+  --creature-l: 0.68;
+  --creature-c: 0.14;
+  --tint-l: 0.8;
+  --tint-c: 0.09;
+}
+
+html,
+body {
+  margin: 0;
+  background: #05080f;
+  color: var(--ink);
+  font-family: "Fredoka", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+button {
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Tabular figures for every counter: the numbers must not jitter while dragging. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Motion kit. Timings come from the brand doc's motion table. */
+@keyframes sn-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+@keyframes sn-shiver {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(0.28px, -0.2px);
+  }
+  50% {
+    transform: translate(-0.22px, 0.16px);
+  }
+  75% {
+    transform: translate(0.16px, 0.26px);
+  }
+}
+@keyframes sn-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.28);
+    opacity: 0.65;
+  }
+}
+@keyframes sn-spark {
+  from {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+@keyframes sn-drop {
+  0% {
+    transform: scale(1.14);
+  }
+  55% {
+    transform: scale(0.94);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes sn-swim {
+  0%,
+  100% {
+    transform: translate(-26px, 0);
+  }
+  50% {
+    transform: translate(26px, -10px);
+  }
+}
+@keyframes sn-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+@keyframes sn-walk {
+  0%,
+  100% {
+    transform: translateX(-28px);
+  }
+  50% {
+    transform: translateX(28px);
+  }
+}
+@keyframes sn-sit {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+@keyframes sn-enter {
+  from {
+    transform: translateY(260px) scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes sn-react {
+  0% {
+    transform: none;
+  }
+  30% {
+    transform: translateY(-14px) scale(1.18) rotate(-8deg);
+  }
+  65% {
+    transform: translateY(2px) scale(0.95) rotate(5deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes sn-up {
+  from {
+    transform: translateY(48px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes sn-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes sn-attn {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+/* Reduce motion swaps glides for instant moves, and stops breathing and shivering. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
