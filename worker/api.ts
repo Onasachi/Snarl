@@ -1,5 +1,6 @@
 /**
- * The Daily Snarl counter. Not deployed yet — this is the shape of the service the client
+ * The small amount of state the game cannot hold on its own: how many people freed a
+ * given day's rare Snarl, and how far the week's community knot has come. Not deployed yet — this is the shape of the service the client
  * already knows how to call, and it stays dormant until someone sets VITE_API_URL.
  *
  * It holds one number per day: how many people freed that day's rare Snarl. That is all
@@ -8,7 +9,7 @@
  * capped G$ rewards in Phase 5 must not be paid from it.
  *
  * Deploy with wrangler, bound to a KV namespace called DAILY:
- *   wrangler deploy worker/daily.ts --name snarl-daily
+ *   wrangler deploy worker/api.ts --name snarl-api
  */
 
 /**
@@ -87,6 +88,22 @@ export default {
     return json({ error: "not found" }, env, 404);
   },
 };
+
+/**
+ * The Great Untangle's shared progress, for a later version of this worker.
+ *
+ * A week's knot is derivable from its ISO week, the same way a day's is from its date, so
+ * a submitted pass can be replayed and checked rather than believed. Until that check is
+ * written this stays unrouted: a community number that anyone can inflate with curl is
+ * fine as company on the Daily Snarl, but the Great Untangle is the thing a pool would
+ * eventually pay out against, and a number worth money has to be a number worth trusting.
+ *
+ *   GET  /untangle/:week  -> { week, seed, resolved, total, contributors }
+ *   POST /untangle/:week  -> { resolved }   body: { resolved, proof }
+ *
+ * The pool itself — the design's 120K G$ streamed to contributors over seven days — needs
+ * a contract decision before any of this means anything, so no figure appears in the game.
+ */
 
 /**
  * The Daily Snarl reward (Phase 5 of PLAN.md) is deliberately NOT implemented here.

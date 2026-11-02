@@ -73,3 +73,52 @@ describe("the countdown", () => {
     expect(formatClock(new Date(2026, 10, 2, 23, 5).getTime())).toBe("23:05");
   });
 });
+
+describe("the weekly knot", () => {
+  it("names ISO weeks, which do not always match the calendar year", async () => {
+    const { weekKey } = await import("~/game/weekly");
+    expect(weekKey(new Date(2026, 10, 3))).toBe("2026-W45");
+    // 1 January 2027 is a Friday, so it belongs to the last week of 2026.
+    expect(weekKey(new Date(2027, 0, 1))).toBe("2026-W53");
+    // 4 January 2027 is the Monday that starts 2027's first week.
+    expect(weekKey(new Date(2027, 0, 4))).toBe("2027-W01");
+  });
+
+  it("holds all week and turns over on Monday", async () => {
+    const { weekKey } = await import("~/game/weekly");
+    const monday = weekKey(new Date(2026, 10, 2));
+    expect(weekKey(new Date(2026, 10, 8, 23, 59))).toBe(monday);
+    expect(weekKey(new Date(2026, 10, 9))).not.toBe(monday);
+  });
+
+  it("counts down to the end of Sunday", async () => {
+    const { endsLabel, msUntilNextWeek } = await import("~/game/weekly");
+    expect(endsLabel(new Date(2026, 10, 3))).toBe("Ends Sunday");
+    expect(endsLabel(new Date(2026, 10, 7))).toBe("Ends tomorrow");
+    expect(endsLabel(new Date(2026, 10, 8))).toBe("Ends today");
+    expect(msUntilNextWeek(new Date(2026, 10, 8, 23, 0))).toBe(60 * 60 * 1000);
+  });
+
+  it("gives every week its own knot, and a solvable one", async () => {
+    const { WEEKLY_CREATURE, weekKey, weeklySeed } = await import("~/game/weekly");
+    const seeds = new Set<number>();
+    for (let i = 0; i < 60; i++) {
+      const week = weekKey(new Date(2026, 0, 1 + i * 7));
+      const seed = weeklySeed(week);
+      seeds.add(seed);
+      const pos = scramble(WEEKLY_CREATURE, seed, 12);
+      expect(pos, `no tangle for ${week}`).not.toBeNull();
+      expect(crossings(pos!, WEEKLY_CREATURE.edges).length).toBeGreaterThan(0);
+    }
+    expect(seeds.size).toBe(60);
+  });
+});
+
+describe("passes at the week's knot", () => {
+  it("starts again each week rather than carrying over", async () => {
+    const { nextWeeklySolves } = await import("~/game/weekly");
+    expect(nextWeeklySolves(null, 0, "2026-W45")).toBe(1);
+    expect(nextWeeklySolves("2026-W45", 8, "2026-W45")).toBe(9);
+    expect(nextWeeklySolves("2026-W44", 8, "2026-W45")).toBe(1);
+  });
+});

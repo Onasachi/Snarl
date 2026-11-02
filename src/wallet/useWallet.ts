@@ -79,21 +79,28 @@ export function useWallet() {
     }
   }, [account]);
 
-  const connect = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const wallet = await load();
-      const connected = await wallet.connect();
-      setAccount(connected);
-      remember(true);
-      setStatus(await wallet.getClaimStatus());
-    } catch (cause) {
-      setError(asError(cause));
-    } finally {
-      setBusy(false);
-    }
-  }, [load]);
+  const connect = useCallback(
+    async ({ silent = false } = {}) => {
+      setBusy(true);
+      setError(null);
+      try {
+        const wallet = await load();
+        const connected = await wallet.connect();
+        setAccount(connected);
+        remember(true);
+        setStatus(await wallet.getClaimStatus());
+      } catch (cause) {
+        // Resuming is something this session decided to try, not something the player
+        // just asked for. Failing at it quietly is better than greeting them with an
+        // error about a wallet they never opened.
+        if (!silent) setError(asError(cause));
+        else remember(false);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [load],
+  );
 
   const claim = useCallback(async (): Promise<bigint | null> => {
     if (!port.current) return null;
@@ -158,7 +165,7 @@ export function useWallet() {
         url.searchParams.delete("demo-verified");
         window.history.replaceState({}, "", url);
       }
-      await connect();
+      await connect({ silent: true });
     })();
   }, [account, connect]);
 

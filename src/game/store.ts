@@ -10,6 +10,7 @@ import {
   nudgesForDay,
   TUTORIAL_KNOTS,
 } from "./progress";
+import { nextWeeklySolves } from "./weekly";
 
 /** One creature in the pond, in the order it was freed. */
 export interface FreedCreature {
@@ -20,6 +21,10 @@ export interface FreedCreature {
   at: number;
   moves: number;
   underPar: boolean;
+  /** Arrived as a gift rather than being freed here. */
+  gifted?: boolean;
+  /** Who sent it, when they said. */
+  from?: string;
 }
 
 interface GameState {
@@ -34,15 +39,22 @@ interface GameState {
   nudgeDay: string | null;
   moon: number;
   lastDailyDay: string | null;
+  /** Passes contributed to this week's Great Untangle, and the week they belong to. */
+  weeklySolves: number;
+  weeklyWeek: string | null;
   /** When today's Daily Snarl was freed, for "you freed it at 08:14". */
   lastDailyAt: number | null;
 
   openDay: (today?: string) => void;
   recordFreed: (creature: Creature, moves: number) => void;
+  /** A creature someone else freed and sent on. No shell: it was not this player's solve. */
+  receiveGift: (creature: Creature, from?: string) => void;
   completeTutorialStep: () => void;
   advancePlay: () => void;
   spendNudge: () => void;
   recordDailySolved: (today?: string) => void;
+  /** Adds a pass at the week's knot. The count starts again each week. */
+  recordWeeklySolve: (week: string) => void;
   clearProgress: () => Promise<void>;
 }
 
@@ -74,6 +86,8 @@ export const useGame = create<GameState>()(
       moon: 0,
       lastDailyDay: null,
       lastDailyAt: null,
+      weeklySolves: 0,
+      weeklyWeek: null,
 
       /** Run once on load, and whenever the app comes back to a new day. */
       openDay: (today = dayKey()) =>
@@ -94,6 +108,19 @@ export const useGame = create<GameState>()(
           }),
         })),
 
+      receiveGift: (creature, from) =>
+        setState((s) => ({
+          freed: s.freed.concat({
+            id: creature.id,
+            key: `${creature.id}-gift-${s.freed.length}-${Date.now()}`,
+            at: Date.now(),
+            moves: 0,
+            underPar: false,
+            gifted: true,
+            ...(from ? { from } : {}),
+          }),
+        })),
+
       completeTutorialStep: () =>
         setState((s) => ({ tutorialStep: Math.min(TUTORIAL_KNOTS.length, s.tutorialStep + 1) })),
 
@@ -108,6 +135,12 @@ export const useGame = create<GameState>()(
           lastDailyAt: Date.now(),
         })),
 
+      recordWeeklySolve: (week) =>
+        setState((s) => ({
+          weeklyWeek: week,
+          weeklySolves: nextWeeklySolves(s.weeklyWeek, s.weeklySolves, week),
+        })),
+
       clearProgress: async () => {
         await del(KEY);
         setState({
@@ -119,6 +152,8 @@ export const useGame = create<GameState>()(
           moon: 0,
           lastDailyDay: null,
           lastDailyAt: null,
+          weeklySolves: 0,
+          weeklyWeek: null,
         });
         getState().openDay();
       },

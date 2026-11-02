@@ -1,26 +1,17 @@
 import { RARE } from "~/data";
 import type { Creature } from "~/engine";
 import { dayKey } from "./progress";
+import { seedFromString } from "./seed";
 
 /** The Daily Snarl is always the rare one. */
 export const DAILY_CREATURE: Creature = RARE;
 
 /**
- * FNV-1a over the day string. Everyone on Earth gets the same knot on the same date, and
- * a server can derive it from the date alone to check a submitted solve.
- *
- * This is a wire format, not an implementation detail: changing it changes everyone's
- * puzzle and invalidates any solve the server has already recorded.
+ * Everyone on Earth gets the same knot on the same date, and a server can derive it from
+ * the date alone to check a submitted solve. Pinned by a test: this is a wire format, and
+ * changing it invalidates every solve already recorded.
  */
-export function dailySeed(day: string): number {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < day.length; i++) {
-    hash ^= day.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  // Keep it a safe positive integer: the scrambler multiplies the seed.
-  return (hash >>> 0) % 1_000_000;
-}
+export const dailySeed = (day: string): number => seedFromString(day);
 
 export const isDailySolved = (lastDailyDay: string | null, today: string = dayKey()): boolean =>
   lastDailyDay === today;

@@ -8,6 +8,7 @@ import { DailyCard } from "~/game/DailyCard";
 import { Moon } from "~/game/Moon";
 import { MOON_PHASES } from "~/game/progress";
 import { type FreedCreature, useGame } from "~/game/store";
+import { endsLabel } from "~/game/weekly";
 import { useReducedMotion } from "~/hooks/useReducedMotion";
 import { CreatureSvg } from "~/render/CreatureSvg";
 import type { ClaimCardState, ClaimStatus } from "~/wallet";
@@ -41,6 +42,8 @@ export function PondScreen({
   dailySolved,
   dailySubtitle,
   onOpenDaily,
+  onGift,
+  onUntangle,
   claim,
   toast,
 }: {
@@ -51,6 +54,8 @@ export function PondScreen({
   dailySolved: boolean;
   dailySubtitle: string | null;
   onOpenDaily: () => void;
+  onGift: () => void;
+  onUntangle: () => void;
   /** Rendered above the bottom stack. */
   toast: ReactNode;
   /** The G$ layer. Entirely optional: with no wallet the pond is exactly as it was. */
@@ -96,8 +101,11 @@ export function PondScreen({
       >
         <Moon moon={moon} onTap={moonTap} />
         <div style={{ display: "flex", gap: 6 }}>
-          <StubButton onClick={stub}>Journal</StubButton>
-          <StubButton onClick={stub}>Shop</StubButton>
+          <HeaderButton onClick={onGift} muted={false}>
+            Gift
+          </HeaderButton>
+          <HeaderButton onClick={stub}>Journal</HeaderButton>
+          <HeaderButton onClick={stub}>Shop</HeaderButton>
         </div>
       </header>
 
@@ -182,6 +190,29 @@ export function PondScreen({
         }}
       >
         {toast}
+
+        <button
+          type="button"
+          onClick={onUntangle}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            width: "100%",
+            minHeight: 44,
+            padding: "0 16px",
+            border: "1px solid var(--card-line)",
+            borderRadius: 999,
+            background: "transparent",
+            color: "var(--ink)",
+            fontSize: 15,
+            cursor: "pointer",
+          }}
+        >
+          <span>The Great Untangle</span>
+          <span style={{ color: "var(--ink2)", fontSize: 13 }}>{endsLabel()} ›</span>
+        </button>
         <DailyCard solved={dailySolved} subtitle={dailySubtitle} onOpen={onOpenDaily} />
 
         <ClaimCard
@@ -218,7 +249,15 @@ export function PondScreen({
   );
 }
 
-function StubButton({ children, onClick }: { children: string; onClick: () => void }) {
+function HeaderButton({
+  children,
+  onClick,
+  muted = true,
+}: {
+  children: string;
+  onClick: () => void;
+  muted?: boolean;
+}) {
   return (
     <button
       type="button"
@@ -229,7 +268,7 @@ function StubButton({ children, onClick }: { children: string; onClick: () => vo
         border: "1px solid var(--card-line)",
         borderRadius: 999,
         background: "transparent",
-        color: "var(--ink2)",
+        color: muted ? "var(--ink2)" : "var(--ink)",
         fontSize: 14,
         cursor: "pointer",
       }}

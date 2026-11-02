@@ -56,6 +56,7 @@ export function Moon({ moon, onTap }: { moon: number; onTap: () => void }) {
             letterSpacing: "0.08em",
             textTransform: "uppercase",
             color: "var(--ink2)",
+            whiteSpace: "nowrap",
           }}
         >
           streak moon

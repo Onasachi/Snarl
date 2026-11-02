@@ -119,7 +119,8 @@ Two notes:
   and `recordDailySolved` is waiting for Phase 4 to call it.
 - The empty-pond state cannot be reached by playing, since the tutorial always leaves three
   creatures. It is kept for a partial restore and for the reset that a settings screen will
-  eventually want; verified by emptying the stored record by hand.
+  eventually want; verified by emptying the stored record by hand. (Phase 6 gave it a real
+  route: someone whose first sight of snarl is a gift link lands on their own empty pond.)
 
 ### Phase 4 — Daily Snarl ✅ done
 Date-derived seed (same tangle worldwide, verifiable server-side from the shared rng),
@@ -180,11 +181,30 @@ What landed, and what the live docs changed:
   (`?wallet=demo`, development builds only) including the full leave-and-return trip
   through verification. The live adapter is written, typechecked and unexercised.
 
-### Phase 6 — Social (1–2 weeks, design first)
+### Phase 6 — Social ⚠️ gifting done, the Great Untangle is a shell
 Gift a Snarl (creature + optional tip, share link, recipient's first UBI on verifying) and
 The Great Untangle (shared weekly knot, 62%-freed style aggregate, pool streaming over
 7 days). Both need authoritative server state and a contract decision; scope them after
 Phase 5 ships.
+
+**Gifting works, without the tip.** The whole gift rides in the link's fragment, which is
+never sent to a server, so there is nothing to sign up for at either end and nothing kept
+anywhere. Opening a link cold lands on the pond the creature is joining; pasting one into
+an already-open tab works too, since a fragment change reloads nothing.
+
+The design's G$ tip is **not built, and cannot be as drawn**: a link has no address behind
+it until someone opens it, so a tip needs either the recipient's wallet up front — which
+is not how a link works — or an escrow contract to hold it until it is claimed. That is a
+contract decision, not an afternoon's work, so there is no tip box rather than one that
+quietly does nothing.
+
+**The Great Untangle is honest scaffolding.** The week's knot is real and shared: an ISO
+week derives the seed the same way a date does, so everyone gets the same tangle until
+Sunday, and passes at it are counted locally. The community total and the pool are not
+there. A shared number is only worth showing if a server can check a pass rather than
+believe it, and the pool needs a contract before any figure means anything, so the screen
+counts the player's own passes and says plainly that the rest is still being built. The
+endpoint shapes and the reasoning are at the end of `worker/api.ts`.
 
 ### Phase 7 — Polish and release
 A11y pass (44pt targets, reduce-motion, non-colour signals, contrast in both themes),
