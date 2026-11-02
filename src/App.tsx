@@ -1,25 +1,69 @@
 import { useCallback, useState } from "react";
-import { CREATURES, TUTORIAL } from "~/data";
 import { PhoneFrame } from "~/game/PhoneFrame";
+import { creatureForPlay, playCaption, TUTORIAL_KNOTS } from "~/game/progress";
+import { PondScreen } from "~/game/screens/PondScreen";
 import { PuzzleScreen } from "~/game/screens/PuzzleScreen";
 import { SplashScreen } from "~/game/screens/SplashScreen";
+import { useGame } from "~/game/store";
 import { Toast, useToast } from "~/game/Toast";
 
-/** Two tutorial knots, then World 1 in order. The pond arrives in Phase 3. */
-const ORDER = [...TUTORIAL, ...CREATURES];
-const NUDGES_PER_DAY = 3;
+type Screen = "splash" | "puzzle" | "pond";
+
+/** How long the creatures take to rise into the pond the first time. */
+const INTRO_MS = 3500;
 
 export function App() {
-  const [begun, setBegun] = useState(false);
-  const [index, setIndex] = useState(0);
-  const [nudges, setNudges] = useState(NUDGES_PER_DAY);
+  const [screen, setScreen] = useState<Screen>("splash");
+  const [intro, setIntro] = useState(false);
   const toast = useToast();
 
-  const creature = ORDER[index % ORDER.length]!;
-  const isTutorial = index < TUTORIAL.length;
+  const hydrated = useGame((s) => s.hydrated);
+  const tutorialStep = useGame((s) => s.tutorialStep);
+  const playIndex = useGame((s) => s.playIndex);
+  const nudges = useGame((s) => s.nudges);
+  const recordFreed = useGame((s) => s.recordFreed);
+  const completeTutorialStep = useGame((s) => s.completeTutorialStep);
+  const advancePlay = useGame((s) => s.advancePlay);
+  const spendNudge = useGame((s) => s.spendNudge);
 
-  const next = useCallback(() => setIndex((i) => (i + 1) % ORDER.length), []);
-  const spendNudge = useCallback(() => setNudges((n) => Math.max(0, n - 1)), []);
+  const inTutorial = tutorialStep < TUTORIAL_KNOTS.length;
+  const creature = inTutorial ? TUTORIAL_KNOTS[tutorialStep]! : creatureForPlay(playIndex);
+  const seed = inTutorial ? tutorialStep : playIndex;
+  const lastTutorialKnot = tutorialStep === TUTORIAL_KNOTS.length - 1;
+
+  const toPond = useCallback((withIntro: boolean) => {
+    setIntro(withIntro);
+    setScreen("pond");
+    if (withIntro) window.setTimeout(() => setIntro(false), INTRO_MS);
+  }, []);
+
+  /** Begin leads to the tutorial for a new player, and straight to the pond for everyone else. */
+  const begin = useCallback(() => {
+    setScreen(tutorialStep < TUTORIAL_KNOTS.length ? "puzzle" : "pond");
+  }, [tutorialStep]);
+
+  const next = useCallback(
+    (moves: number) => {
+      recordFreed(creature, moves);
+      if (inTutorial) {
+        completeTutorialStep();
+        if (lastTutorialKnot) toPond(true);
+        return;
+      }
+      advancePlay();
+      toPond(false);
+    },
+    [
+      advancePlay,
+      completeTutorialStep,
+      creature,
+      inTutorial,
+      lastTutorialKnot,
+      recordFreed,
+      toPond,
+    ],
+  );
+
   const noNudges = useCallback(
     () => toast.show("Out of Nudges for today. Calm view still helps."),
     [toast],
@@ -27,34 +71,41 @@ export function App() {
 
   return (
     <PhoneFrame>
-      {begun ? (
+      {screen === "splash" && <SplashScreen onBegin={begin} enabled={hydrated} />}
+
+      {screen === "puzzle" && (
         <PuzzleScreen
-          key={`${creature.id}-${index}`}
+          key={`${creature.id}-${seed}-${tutorialStep}`}
           creature={creature}
-          seed={index}
+          seed={seed}
           caption={
-            isTutorial ? `Tutorial · ${index + 1} of ${TUTORIAL.length}` : `World 1 · ${index - 1}`
+            inTutorial
+              ? `Tutorial · ${tutorialStep + 1} of ${TUTORIAL_KNOTS.length}`
+              : playCaption(playIndex)
           }
           hint={
-            index === 0
+            tutorialStep === 0
               ? "Drag a bead until no strings cross."
-              : index === TUTORIAL.length && nudges === NUDGES_PER_DAY
+              : lastTutorialKnot && inTutorial
                 ? "Stuck? Nudge shows one bead to move."
                 : ""
           }
-          withHand={index === 0}
-          almostFree={index > 0}
-          showNudge={!isTutorial}
-          highlightNudge={index === TUTORIAL.length && nudges === NUDGES_PER_DAY}
+          withHand={tutorialStep === 0}
+          almostFree={tutorialStep > 0}
+          showNudge={!inTutorial || lastTutorialKnot}
+          highlightNudge={inTutorial && lastTutorialKnot}
           nudgesLeft={nudges}
           onSpendNudge={spendNudge}
           onNoNudges={noNudges}
-          nextLabel="Next knot"
+          nextLabel={inTutorial && !lastTutorialKnot ? "Next knot" : "Release to the pond"}
           onNext={next}
         />
-      ) : (
-        <SplashScreen onBegin={() => setBegun(true)} />
       )}
+
+      {screen === "pond" && (
+        <PondScreen onPlay={() => setScreen("puzzle")} intro={intro} onToast={toast.show} />
+      )}
+
       <Toast message={toast.message} />
     </PhoneFrame>
   );

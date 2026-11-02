@@ -12,7 +12,8 @@ export interface PuzzleScreenProps extends UsePuzzleOptions {
   nudgesLeft: number;
   /** Label on the name card's button. */
   nextLabel: string;
-  onNext: () => void;
+  /** Called with the move count, so the pond can record how the creature was freed. */
+  onNext: (moves: number) => void;
   /** Draws attention to Nudge the first time it is available. */
   highlightNudge?: boolean;
   showNudge?: boolean;
@@ -174,7 +175,12 @@ export function PuzzleScreen({
       </div>
 
       {p.card && (
-        <NameCard creature={creature} chips={chips} actionLabel={nextLabel} onAction={onNext} />
+        <NameCard
+          creature={creature}
+          chips={chips}
+          actionLabel={nextLabel}
+          onAction={() => onNext(p.moves)}
+        />
       )}
     </>
   );

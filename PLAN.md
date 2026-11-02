@@ -102,10 +102,24 @@ out-of-nudges toast, the tutorial's drifting hand, and the name card with the un
 shell. Played through the two tutorial knots and into World 1 in the browser. No pond, no
 wallet, no server, and no component tests — the screens were verified by playing them.
 
-### Phase 3 — Pond, progression, persistence (2–3 days)
+### Phase 3 — Pond, progression, persistence ✅ done
 Pond with per-creature idle animation (`swim`/`bob`/`walk`/`sit`), tap-to-react, the
 10-slot layout; 3-knot tutorial; streak moon (7 phases, a miss dims one phase, streak
 survives); Journal and Shop as stubs; persistence to IndexedDB; empty-pond state.
+
+Landed: the progression rules are pure functions in `src/game/progress.ts` with their own
+tests — day boundaries, nudge refill, and the moon's forgiveness rule (a fortnight away
+costs the same one phase as a single missed day, which is what the copy promises). State
+persists to IndexedDB rather than localStorage: the pond is the only record of the
+player's collection. Played the whole tutorial through to the pond and reloaded to confirm
+the pond comes back.
+
+Two notes:
+- The streak moon has nowhere to grow until the Daily Snarl exists, so it reads "New moon"
+  and `recordDailySolved` is waiting for Phase 4 to call it.
+- The empty-pond state cannot be reached by playing, since the tutorial always leaves three
+  creatures. It is kept for a partial restore and for the reset that a settings screen will
+  eventually want; verified by emptying the stored record by hand.
 
 ### Phase 4 — Daily Snarl (1–2 days)
 Date-derived seed (same tangle worldwide, verifiable server-side from the shared rng),

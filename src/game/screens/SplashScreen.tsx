@@ -13,7 +13,13 @@ const PAD = 12;
  * It is also where the audio context gets its first user gesture: nothing can make a
  * sound until Begin is pressed.
  */
-export function SplashScreen({ onBegin }: { onBegin: () => void }) {
+export function SplashScreen({
+  onBegin,
+  enabled = true,
+}: {
+  onBegin: () => void;
+  enabled?: boolean;
+}) {
   const reduce = useReducedMotion();
   const [pos, setPos] = useState<Pt[]>(() => scramble(BUB, 0, PAD) ?? solvedLayout(BUB.nodes, PAD));
   const [freed, setFreed] = useState(false);
@@ -62,6 +68,7 @@ export function SplashScreen({ onBegin }: { onBegin: () => void }) {
   }, [reduce]);
 
   const begin = () => {
+    if (!enabled) return;
     audio.init();
     audio.chime();
     onBegin();
@@ -112,7 +119,7 @@ export function SplashScreen({ onBegin }: { onBegin: () => void }) {
           fontSize: 18,
           fontWeight: 500,
           cursor: "pointer",
-          opacity: ready ? 1 : 0,
+          opacity: ready && enabled ? 1 : 0,
           transition: "opacity .6s ease",
         }}
       >
