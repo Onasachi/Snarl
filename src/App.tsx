@@ -72,6 +72,7 @@ export function App() {
   const spendNudge = useGame((s) => s.spendNudge);
   const recordDailySolved = useGame((s) => s.recordDailySolved);
   const recordWeeklySolve = useGame((s) => s.recordWeeklySolve);
+  const weeklyEarnedWeek = useGame((s) => s.weeklyEarnedWeek);
   const receiveGift = useGame((s) => s.receiveGift);
 
   const week = useMemo(() => weekKey(), []);
@@ -126,9 +127,16 @@ export function App() {
       // A pass at the week's knot counts towards the Great Untangle. It does not join the
       // pond: everyone is working the same creature, and ten copies of it is not a pond.
       if (isWeekly) {
-        recordWeeklySolve(week);
+        const first = weeklyEarnedWeek !== week;
+        recordWeeklySolve(week, WEEKLY_CREATURE);
         setMode("progress");
         setScreen("untangle");
+        if (first) {
+          window.setTimeout(
+            () => toast.show(`${WEEKLY_CREATURE.name} joined your pond. Back on Monday.`),
+            600,
+          );
+        }
         return;
       }
 
@@ -158,6 +166,7 @@ export function App() {
       toPond,
       today,
       week,
+      weeklyEarnedWeek,
     ],
   );
 
@@ -260,7 +269,11 @@ export function App() {
           onSpendNudge={spendNudge}
           onNoNudges={noNudges}
           nextLabel={
-            !isDaily && inTutorial && !lastTutorialKnot ? "Next knot" : "Release to the pond"
+            isWeekly
+              ? `Keep ${WEEKLY_CREATURE.name}`
+              : !isDaily && inTutorial && !lastTutorialKnot
+                ? "Next knot"
+                : "Release to the pond"
           }
           onNext={next}
           toast={<Toast message={toast.message} />}

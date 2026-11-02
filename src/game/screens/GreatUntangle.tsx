@@ -1,16 +1,17 @@
 import { useMemo } from "react";
+import { creatureColor } from "~/data";
 import { crossings, scramble } from "~/engine";
 import { useGame } from "~/game/store";
 import { endsLabel, WEEKLY_CREATURE, weeklySeed } from "~/game/weekly";
 import { CreatureSvg } from "~/render/CreatureSvg";
 
 /**
- * Screen 15: the week's community knot. Everyone gets the same tangle and picks at it
- * together.
+ * Screen 15: the week's knot. Everyone gets the same tangle until Sunday, and inside it is
+ * Glint, who is only ever found this way.
  *
- * The community total needs a server that can check a pass rather than believe it, and
- * the design's pool needs a contract. Neither exists, so this speaks only for the player
- * in front of it, and promises nothing it cannot keep.
+ * What it pays is a creature, not money — PLAN.md has the reasoning. A prize made of the
+ * game's own currency needs no treasury and no contract, and cannot be farmed for
+ * anything, which is also what makes the shared total safe to add later.
  */
 export function GreatUntangle({
   week,
@@ -23,7 +24,9 @@ export function GreatUntangle({
 }) {
   const solves = useGame((s) => s.weeklySolves);
   const storedWeek = useGame((s) => s.weeklyWeek);
+  const earnedWeek = useGame((s) => s.weeklyEarnedWeek);
   const mine = storedWeek === week ? solves : 0;
+  const earned = earnedWeek === week;
 
   const { art, startingCrossings } = useMemo(() => {
     const pos = scramble(WEEKLY_CREATURE, weeklySeed(week), 10);
@@ -95,8 +98,11 @@ export function GreatUntangle({
         </p>
         <h2 style={{ fontSize: 30, fontWeight: 600, margin: "0 0 10px" }}>The Great Untangle</h2>
 
-        <div style={{ width: "100%", aspectRatio: "1 / 1", maxHeight: 300, justifySelf: "center" }}>
-          {art && (
+        <div style={{ width: "100%", aspectRatio: "1 / 1", maxHeight: 280, justifySelf: "center" }}>
+          {earned && (
+            <CreatureSvg creature={WEEKLY_CREATURE} state="free" eyes="open" r={4} sw={1.6} />
+          )}
+          {!earned && art && (
             <CreatureSvg
               creature={WEEKLY_CREATURE}
               pos={art}
@@ -137,17 +143,26 @@ export function GreatUntangle({
                 color: "var(--ink2)",
               }}
             >
-              Crossings
+              {earned ? "Freed" : "Crossings"}
             </dt>
-            <dd className="tnum" style={{ fontSize: 30, fontWeight: 600, margin: 0 }}>
-              {startingCrossings}
+            <dd
+              className="tnum"
+              style={{
+                fontSize: 30,
+                fontWeight: 600,
+                margin: 0,
+                color: earned ? creatureColor(WEEKLY_CREATURE, "night") : "var(--ink)",
+              }}
+            >
+              {earned ? WEEKLY_CREATURE.name : startingCrossings}
             </dd>
           </div>
         </dl>
 
         <p style={{ fontSize: 13, lineHeight: 1.4, color: "var(--ink2)", margin: "12px 0 0" }}>
-          Everyone gets this same knot until Sunday. The shared total, and what freeing it is worth,
-          are still being built — for now this counts your own passes at it.
+          {earned
+            ? `${WEEKLY_CREATURE.name} is in your pond. Another one is tangled up in next week's knot.`
+            : `Everyone gets this same knot until Sunday. Free it once and ${WEEKLY_CREATURE.name} is yours to keep.`}
         </p>
       </main>
 
@@ -173,7 +188,7 @@ export function GreatUntangle({
             cursor: "pointer",
           }}
         >
-          Add a pass
+          {earned ? "Untangle it again" : "Untangle it"}
         </button>
       </footer>
     </>

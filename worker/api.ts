@@ -101,8 +101,9 @@ export default {
  *   GET  /untangle/:week  -> { week, seed, resolved, total, contributors }
  *   POST /untangle/:week  -> { resolved }   body: { resolved, proof }
  *
- * The pool itself — the design's 120K G$ streamed to contributors over seven days — needs
- * a contract decision before any of this means anything, so no figure appears in the game.
+ * The pool itself is decided, and the decision is that the week's knot pays a creature
+ * rather than money (PLAN.md, Phase 6). That is what makes this endpoint cheap: a total
+ * nobody can cash out needs sanity checks, not proofs.
  */
 
 /**

@@ -198,13 +198,46 @@ is not how a link works — or an escrow contract to hold it until it is claimed
 contract decision, not an afternoon's work, so there is no tip box rather than one that
 quietly does nothing.
 
-**The Great Untangle is honest scaffolding.** The week's knot is real and shared: an ISO
-week derives the seed the same way a date does, so everyone gets the same tangle until
-Sunday, and passes at it are counted locally. The community total and the pool are not
-there. A shared number is only worth showing if a server can check a pass rather than
-believe it, and the pool needs a contract before any figure means anything, so the screen
-counts the player's own passes and says plainly that the rest is still being built. The
-endpoint shapes and the reasoning are at the end of `worker/api.ts`.
+**The pool: decided.** The design's "Pool 120K G$ · streams to contributors over 7 days"
+is not built, and the plan is that it never is in that form. Three reasons:
+
+1. **It is a wage, and snarl has no revenue.** The UBI claim costs this game nothing — it
+   is GoodDollar's money, going to people already entitled to it. A weekly pool is snarl's
+   own money, paid from a treasury that nothing fills. The Shop does not exist. A burn with
+   no engine is a deadline, not a feature.
+2. **Per-pass payouts reward the wrong thing.** Anything proportional to passes pays the
+   grindiest player rather than the most engaged one, and needs a server that can *prove*
+   each pass to stop it being farmed. That is the expensive half of a cryptographic
+   problem, bought in exchange for making the game worse.
+3. **Split across a real crowd it is pocket change anyway.** The design's own numbers put a
+   daily UBI claim at about 152 G$, so a 120K pool is roughly 790 claims' worth. Shared
+   among a thousand contributors that is under a day's UBI each — not enough to change
+   anyone's week, but easily enough to attract people who would farm it.
+
+**What the week's knot pays instead is a creature.** Glint, a golden starfish, is tangled
+up in the Great Untangle and comes out of nothing else. Free the week's knot once and Glint
+is yours; a different one is in next week's. The prize is made of the game's own currency,
+so there is no treasury, no contract, no payout verification and nothing worth sybilling
+for — the only way to farm it is to play, which is the point.
+
+That is also what unblocks the rest of the screen. A community total nobody can cash out
+does not need cryptographic proof, only a server with sanity checks, so the shared
+"62% freed" can ship as soon as the worker is deployed rather than waiting on a proof
+system. Removing the money is what makes the social part buildable.
+
+**If a pool ever does arrive** — from a sponsor or a GoodCollective rather than from
+nowhere — the shape is already decided: an equal share for every verified identity that
+freed the week's knot, regardless of how many passes they made, collected with the same
+claim button as the daily UBI, rolling into next week's pool if left unclaimed. Equal
+shares kill grinding at the design level instead of policing it, GoodDollar's identity root
+is the sybil resistance, and a claim needs no streaming contract. Any figure shown would be
+the live balance of a named address, never a marketing number.
+
+**The Great Untangle is otherwise honest scaffolding.** The week's knot is real and shared:
+an ISO week derives the seed the same way a date does, so everyone gets the same tangle
+until Sunday, and passes at it are counted. The shared community total waits on the worker
+being deployed; until then the screen speaks for the player in front of it. The endpoint
+shapes are at the end of `worker/api.ts`.
 
 ### Phase 7 — Polish and release
 A11y pass (44pt targets, reduce-motion, non-colour signals, contrast in both themes),

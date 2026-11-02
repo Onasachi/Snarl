@@ -2,6 +2,8 @@
 // Every roster below is planar at solvedLayout(nodes); test/engine.test.ts enforces it.
 
 import type { Creature } from "~/engine";
+// Glint is authored by hand in weekly-creature.ts, not taken from the reference.
+import { WEEKLY } from "./weekly-creature";
 
 /** The two knots of the tutorial, in order. */
 export const TUTORIAL: readonly Creature[] = [
@@ -605,7 +607,7 @@ export const RARE: Creature = {
   rare: true,
 };
 
-export const ALL_CREATURES: readonly Creature[] = [...TUTORIAL, ...CREATURES, RARE];
+export const ALL_CREATURES: readonly Creature[] = [...TUTORIAL, ...CREATURES, RARE, WEEKLY];
 
 export const creatureById = (id: string): Creature | undefined =>
   ALL_CREATURES.find((c) => c.id === id);

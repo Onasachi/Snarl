@@ -1,13 +1,13 @@
-import { CREATURES } from "~/data";
+import { WEEKLY } from "~/data";
 import type { Creature } from "~/engine";
 import { seedFromString } from "./seed";
 
 /**
- * The Great Untangle: one knot a week that everybody picks at together. The densest
- * creature in World 1 — 24 beads, 29 strings — because a knot meant for a thousand people
- * should not fall over in one sitting.
+ * The Great Untangle: one knot a week that everybody picks at together, and the creature
+ * inside it. Freeing it once is what earns Glint — the knot and the prize are the same
+ * animal, so there is nothing to explain.
  */
-export const WEEKLY_CREATURE: Creature = CREATURES[9]!;
+export const WEEKLY_CREATURE: Creature = WEEKLY;
 
 /**
  * ISO-8601 week, as "2026-W45". Weeks run Monday to Sunday, and the year is the week's
