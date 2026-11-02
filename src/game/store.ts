@@ -1,6 +1,8 @@
 import { del, get, set } from "idb-keyval";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { audio } from "~/audio";
+import type { ThemeId } from "~/data";
 import type { Creature } from "~/engine";
 import {
   dayKey,
@@ -44,6 +46,8 @@ interface GameState {
   weeklyWeek: string | null;
   /** The week whose knot has already given up its creature. One per week. */
   weeklyEarnedWeek: string | null;
+  theme: ThemeId;
+  sound: boolean;
   /** When today's Daily Snarl was freed, for "you freed it at 08:14". */
   lastDailyAt: number | null;
 
@@ -60,6 +64,8 @@ interface GameState {
    * pond. Further passes still count; they just do not hand out a second one.
    */
   recordWeeklySolve: (week: string, creature: Creature) => void;
+  setTheme: (theme: ThemeId) => void;
+  setSound: (sound: boolean) => void;
   clearProgress: () => Promise<void>;
 }
 
@@ -94,6 +100,8 @@ export const useGame = create<GameState>()(
       weeklySolves: 0,
       weeklyWeek: null,
       weeklyEarnedWeek: null,
+      theme: "night",
+      sound: true,
 
       /** Run once on load, and whenever the app comes back to a new day. */
       openDay: (today = dayKey()) =>
@@ -160,6 +168,13 @@ export const useGame = create<GameState>()(
           };
         }),
 
+      setTheme: (theme) => setState({ theme }),
+
+      setSound: (sound) => {
+        audio.enabled = sound;
+        setState({ sound });
+      },
+
       clearProgress: async () => {
         await del(KEY);
         setState({
@@ -184,6 +199,8 @@ export const useGame = create<GameState>()(
       partialize: ({ hydrated: _hydrated, ...rest }) => rest,
       onRehydrateStorage: () => (state) => {
         state?.openDay();
+        // The audio kit is a module singleton, so it has to be told what was stored.
+        audio.enabled = state?.sound ?? true;
         useGame.setState({ hydrated: true });
       },
     },

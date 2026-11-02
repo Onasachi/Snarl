@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DAILY_CREATURE, dailySeed, isDailySolved } from "~/game/daily";
 import { giftedCreature, giftFromHash } from "~/game/gift";
+import { MoreSheet } from "~/game/MoreSheet";
 import { PhoneFrame } from "~/game/PhoneFrame";
 import { creatureForPlay, dayKey, playCaption, TUTORIAL_KNOTS } from "~/game/progress";
 import { DailySolved } from "~/game/screens/DailySolved";
@@ -57,6 +58,7 @@ export function App() {
   const [intro, setIntro] = useState(false);
   const [dailyRecap, setDailyRecap] = useState(false);
   const [verifySheet, setVerifySheet] = useState(false);
+  const [moreSheet, setMoreSheet] = useState(false);
   const [gift, setGift] = useState(ARRIVED_WITH_GIFT);
   const toast = useToast();
 
@@ -290,6 +292,7 @@ export function App() {
           onOpenDaily={openDaily}
           onGift={() => setScreen("gift")}
           onUntangle={() => setScreen("untangle")}
+          onMore={() => setMoreSheet(true)}
           claim={{
             state: claimState,
             status: wallet.status,
@@ -300,6 +303,8 @@ export function App() {
           toast={<Toast message={toast.message} />}
         />
       )}
+
+      {moreSheet && <MoreSheet onClose={() => setMoreSheet(false)} />}
 
       {verifySheet && (
         <VerifySheet

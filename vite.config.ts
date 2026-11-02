@@ -26,7 +26,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["fonts/*.woff2"],
+      includeAssets: ["fonts/*.woff2", "icons/*.png"],
       manifest: {
         name: "snarl",
         short_name: "snarl",
@@ -36,7 +36,12 @@ export default defineConfig({
         orientation: "portrait",
         background_color: "#05080f",
         theme_color: "#0d1527",
-        icons: [],
+        icons: [
+          { src: "icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          // The same drawing works masked: everything sits inside the middle 60%.
+          { src: "icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,woff2,svg,png}"],

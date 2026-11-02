@@ -239,12 +239,32 @@ until Sunday, and passes at it are counted. The shared community total waits on 
 being deployed; until then the screen speaks for the player in front of it. The endpoint
 shapes are at the end of `worker/api.ts`.
 
-### Phase 7 — Polish and release
+### Phase 7 — Polish and release ⚠️ partly done
 A11y pass (44pt targets, reduce-motion, non-colour signals, contrast in both themes),
 the mobile browser matrix — iOS Safari and Chrome Android pointer-capture behaviour,
 WebAudio's user-gesture unlock, and no `navigator.vibrate` on iOS, so haptics must be
 decorative — perf on a mid Android, the four store frames the brand doc already storyboards, PWA
 install prompt, launch.
+
+
+Landed: contrast is now computed rather than eyeballed, and it found a real problem —
+the brand doc's paper palette put the crossing counter at 2.6:1 and a freed creature at
+2.3:1 against cream, both failing. Paper's creature lightness moved 0.68 → 0.55 and its
+warm accent 0.68 → 0.55, which clears 3:1 on every hue in the roster against both the page
+and the pond's water. `test/theme.test.ts` checks every token pair and every creature in
+both themes, so the palette cannot regress quietly.
+
+Also landed: a visible focus ring; the crossing count announced as a live region, since the
+board is a drawing a screen reader cannot usefully walk; a settings sheet behind a single
+More chip, carrying the theme and sound switches the design's prototype only had as
+developer props, with Journal and Shop as honest "not built yet" rows; and the app icons,
+drawn by `scripts/make-icons.py` with everything inside the middle 60% so the maskable
+version survives being cropped to a circle.
+
+Not done: the four store frames, a real-device pass on iOS Safari and Android Chrome, and
+perf on a mid Android. One honest gap to carry: beads are dragged, and dragging has no
+keyboard path, so the puzzle itself cannot be played without a pointer. Every other
+surface can.
 
 ## 4. Decisions worth making now
 

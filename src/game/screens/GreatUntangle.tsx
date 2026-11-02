@@ -4,6 +4,7 @@ import { crossings, scramble } from "~/engine";
 import { useGame } from "~/game/store";
 import { endsLabel, WEEKLY_CREATURE, weeklySeed } from "~/game/weekly";
 import { CreatureSvg } from "~/render/CreatureSvg";
+import { useThemeId } from "~/theme/ThemeProvider";
 
 /**
  * Screen 15: the week's knot. Everyone gets the same tangle until Sunday, and inside it is
@@ -22,6 +23,7 @@ export function GreatUntangle({
   onAddSolve: () => void;
   onBack: () => void;
 }) {
+  const themeId = useThemeId();
   const solves = useGame((s) => s.weeklySolves);
   const storedWeek = useGame((s) => s.weeklyWeek);
   const earnedWeek = useGame((s) => s.weeklyEarnedWeek);
@@ -151,7 +153,7 @@ export function GreatUntangle({
                 fontSize: 30,
                 fontWeight: 600,
                 margin: 0,
-                color: earned ? creatureColor(WEEKLY_CREATURE, "night") : "var(--ink)",
+                color: earned ? creatureColor(WEEKLY_CREATURE, themeId) : "var(--ink)",
               }}
             >
               {earned ? WEEKLY_CREATURE.name : startingCrossings}

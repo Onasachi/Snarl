@@ -1,4 +1,6 @@
-import type { CSSProperties, ReactNode } from "react";
+import { type CSSProperties, type ReactNode, useEffect } from "react";
+import { useGame } from "~/game/store";
+import { ThemeProvider } from "~/theme/ThemeProvider";
 
 /**
  * The 390 × 844 phone the design is drawn for. On a real phone it fills the screen; on a
@@ -6,14 +8,23 @@ import type { CSSProperties, ReactNode } from "react";
  * presents every screen.
  */
 export function PhoneFrame({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+  const theme = useGame((s) => s.theme);
+
+  // Also on <html>, so the page behind the phone and the browser's own surfaces follow
+  // the palette rather than staying night while the game turns to paper.
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
   return (
     <div
+      data-theme={theme}
       style={{
         minHeight: "100dvh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#05080f",
+        background: "var(--page)",
       }}
     >
       <div
@@ -33,7 +44,7 @@ export function PhoneFrame({ children, style }: { children: ReactNode; style?: C
           ...style,
         }}
       >
-        {children}
+        <ThemeProvider theme={theme}>{children}</ThemeProvider>
       </div>
     </div>
   );

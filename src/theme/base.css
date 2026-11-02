@@ -48,6 +48,7 @@
   --warm: oklch(0.8 0.15 65);
   --eye: #0d1527;
   --moon: #f3ecd0;
+  --page: #05080f;
   --creature-l: 0.8;
   --creature-c: 0.13;
   --tint-l: 0.91;
@@ -64,19 +65,20 @@
   --ink2: #5b6476;
   --tangled: #9ea6b8;
   --string: #8291b0;
-  --warm: oklch(0.68 0.16 55);
+  --warm: oklch(0.55 0.16 55);
   --eye: #1c2333;
   --moon: #cdb978;
-  --creature-l: 0.68;
+  --page: #e6e0d3;
+  --creature-l: 0.55;
   --creature-c: 0.14;
-  --tint-l: 0.8;
+  --tint-l: 0.7;
   --tint-c: 0.09;
 }
 
 html,
 body {
   margin: 0;
-  background: #05080f;
+  background: var(--page);
   color: var(--ink);
   font-family: "Fredoka", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -86,6 +88,27 @@ body {
 button {
   font-family: inherit;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* A visible focus ring. The game is mostly dragged, but every button and the whole
+   settings sheet can be reached with a keyboard, and a ring nobody can see is no ring. */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* For text that only a screen reader needs. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Tabular figures for every counter: the numbers must not jitter while dragging. */

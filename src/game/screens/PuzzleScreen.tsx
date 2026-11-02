@@ -75,8 +75,19 @@ export function PuzzleScreen({
           </span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 10 }}>
+        {/* The board itself is a drawing a screen reader cannot usefully walk, so the
+            count is the thing that speaks, and it speaks whenever it changes. */}
+        <div
+          role="status"
+          aria-live="polite"
+          style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 10 }}
+        >
+          <span className="sr-only">
+            {creature.name}: {p.crossingCount} {p.crossingCount === 1 ? "crossing" : "crossings"}{" "}
+            left
+          </span>
           <span
+            aria-hidden="true"
             className="tnum"
             style={{
               fontSize: 44,
@@ -88,7 +99,7 @@ export function PuzzleScreen({
           >
             {p.crossingCount}
           </span>
-          <span style={{ fontSize: 15, color: "var(--ink2)" }}>
+          <span aria-hidden="true" style={{ fontSize: 15, color: "var(--ink2)" }}>
             {p.crossingCount === 1 ? "crossing" : "crossings"}
           </span>
         </div>

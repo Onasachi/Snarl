@@ -44,6 +44,7 @@ export function PondScreen({
   onOpenDaily,
   onGift,
   onUntangle,
+  onMore,
   claim,
   toast,
 }: {
@@ -56,6 +57,7 @@ export function PondScreen({
   onOpenDaily: () => void;
   onGift: () => void;
   onUntangle: () => void;
+  onMore: () => void;
   /** Rendered above the bottom stack. */
   toast: ReactNode;
   /** The G$ layer. Entirely optional: with no wallet the pond is exactly as it was. */
@@ -86,8 +88,6 @@ export function PondScreen({
         : "Solve the Daily Snarl to grow the moon. Missing a day only dims it one phase.",
     );
 
-  const stub = () => onToast("The Journal and the Shop are still being built.");
-
   return (
     <>
       <header
@@ -104,8 +104,7 @@ export function PondScreen({
           <HeaderButton onClick={onGift} muted={false}>
             Gift
           </HeaderButton>
-          <HeaderButton onClick={stub}>Journal</HeaderButton>
-          <HeaderButton onClick={stub}>Shop</HeaderButton>
+          <HeaderButton onClick={onMore}>More</HeaderButton>
         </div>
       </header>
 

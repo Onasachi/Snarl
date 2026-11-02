@@ -2,6 +2,7 @@ import { creatureColor } from "~/data";
 import type { Gift } from "~/game/gift";
 import { giftedCreature } from "~/game/gift";
 import { CreatureSvg } from "~/render/CreatureSvg";
+import { useThemeId } from "~/theme/ThemeProvider";
 
 /**
  * What opening a gift link looks like. No account, no wallet, no sign-up: the creature is
@@ -16,6 +17,7 @@ export function GiftReceived({
   onAccept: () => void;
   onDecline: () => void;
 }) {
+  const themeId = useThemeId();
   const creature = giftedCreature(gift);
   if (!creature) return null;
 
@@ -55,7 +57,7 @@ export function GiftReceived({
           fontSize: 30,
           fontWeight: 600,
           margin: 0,
-          color: creatureColor(creature, "night"),
+          color: creatureColor(creature, themeId),
         }}
       >
         {creature.name}

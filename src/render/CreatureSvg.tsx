@@ -3,6 +3,7 @@ import { creatureColor, creatureTint, type ThemeId, theme } from "~/data";
 import type { Creature, Crossing, Nudge, Pt } from "~/engine";
 import { solvedLayout } from "~/engine";
 import { useReducedMotion } from "~/hooks/useReducedMotion";
+import { useThemeId } from "~/theme/ThemeProvider";
 
 export interface Sparkle {
   id: string;
@@ -15,6 +16,7 @@ export type EyeState = "shut" | "one" | "open";
 
 export interface CreatureSvgProps {
   creature: Creature;
+  /** Defaults to the theme in force. Only a swatch needs to override it. */
   themeId?: ThemeId;
   /** Defaults to the solved layout, which is what a freed creature always wants. */
   pos?: readonly Pt[];
@@ -57,7 +59,7 @@ export interface CreatureSvgProps {
  */
 export function CreatureSvg({
   creature,
-  themeId = "night",
+  themeId,
   pos,
   state = "tangled",
   crossings = [],
@@ -83,13 +85,15 @@ export function CreatureSvg({
   style,
 }: CreatureSvgProps) {
   const reduce = useReducedMotion();
-  const t = theme(themeId);
+  const current = useThemeId();
+  const id = themeId ?? current;
+  const t = theme(id);
   const points = pos ?? solvedLayout(creature.nodes, pad);
   const free = state === "free";
   const silhouette = state === "silhouette";
   const animate = !still && !reduce;
-  const color = creatureColor(creature, themeId);
-  const tint = creatureTint(creature, themeId);
+  const color = creatureColor(creature, id);
+  const tint = creatureTint(creature, id);
   const eyeState: EyeState = eyes ?? (free ? "open" : "shut");
 
   // Which edges are currently crossing something.

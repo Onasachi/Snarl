@@ -1,6 +1,7 @@
 import { creatureColor } from "~/data";
 import type { Creature } from "~/engine";
 import { CreatureSvg } from "~/render/CreatureSvg";
+import { useThemeId } from "~/theme/ThemeProvider";
 
 /**
  * The reveal. Slides up 48pt and fades in 550ms after the Unfurl ends, so the creature is
@@ -17,6 +18,7 @@ export function NameCard({
   actionLabel: string;
   onAction: () => void;
 }) {
+  const themeId = useThemeId();
   return (
     <div
       style={{
@@ -41,7 +43,7 @@ export function NameCard({
               fontSize: 42,
               fontWeight: 600,
               lineHeight: 1.05,
-              color: creatureColor(creature, "night"),
+              color: creatureColor(creature, themeId),
             }}
           >
             {creature.name}

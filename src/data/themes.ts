@@ -60,12 +60,17 @@ export const THEMES: Record<ThemeId, Theme> = {
     ink2: "#5b6476",
     tangled: "#9ea6b8",
     string: "#8291b0",
-    warm: "oklch(0.68 0.16 55)",
+    // Darker than the brand doc's 0.68: on cream that only reached 2.6:1, which fails
+    // even the large-text threshold, and the crossing counter is drawn in it.
+    warm: "oklch(0.55 0.16 55)",
     eye: "#1c2333",
     moon: "#cdb978",
-    l: 0.68,
+    // Likewise 0.68 left a freed creature at 2.3:1 against paper. 0.55 clears 3:1 on
+    // every hue in the roster against both the page and the pond's water, which is the
+    // darker of the two and so the one that decides it. test/theme.test.ts holds the line.
+    l: 0.55,
     c: 0.14,
-    tintL: 0.8,
+    tintL: 0.7,
     tintC: 0.09,
   },
 };
