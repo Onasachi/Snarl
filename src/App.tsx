@@ -1,31 +1,61 @@
+import { useCallback, useState } from "react";
 import { CREATURES, TUTORIAL } from "~/data";
+import { PhoneFrame } from "~/game/PhoneFrame";
+import { PuzzleScreen } from "~/game/screens/PuzzleScreen";
+import { SplashScreen } from "~/game/screens/SplashScreen";
+import { Toast, useToast } from "~/game/Toast";
 
-/**
- * Phase 0 shell: proves the theme tokens, the self-hosted Fredoka and the PWA build are
- * wired up. The splash, puzzle and pond screens land in Phase 2 and replace all of this.
- */
+/** Two tutorial knots, then World 1 in order. The pond arrives in Phase 3. */
+const ORDER = [...TUTORIAL, ...CREATURES];
+const NUDGES_PER_DAY = 3;
+
 export function App() {
+  const [begun, setBegun] = useState(false);
+  const [index, setIndex] = useState(0);
+  const [nudges, setNudges] = useState(NUDGES_PER_DAY);
+  const toast = useToast();
+
+  const creature = ORDER[index % ORDER.length]!;
+  const isTutorial = index < TUTORIAL.length;
+
+  const next = useCallback(() => setIndex((i) => (i + 1) % ORDER.length), []);
+  const spendNudge = useCallback(() => setNudges((n) => Math.max(0, n - 1)), []);
+  const noNudges = useCallback(
+    () => toast.show("Out of Nudges for today. Calm view still helps."),
+    [toast],
+  );
+
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--bg)",
-      }}
-    >
-      <div style={{ textAlign: "center", padding: 16 }}>
-        <h1 style={{ fontSize: 68, fontWeight: 600, letterSpacing: "-0.03em", margin: 0 }}>
-          snarl
-        </h1>
-        <p style={{ color: "var(--ink2)", fontSize: 19, margin: "8px 0 0" }}>
-          Untangle a knot. Free a creature.
-        </p>
-        <p className="tnum" style={{ color: "var(--ink2)", fontSize: 12, marginTop: 32 }}>
-          {TUTORIAL.length + CREATURES.length} knots authored · engine ready
-        </p>
-      </div>
-    </div>
+    <PhoneFrame>
+      {begun ? (
+        <PuzzleScreen
+          key={`${creature.id}-${index}`}
+          creature={creature}
+          seed={index}
+          caption={
+            isTutorial ? `Tutorial · ${index + 1} of ${TUTORIAL.length}` : `World 1 · ${index - 1}`
+          }
+          hint={
+            index === 0
+              ? "Drag a bead until no strings cross."
+              : index === TUTORIAL.length && nudges === NUDGES_PER_DAY
+                ? "Stuck? Nudge shows one bead to move."
+                : ""
+          }
+          withHand={index === 0}
+          almostFree={index > 0}
+          showNudge={!isTutorial}
+          highlightNudge={index === TUTORIAL.length && nudges === NUDGES_PER_DAY}
+          nudgesLeft={nudges}
+          onSpendNudge={spendNudge}
+          onNoNudges={noNudges}
+          nextLabel="Next knot"
+          onNext={next}
+        />
+      ) : (
+        <SplashScreen onBegin={() => setBegun(true)} />
+      )}
+      <Toast message={toast.message} />
+    </PhoneFrame>
   );
 }

@@ -6,6 +6,9 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "strict": true,
+    // Array indexing yields T | undefined. The engine and the screens index constantly,
+    // so biome's noNonNullAssertion is off: the `!` is the deliberate acknowledgement
+    // this flag exists to force, not a smell.
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

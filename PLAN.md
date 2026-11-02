@@ -83,7 +83,7 @@ Landed: 93 tests. Two things the port turned up —
   test file. Renamed to `solvedLayout`, which is also just a better name for what it
   returns: the layout the player is working towards.
 
-### Phase 2 — The puzzle screen (3–4 days) ← first shippable thing
+### Phase 2 — The puzzle screen ✅ done
 The whole loop: drag with pointer capture + grab offset, live crossing recount, phases
 `play → inhale → unfurl → free → card`, Undo stack, Calm view, Nudge (3/day),
 eyes `shut → one → open`, sparkle on each crossing resolved.
@@ -95,6 +95,12 @@ installable game with no pond, no wallet, no server.
 *Perf note:* `crossings` is O(E²) per frame (Ollie: 29 edges ≈ 400 pairs) — fine on a
 phone, but recompute only the dragged bead's edges during the drag and do the full check
 on drop.
+
+Landed: splash with Bub untying itself, the drag loop on the incremental crossing path,
+`play → inhale → unfurl → free → card`, Undo, Calm view, Nudge with its daily count and
+out-of-nudges toast, the tutorial's drifting hand, and the name card with the under-par
+shell. Played through the two tutorial knots and into World 1 in the browser. No pond, no
+wallet, no server, and no component tests — the screens were verified by playing them.
 
 ### Phase 3 — Pond, progression, persistence (2–3 days)
 Pond with per-creature idle animation (`swim`/`bob`/`walk`/`sit`), tap-to-react, the

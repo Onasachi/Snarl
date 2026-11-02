@@ -12,7 +12,10 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "preset": "recommended"
+      "preset": "recommended",
+      "style": {
+        "noNonNullAssertion": "off"
+      }
     }
   },
   "assist": {
@@ -23,16 +26,6 @@
     }
   },
   "overrides": [
-    {
-      "includes": ["src/engine/**", "test/**"],
-      "linter": {
-        "rules": {
-          "style": {
-            "noNonNullAssertion": "off"
-          }
-        }
-      }
-    },
     {
       "includes": ["src/theme/base.css"],
       "linter": {
