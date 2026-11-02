@@ -9,6 +9,8 @@ export interface PuzzleScreenProps extends UsePuzzleOptions {
   caption: string;
   /** Shown under the board while playing. */
   hint?: string;
+  /** Overrides the name card's chips. The Daily Snarl says what it is, not how it went. */
+  chips?: readonly string[];
   nudgesLeft: number;
   /** Label on the name card's button. */
   nextLabel: string;
@@ -29,6 +31,7 @@ export interface PuzzleScreenProps extends UsePuzzleOptions {
 export function PuzzleScreen({
   caption,
   hint = "",
+  chips,
   nextLabel,
   onNext,
   highlightNudge = false,
@@ -47,7 +50,8 @@ export function PuzzleScreen({
   const nearlyThere = almostFree && p.crossingCount > 0 && p.crossingCount <= 2;
   const liveHint = p.phase === "play" ? (nearlyThere ? "Almost free." : hint) : "";
 
-  const chips = p.underPar ? ["Shell earned · under par"] : [`Freed in ${p.moves} moves`];
+  const shownChips =
+    chips ?? (p.underPar ? ["Shell earned · under par"] : [`Freed in ${p.moves} moves`]);
 
   return (
     <>
@@ -177,7 +181,7 @@ export function PuzzleScreen({
       {p.card && (
         <NameCard
           creature={creature}
-          chips={chips}
+          chips={shownChips}
           actionLabel={nextLabel}
           onAction={() => onNext(p.moves)}
         />

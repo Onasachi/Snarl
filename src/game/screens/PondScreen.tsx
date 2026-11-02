@@ -2,6 +2,7 @@ import { useState } from "react";
 import { audio, buzz, HAPTIC } from "~/audio";
 import { creatureById } from "~/data";
 import type { Creature, MoveKind } from "~/engine";
+import { DailyCard } from "~/game/DailyCard";
 import { Moon } from "~/game/Moon";
 import { MOON_PHASES } from "~/game/progress";
 import { type FreedCreature, useGame } from "~/game/store";
@@ -34,11 +35,17 @@ export function PondScreen({
   onPlay,
   intro,
   onToast,
+  dailySolved,
+  dailySubtitle,
+  onOpenDaily,
 }: {
   onPlay: () => void;
   /** True just after the tutorial, when the first creatures rise into the water. */
   intro: boolean;
   onToast: (message: string) => void;
+  dailySolved: boolean;
+  dailySubtitle: string | null;
+  onOpenDaily: () => void;
 }) {
   const reduce = useReducedMotion();
   const freed = useGame((s) => s.freed);
@@ -149,31 +156,36 @@ export function PondScreen({
         )}
       </main>
 
-      {/* An empty pond already offers "Free your first Snarl"; two buttons for one action
-          is one too many, so the footer only exists once there is something to come back to. */}
       <footer
         style={{
-          padding: "16px 20px calc(20px + env(safe-area-inset-bottom))",
-          display: freed.length === 0 ? "none" : "block",
+          display: "grid",
+          gap: 10,
+          padding: "12px 20px calc(20px + env(safe-area-inset-bottom))",
         }}
       >
-        <button
-          type="button"
-          onClick={onPlay}
-          style={{
-            width: "100%",
-            minHeight: 52,
-            border: "none",
-            borderRadius: 16,
-            background: "var(--ink)",
-            color: "var(--bg)",
-            fontSize: 18,
-            fontWeight: 500,
-            cursor: "pointer",
-          }}
-        >
-          Play · World 1
-        </button>
+        <DailyCard solved={dailySolved} subtitle={dailySubtitle} onOpen={onOpenDaily} />
+
+        {/* An empty pond already offers "Free your first Snarl"; two buttons for one
+            action is one too many. */}
+        {freed.length > 0 && (
+          <button
+            type="button"
+            onClick={onPlay}
+            style={{
+              width: "100%",
+              minHeight: 52,
+              border: "none",
+              borderRadius: 16,
+              background: "var(--ink)",
+              color: "var(--bg)",
+              fontSize: 18,
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            Play · World 1
+          </button>
+        )}
       </footer>
     </>
   );

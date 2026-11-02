@@ -34,6 +34,8 @@ interface GameState {
   nudgeDay: string | null;
   moon: number;
   lastDailyDay: string | null;
+  /** When today's Daily Snarl was freed, for "you freed it at 08:14". */
+  lastDailyAt: number | null;
 
   openDay: (today?: string) => void;
   recordFreed: (creature: Creature, moves: number) => void;
@@ -71,6 +73,7 @@ export const useGame = create<GameState>()(
       nudgeDay: null,
       moon: 0,
       lastDailyDay: null,
+      lastDailyAt: null,
 
       /** Run once on load, and whenever the app comes back to a new day. */
       openDay: (today = dayKey()) =>
@@ -99,7 +102,11 @@ export const useGame = create<GameState>()(
       spendNudge: () => setState((s) => ({ nudges: Math.max(0, s.nudges - 1) })),
 
       recordDailySolved: (today = dayKey()) =>
-        setState((s) => ({ moon: grownMoon(s.moon), lastDailyDay: today })),
+        setState((s) => ({
+          moon: grownMoon(s.moon),
+          lastDailyDay: today,
+          lastDailyAt: Date.now(),
+        })),
 
       clearProgress: async () => {
         await del(KEY);
@@ -111,6 +118,7 @@ export const useGame = create<GameState>()(
           nudgeDay: null,
           moon: 0,
           lastDailyDay: null,
+          lastDailyAt: null,
         });
         getState().openDay();
       },

@@ -13,7 +13,12 @@ export function useToast() {
   return { message, show };
 }
 
-export function Toast({ message }: { message: string | null }) {
+/**
+ * `bottom` clears the controls of whichever screen is showing. A toast that covers the
+ * Daily Snarl card or the Nudge button is worse than no toast, and the two screens have
+ * very different stacks at the bottom.
+ */
+export function Toast({ message, bottom = 108 }: { message: string | null; bottom?: number }) {
   if (!message) return null;
   return (
     <div
@@ -22,7 +27,7 @@ export function Toast({ message }: { message: string | null }) {
         position: "absolute",
         left: 16,
         right: 16,
-        bottom: 108,
+        bottom,
         padding: "12px 16px",
         borderRadius: 14,
         background: "var(--bg2)",

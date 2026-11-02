@@ -121,10 +121,27 @@ Two notes:
   creatures. It is kept for a partial restore and for the reset that a settings screen will
   eventually want; verified by emptying the stored record by hand.
 
-### Phase 4 — Daily Snarl (1–2 days)
+### Phase 4 — Daily Snarl ✅ done
 Date-derived seed (same tangle worldwide, verifiable server-side from the shared rng),
 once-per-day lock, "freed by N today" counter from the Worker, already-solved and
 offline edge states. Still no wallet.
+
+Landed: the seed is FNV-1a over the day string, pinned by a test because it is a wire
+format — change it and every recorded solve becomes unverifiable. A test also scrambles a
+third of a year of dates to prove each one gives a solvable knot inside the rare band.
+The pond carries the Daily Snarl card (silhouette until freed, then the creature and a
+countdown), solving it grows the moon, and tapping a freed one opens the recap rather than
+reopening the puzzle.
+
+The Worker exists in `worker/` and is **not deployed**. It typechecks with the rest of the
+project but has never run. The client treats the count as optional: with no `VITE_API_URL`
+it never calls out, and the card simply says nothing rather than showing a zero that would
+read as "nobody". Offline takes exactly that same path, which is why both are verified by
+the same screen.
+
+One thing to carry into Phase 5: the count has no identity behind it, so it is inflatable
+by anyone with curl. It is company, not a score, and the capped G$ rewards must not be
+paid from it.
 
 ### Phase 5 — The G$ layer (1–2 weeks, most unknowns)
 Hard rule from the design: **puzzles never require a wallet.** The whole layer is additive.
