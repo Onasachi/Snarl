@@ -13,9 +13,11 @@
     "fix": "biome check --write ."
   },
   "dependencies": {
+    "@goodsdks/citizen-sdk": "^1.2.7",
     "idb-keyval": "^6.3.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
+    "viem": "^2.57.14",
     "zustand": "^5.0.16"
   },
   "devDependencies": {

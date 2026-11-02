@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DAILY_CREATURE, dailySeed, isDailySolved } from "~/game/daily";
 import { PhoneFrame } from "~/game/PhoneFrame";
 import { creatureForPlay, dayKey, playCaption, TUTORIAL_KNOTS } from "~/game/progress";
@@ -9,6 +9,9 @@ import { SplashScreen } from "~/game/screens/SplashScreen";
 import { useGame } from "~/game/store";
 import { Toast, useToast } from "~/game/Toast";
 import { freedByLabel, useDailyCount } from "~/game/useDailyCount";
+import { VerifySheet } from "~/game/VerifySheet";
+import { claimCardState, formatAmount } from "~/wallet";
+import { returningFromVerification, useWallet } from "~/wallet/useWallet";
 
 type Screen = "splash" | "puzzle" | "pond";
 /** Ordinary progress through World 1, or today's rare knot. */
@@ -17,11 +20,21 @@ type Mode = "progress" | "daily";
 /** How long the creatures take to rise into the pond the first time. */
 const INTRO_MS = 3500;
 
+/**
+ * Read once when the module loads, not inside a state initializer: the check clears the
+ * flag as it reads it, and StrictMode runs initializers twice, which would consume the
+ * flag on the first pass and see nothing on the second.
+ */
+const RETURNED_FROM_VERIFICATION = returningFromVerification();
+
 export function App() {
-  const [screen, setScreen] = useState<Screen>("splash");
+  // Coming back from the face check lands on the pond, where they left off, rather than
+  // on the splash screen as if they had just arrived.
+  const [screen, setScreen] = useState<Screen>(RETURNED_FROM_VERIFICATION ? "pond" : "splash");
   const [mode, setMode] = useState<Mode>("progress");
   const [intro, setIntro] = useState(false);
   const [dailyRecap, setDailyRecap] = useState(false);
+  const [verifySheet, setVerifySheet] = useState(false);
   const toast = useToast();
 
   const hydrated = useGame((s) => s.hydrated);
@@ -114,6 +127,39 @@ export function App() {
     [toast],
   );
 
+  // The G$ layer. Nothing above this line knows it exists, and the game is complete
+  // without it: no puzzle, pond or streak asks whether a wallet is connected.
+  const wallet = useWallet();
+  const claimState = claimCardState(wallet.account, wallet.status);
+
+  const onClaimAction = useCallback(async () => {
+    if (claimState === "disconnected") {
+      await wallet.connect();
+      return;
+    }
+    if (claimState === "unverified") {
+      setVerifySheet(true);
+      return;
+    }
+    if (claimState === "ready") {
+      const amount = await wallet.claim();
+      if (amount !== null && wallet.status) {
+        toast.show(`${formatAmount(amount, wallet.status.decimals)} claimed. See you tomorrow.`);
+      }
+    }
+  }, [claimState, toast, wallet]);
+
+  useEffect(() => {
+    if (!wallet.error) return;
+    toast.show(
+      wallet.error === "no-wallet"
+        ? "No wallet found on this device. Puzzles never need one."
+        : wallet.error === "rejected"
+          ? "Left as it was."
+          : "That did not go through. Nothing moved.",
+    );
+  }, [wallet.error, toast]);
+
   const dailyChips = ["Rare · Daily Snarl", freedByLabel(freedToday)].filter(
     (chip): chip is string => chip !== null,
   );
@@ -155,6 +201,7 @@ export function App() {
             !isDaily && inTutorial && !lastTutorialKnot ? "Next knot" : "Release to the pond"
           }
           onNext={next}
+          toast={<Toast message={toast.message} />}
         />
       )}
 
@@ -166,16 +213,28 @@ export function App() {
           dailySolved={dailySolved}
           dailySubtitle={dailySolved ? null : freedByLabel(freedToday)}
           onOpenDaily={openDaily}
+          claim={{
+            state: claimState,
+            status: wallet.status,
+            hasWallet: wallet.available !== false,
+            busy: wallet.busy,
+            onAction: () => void onClaimAction(),
+          }}
+          toast={<Toast message={toast.message} />}
+        />
+      )}
+
+      {verifySheet && (
+        <VerifySheet
+          busy={wallet.busy}
+          onStart={() => void wallet.verify()}
+          onClose={() => setVerifySheet(false)}
         />
       )}
 
       {dailyRecap && (
         <DailySolved at={lastDailyAt} others={freedToday} onBack={() => setDailyRecap(false)} />
       )}
-
-      {/* The pond's bottom stack is the Daily Snarl card plus Play; the puzzle's is one
-          row of tools. */}
-      <Toast message={toast.message} bottom={screen === "pond" ? 196 : 108} />
     </PhoneFrame>
   );
 }

@@ -143,7 +143,7 @@ One thing to carry into Phase 5: the count has no identity behind it, so it is i
 by anyone with curl. It is company, not a score, and the capped G$ rewards must not be
 paid from it.
 
-### Phase 5 — The G$ layer (1–2 weeks, most unknowns)
+### Phase 5 — The G$ layer ⚠️ mostly done, untested against a real wallet
 Hard rule from the design: **puzzles never require a wallet.** The whole layer is additive.
 1. `WalletPort` behind a feature flag — WalletConnect, injected, MiniPay auto-detected
    when present — plus the balance chip.
@@ -155,6 +155,30 @@ Hard rule from the design: **puzzles never require a wallet.** The whole layer i
 4. Daily Snarl reward (10 G$, capped) — paid by a **treasury relay in the Worker**, never
    the client. Sybil resistance comes free from requiring GoodDollar verification.
 5. Claim card's three states, offline queueing (claims wait, puzzles don't).
+
+What landed, and what the live docs changed:
+
+- **The package is `@goodsdks/citizen-sdk` (1.2.7), viem-only.** The published docs give
+  two different package names and subpath imports that do not exist; the real package has
+  a single root export and no React or wagmi in it. So: viem, no wagmi, and the
+  `WalletPort` is our own.
+- **There is no testnet.** GoodDollar supports Celo, Fuse and XDC — no Alfajores. Staging
+  is a different set of contracts on Celo mainnet, chosen with `env`, not a different
+  chain. The plan's "Alfajores through Phase 5" was wrong.
+- **G$ has 18 decimals on Celo and 2 on Fuse**, so an amount always travels with the chain
+  it came from. There is a test for it.
+- **Face verification is a handoff, as suspected.** `generateFVLink` asks the wallet to
+  sign a message and returns a URL on `goodid.gooddollar.org`. The mockup's in-app camera
+  does not exist and cannot: the camera belongs to GoodDollar's site. The sheet now says so.
+- **The wallet layer is lazy.** It is a separate chunk, excluded from the service worker's
+  precache, so a player who never opens a wallet installs 236 KB rather than 552 KB.
+- **The Daily Snarl reward is not implemented.** Paying it needs a treasury key, a
+  server-side identity check and a replay of the day's solution. The reasoning is written
+  out at the end of `worker/daily.ts`; nothing in the UI promises a reward.
+- **Untested against a real wallet.** There is no account here and nobody should be moving
+  someone else's money to find out. Every state was driven through a demo adapter
+  (`?wallet=demo`, development builds only) including the full leave-and-return trip
+  through verification. The live adapter is written, typechecked and unexercised.
 
 ### Phase 6 — Social (1–2 weeks, design first)
 Gift a Snarl (creature + optional tip, share link, recipient's first UBI on verifying) and

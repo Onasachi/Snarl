@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import { NameCard } from "~/game/NameCard";
 import { ToolButton } from "~/game/Tools";
 import { type UsePuzzleOptions, usePuzzle } from "~/game/usePuzzle";
@@ -19,6 +19,8 @@ export interface PuzzleScreenProps extends UsePuzzleOptions {
   /** Draws attention to Nudge the first time it is available. */
   highlightNudge?: boolean;
   showNudge?: boolean;
+  /** Rendered above the tools. */
+  toast?: ReactNode;
   /**
    * "Almost free." replaces the hint at two crossings or fewer. The first tutorial knot
    * turns it off: Bub never has more than one crossing, so the instruction the player
@@ -37,6 +39,7 @@ export function PuzzleScreen({
   highlightNudge = false,
   showNudge = true,
   almostFree = true,
+  toast,
   onSolved,
   ...options
 }: PuzzleScreenProps) {
@@ -151,7 +154,9 @@ export function PuzzleScreen({
       </p>
 
       <div
+        data-bottom-stack
         style={{
+          position: "relative",
           display: "flex",
           justifyContent: "center",
           gap: 10,
@@ -161,6 +166,7 @@ export function PuzzleScreen({
           transition: "opacity .3s",
         }}
       >
+        {toast}
         <ToolButton onClick={p.undo} dim={!p.canUndo} disabled={!p.canUndo}>
           Undo
         </ToolButton>

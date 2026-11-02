@@ -1,13 +1,16 @@
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { audio, buzz, HAPTIC } from "~/audio";
 import { creatureById } from "~/data";
 import type { Creature, MoveKind } from "~/engine";
+import { ClaimCard } from "~/game/ClaimCard";
 import { DailyCard } from "~/game/DailyCard";
 import { Moon } from "~/game/Moon";
 import { MOON_PHASES } from "~/game/progress";
 import { type FreedCreature, useGame } from "~/game/store";
 import { useReducedMotion } from "~/hooks/useReducedMotion";
 import { CreatureSvg } from "~/render/CreatureSvg";
+import type { ClaimCardState, ClaimStatus } from "~/wallet";
 
 /** Ten places to be, spread so nothing important overlaps. Beyond ten, creatures share. */
 const SLOTS: readonly (readonly [number, number])[] = [
@@ -38,6 +41,8 @@ export function PondScreen({
   dailySolved,
   dailySubtitle,
   onOpenDaily,
+  claim,
+  toast,
 }: {
   onPlay: () => void;
   /** True just after the tutorial, when the first creatures rise into the water. */
@@ -46,6 +51,16 @@ export function PondScreen({
   dailySolved: boolean;
   dailySubtitle: string | null;
   onOpenDaily: () => void;
+  /** Rendered above the bottom stack. */
+  toast: ReactNode;
+  /** The G$ layer. Entirely optional: with no wallet the pond is exactly as it was. */
+  claim: {
+    state: ClaimCardState;
+    status: ClaimStatus | null;
+    hasWallet: boolean;
+    busy: boolean;
+    onAction: () => void;
+  };
 }) {
   const reduce = useReducedMotion();
   const freed = useGame((s) => s.freed);
@@ -156,14 +171,26 @@ export function PondScreen({
         )}
       </main>
 
+      {/* The toast hangs off the top of this stack, so it can never cover the cards. */}
       <footer
+        data-bottom-stack
         style={{
+          position: "relative",
           display: "grid",
           gap: 10,
           padding: "12px 20px calc(20px + env(safe-area-inset-bottom))",
         }}
       >
+        {toast}
         <DailyCard solved={dailySolved} subtitle={dailySubtitle} onOpen={onOpenDaily} />
+
+        <ClaimCard
+          state={claim.state}
+          status={claim.status}
+          hasWallet={claim.hasWallet}
+          busy={claim.busy}
+          onAction={claim.onAction}
+        />
 
         {/* An empty pond already offers "Free your first Snarl"; two buttons for one
             action is one too many. */}

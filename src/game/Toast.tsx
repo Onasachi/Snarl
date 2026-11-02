@@ -14,20 +14,25 @@ export function useToast() {
 }
 
 /**
- * `bottom` clears the controls of whichever screen is showing. A toast that covers the
- * Daily Snarl card or the Nudge button is worse than no toast, and the two screens have
- * very different stacks at the bottom.
+ * Sits directly above whatever the screen keeps at its bottom — the pond's cards, the
+ * puzzle's tools — by being a child of that stack and anchored to its top edge.
+ *
+ * No measuring. An earlier version read the stack's height and positioned itself from it,
+ * which raced: the claim card grows a line when a balance arrives, in the same breath as
+ * the toast that announces it, and the toast ended up sitting on the card it was about.
  */
-export function Toast({ message, bottom = 108 }: { message: string | null; bottom?: number }) {
+export function Toast({ message }: { message: string | null }) {
   if (!message) return null;
+
   return (
     <div
       role="status"
       style={{
         position: "absolute",
-        left: 16,
-        right: 16,
-        bottom,
+        left: 0,
+        right: 0,
+        bottom: "100%",
+        marginBottom: 12,
         padding: "12px 16px",
         borderRadius: 14,
         background: "var(--bg2)",

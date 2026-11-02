@@ -22,7 +22,10 @@ export function PhoneFrame({ children, style }: { children: ReactNode; style?: C
           width: "min(390px, 100vw)",
           height: "min(844px, 100dvh)",
           borderRadius: "max(0px, min(44px, calc((100vw - 400px) * 999)))",
-          overflow: "hidden",
+          // clip, not hidden: `hidden` still makes a scroll container, and the pond's
+          // creatures swim up to 26px past the edge. Focusing a button then scrolls the
+          // whole phone sideways by however far they happen to be out.
+          overflow: "clip",
           background: "var(--bg)",
           color: "var(--ink)",
           display: "flex",

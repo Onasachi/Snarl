@@ -1,0 +1,166 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createWallet, walletAvailable, wantsDemoWallet } from "./index";
+import type { ClaimStatus, WalletAccount, WalletPort } from "./port";
+
+/** Set once the player has connected, so a reload or a verification trip can resume. */
+const RESUME_KEY = "snarl.wallet.resume";
+/** Set while the player is away at the face check, so they come back where they left. */
+const RETURNING_KEY = "snarl.wallet.returning";
+
+const remember = (value: boolean) => {
+  try {
+    if (value) sessionStorage.setItem(RESUME_KEY, "1");
+    else sessionStorage.removeItem(RESUME_KEY);
+  } catch {
+    // Storage blocked: the player connects again, which is a small cost.
+  }
+};
+
+const shouldResume = (): boolean => {
+  try {
+    return sessionStorage.getItem(RESUME_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * True exactly once, on the load after the player was sent to GoodDollar's face check.
+ * Verification leaves the page entirely, so without this they would come back to the
+ * splash screen and have to find their way to the pond again.
+ *
+ * It does not depend on what the provider puts in the return URL, which is theirs to
+ * change.
+ */
+export const returningFromVerification = (): boolean => {
+  try {
+    const was = sessionStorage.getItem(RETURNING_KEY) === "1";
+    if (was) sessionStorage.removeItem(RETURNING_KEY);
+    return was;
+  } catch {
+    return false;
+  }
+};
+
+export type WalletError = "no-wallet" | "rejected" | "failed";
+
+const asError = (cause: unknown): WalletError => {
+  const message = String((cause as { message?: string })?.message ?? cause);
+  if (message.includes("no-wallet")) return "no-wallet";
+  // EIP-1193: 4001 is the user saying no, which is not a failure.
+  if (message.includes("4001") || /reject|denied/i.test(message)) return "rejected";
+  return "failed";
+};
+
+/**
+ * The game's whole relationship with a wallet. Nothing here runs until the player asks
+ * for it: no provider is loaded, no account is requested, and no contract is read until
+ * they tap Connect. A player who never does is never charged a byte for it.
+ */
+export function useWallet() {
+  const [account, setAccount] = useState<WalletAccount | null>(null);
+  const [status, setStatus] = useState<ClaimStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<WalletError | null>(null);
+  const [available, setAvailable] = useState<boolean | null>(null);
+  const port = useRef<WalletPort | null>(null);
+
+  const load = useCallback(async (): Promise<WalletPort> => {
+    port.current ??= await createWallet();
+    return port.current;
+  }, []);
+
+  const refresh = useCallback(async () => {
+    if (!port.current || !account) return;
+    try {
+      setStatus(await port.current.getClaimStatus());
+    } catch {
+      // A failed read leaves the last known state rather than blanking the card.
+    }
+  }, [account]);
+
+  const connect = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const wallet = await load();
+      const connected = await wallet.connect();
+      setAccount(connected);
+      remember(true);
+      setStatus(await wallet.getClaimStatus());
+    } catch (cause) {
+      setError(asError(cause));
+    } finally {
+      setBusy(false);
+    }
+  }, [load]);
+
+  const claim = useCallback(async (): Promise<bigint | null> => {
+    if (!port.current) return null;
+    setBusy(true);
+    setError(null);
+    try {
+      const { amount } = await port.current.claim();
+      setStatus(await port.current.getClaimStatus());
+      return amount;
+    } catch (cause) {
+      setError(asError(cause));
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  /**
+   * Hands the player to GoodDollar's own face check and leaves the page. They come back
+   * to the same URL, and the status read on their return is what decides anything.
+   */
+  const verify = useCallback(async () => {
+    if (!port.current) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const link = await port.current.verificationLink(window.location.href);
+      remember(true);
+      try {
+        sessionStorage.setItem(RETURNING_KEY, "1");
+      } catch {
+        // Without storage they land on the splash instead. Not worth blocking the check.
+      }
+      window.location.assign(link);
+    } catch (cause) {
+      setError(asError(cause));
+      setBusy(false);
+    }
+  }, []);
+
+  // Is there anything to connect to at all? Checked once, lazily, and never acted on.
+  useEffect(() => {
+    let live = true;
+    void walletAvailable().then((found) => {
+      if (live) setAvailable(found);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  // Coming back from the face check, or reloading after connecting. Reconnecting is the
+  // player's own choice from earlier in this session, so it does not prompt from nothing.
+  useEffect(() => {
+    if (!shouldResume() || account) return;
+    const returned = new URLSearchParams(window.location.search).has("demo-verified");
+    void (async () => {
+      if (returned && wantsDemoWallet()) {
+        const { markDemoVerified } = await import("./demo");
+        markDemoVerified();
+        const url = new URL(window.location.href);
+        url.searchParams.delete("demo-verified");
+        window.history.replaceState({}, "", url);
+      }
+      await connect();
+    })();
+  }, [account, connect]);
+
+  return { account, status, busy, error, available, connect, claim, verify, refresh };
+}

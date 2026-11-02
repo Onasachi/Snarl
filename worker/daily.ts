@@ -87,3 +87,22 @@ export default {
     return json({ error: "not found" }, env, 404);
   },
 };
+
+/**
+ * The Daily Snarl reward (Phase 5 of PLAN.md) is deliberately NOT implemented here.
+ *
+ * The design offers a small, capped G$ reward for freeing the rare knot. Paying it means
+ * a treasury wallet with a key this worker can sign with, and that only makes sense once
+ * three things exist:
+ *
+ *   1. Proof the claimer is a verified unique person — the GoodDollar identity contract's
+ *      `getWhitelistedRoot`, read server-side, not a client's word for it.
+ *   2. Proof they actually solved today's knot. The seed is derivable from the date, so a
+ *      submitted solution can be replayed and checked for zero crossings against this
+ *      day's scramble.
+ *   3. A funded treasury with a daily cap and a per-root limit, since the identity root is
+ *      the only thing standing between the cap and a thousand fresh addresses.
+ *
+ * Until all three are decided, nothing here promises a reward, and the game's UI does not
+ * mention one. Half a payout path, with a key in it, is worse than none.
+ */

@@ -7,6 +7,21 @@ export default defineConfig({
   resolve: {
     alias: { "~": fileURLToPath(new URL("./src", import.meta.url)) },
   },
+  // Pre-bundle everything up front, including the lazily imported wallet layer. Letting
+  // Vite discover a dependency mid-session re-optimizes while a tab is open and leaves
+  // that tab with two copies of React, which fails as "Invalid hook call".
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom/client",
+      "zustand",
+      "zustand/middleware",
+      "idb-keyval",
+      "viem",
+      "viem/chains",
+      "@goodsdks/citizen-sdk",
+    ],
+  },
   plugins: [
     react(),
     VitePWA({
@@ -25,6 +40,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,woff2,svg,png}"],
+        // The wallet layer is a separate chunk, fetched only if a player opens a wallet,
+        // which needs the network anyway. Precaching it would make everyone install a
+        // third of a megabyte for a feature most of them will never touch.
+        globIgnores: ["**/live-*.js", "**/ccip-*.js", "**/secp256k1-*.js", "**/demo-*.js"],
       },
     }),
   ],
