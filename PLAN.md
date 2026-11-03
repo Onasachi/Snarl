@@ -294,6 +294,49 @@ Still untested: connecting a real wallet and claiming real UBI. Loading the game
 wallet's browser is not the same as signing anything, and the live GoodDollar adapter has
 still never moved money.
 
+### Phase 8 — Contracts ⚠️ first one built, not deployed
+
+The earlier reasoning — that nothing in the game needed a contract of its own — was right
+about the engineering and wrong about the context. Projects in GoodDollar's ecosystem are
+on-chain; the precedent we were pointed at,
+[gooddropss](https://github.com/Oshioke-Salaki/gooddropss), escrows G$ in a `GoodDrops`
+contract and releases it to people verified through `IIdentityV2`, on Celo mainnet, in
+Hardhat and Solidity 0.8.24. Being a pure client of someone else's protocol reads as not
+having built anything, whatever the code says.
+
+So: `contracts/`, its own package, nothing shared with the app's build.
+
+**`Planarity.sol` puts the game's win condition on chain.** Whether a drawing has crossing
+strings, in exact integer arithmetic — no epsilon, unlike the game's own float engine,
+which makes the contract the stricter of the two. The densest creature in the game is 29
+strings, 406 pairs, and it checks inside a single transaction.
+
+**`SnarlWeekly.sol` is the Great Untangle's pool.** Enter a week by handing it a drawing of
+that week's knot with no crossings; it checks for itself. One entry per GoodDollar identity
+root, not per address, so a second wallet is the same person. When the week closes the pool
+splits equally between everyone who entered, each collects their own share, and whatever
+nobody came for rolls into the next week rather than back to a funder.
+
+The honest limit, written into the contract's own comments: **a planarity check proves the
+knot is untangled, not that a human untangled it.** Every creature's true shape is in this
+repository, as it should be. What makes that acceptable is the cap — one entry per
+identity, equal shares — so solving it with a script earns exactly what solving it with a
+thumb earns. That is the same bargain GoodDrops makes with GPS coordinates, which can also
+be faked.
+
+This does not change the pool decision from Phase 6. The creature is still the prize and
+the pool still starts at zero; `fund` is open to anyone, so a sponsor is just an address
+that cares, and a week with no money is still a week.
+
+22 tests: the geometry against the game's own fixtures (Bub's authored tangle reads as one
+crossing on chain, exactly as it does in the engine), and the pool through entering,
+settling, collecting, sweeping, pausing and custody.
+
+Not done: deployment, wiring the Great Untangle screen to it, and the gift escrow that
+would make the tip from Phase 6 real — a link has no address behind it, but it does carry a
+secret, and G$ locked against that secret's hash is a contract someone can claim by
+revealing it.
+
 ## 4. Decisions worth making now
 
 1. **Distribution** — settled: a standalone mobile web PWA that happens to run in
