@@ -14,9 +14,18 @@ import {
   type PublicClient,
   type WalletClient,
 } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { celo } from "viem/chains";
+import { giftDigest, snarlGiftsAbi } from "~/chain/snarlGifts";
 import { snarlWeeklyAbi } from "~/chain/snarlWeekly";
-import type { Address, ClaimStatus, WalletAccount, WalletPort, WeekStatus } from "./port";
+import type {
+  Address,
+  ClaimStatus,
+  TipStatus,
+  WalletAccount,
+  WalletPort,
+  WeekStatus,
+} from "./port";
 
 /**
  * The Great Untangle's pool. Unset until it is deployed, and while it is unset the game
@@ -24,6 +33,15 @@ import type { Address, ClaimStatus, WalletAccount, WalletPort, WeekStatus } from
  * player's own passes and promises nothing.
  */
 const WEEKLY_ADDRESS = import.meta.env.VITE_SNARL_WEEKLY as Address | undefined;
+
+/**
+ * The gift escrow. Unset until it is deployed, and while it is unset a gift is a creature
+ * and nothing else — exactly what it was before.
+ */
+const GIFTS_ADDRESS = import.meta.env.VITE_SNARL_GIFTS as Address | undefined;
+
+/** How long a sender has to wait before an unopened gift can be taken back. */
+const GIFT_WINDOW = 30n * 24n * 3600n;
 
 /** GoodDollar has no testnet: staging and production are different contracts on Celo. */
 const ENV =
@@ -48,7 +66,31 @@ const erc20Abi = [
     inputs: [{ name: "account", type: "address" }],
     outputs: [{ name: "", type: "uint256" }],
   },
+  {
+    type: "function",
+    name: "approve",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
 ] as const;
+
+/**
+ * The link's one-time key, as a signer. The 32 random bytes in the fragment *are* a
+ * private key, which is what makes a gift claimable by whoever holds the link and by
+ * nobody else.
+ */
+const giftSigner = (key: string) => {
+  const padded = key.replace(/-/g, "+").replace(/_/g, "/");
+  const binary = atob(padded + "=".repeat((4 - (padded.length % 4)) % 4));
+  const hex = Array.from(binary, (char) => char.charCodeAt(0).toString(16).padStart(2, "0")).join(
+    "",
+  );
+  return privateKeyToAccount(`0x${hex}`);
+};
 
 /**
  * MiniPay injects itself like any other wallet, so there is nothing to design around:
@@ -83,6 +125,8 @@ export function createLiveWallet(): WalletPort {
   }
 
   return {
+    tipsSupported: GIFTS_ADDRESS !== undefined,
+
     async connect(): Promise<WalletAccount> {
       const found = findProvider();
       if (!found) throw new Error("no-wallet");
@@ -245,6 +289,104 @@ export function createLiveWallet(): WalletPort {
       });
       await publicClient.waitForTransactionReceipt({ hash });
       return { amount: before?.share ?? 0n };
+    },
+
+    async tip(key: string): Promise<TipStatus | null> {
+      if (!GIFTS_ADDRESS) return null;
+      // No wallet needed. Somebody opening their first gift link has not got one yet,
+      // and should still be able to see what is waiting.
+      const [from, amount, reclaimableAt, opened] = await publicClient.readContract({
+        address: GIFTS_ADDRESS,
+        abi: snarlGiftsAbi,
+        functionName: "gifts",
+        args: [giftSigner(key).address],
+      });
+
+      if (from === "0x0000000000000000000000000000000000000000") return null;
+      return {
+        from,
+        amount,
+        decimals,
+        opened,
+        reclaimableAt: new Date(Number(reclaimableAt) * 1000),
+      };
+    },
+
+    async sendTip(key: string, amount: bigint) {
+      if (!GIFTS_ADDRESS) throw new Error("no-contract");
+      const { address: account } = await ready();
+      if (!walletClient) throw new Error("wallet not connected");
+
+      // Two transactions, and the approval has to land first: the escrow pulls the G$.
+      const approval = await walletClient.writeContract({
+        address: contracts!.g$Contract,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [GIFTS_ADDRESS, amount],
+        account,
+        chain: celo,
+      });
+      await publicClient.waitForTransactionReceipt({ hash: approval });
+
+      const hash = await walletClient.writeContract({
+        address: GIFTS_ADDRESS,
+        abi: snarlGiftsAbi,
+        functionName: "send",
+        args: [giftSigner(key).address, amount, GIFT_WINDOW],
+        account,
+        chain: celo,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+    },
+
+    async openTip(key: string) {
+      if (!GIFTS_ADDRESS) throw new Error("no-contract");
+      const { address: account } = await ready();
+      if (!walletClient) throw new Error("wallet not connected");
+
+      const signer = giftSigner(key);
+      const before = await this.tip(key);
+      // Signed by the link, for this wallet. The signature is the claim; the transaction
+      // around it only pays for the block space.
+      const signature = await signer.signMessage({
+        message: {
+          raw: giftDigest({
+            chainId: CELO_ID,
+            contract: GIFTS_ADDRESS,
+            key: signer.address,
+            to: account,
+          }),
+        },
+      });
+
+      const hash = await walletClient.writeContract({
+        address: GIFTS_ADDRESS,
+        abi: snarlGiftsAbi,
+        functionName: "open",
+        args: [signer.address, account, signature],
+        account,
+        chain: celo,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      return { amount: before?.amount ?? 0n };
+    },
+
+    async reclaimTip(key: string) {
+      if (!GIFTS_ADDRESS) throw new Error("no-contract");
+      const { address: account } = await ready();
+      if (!walletClient) throw new Error("wallet not connected");
+
+      const before = await this.tip(key);
+      const hash = await walletClient.writeContract({
+        address: GIFTS_ADDRESS,
+        abi: snarlGiftsAbi,
+        functionName: "reclaim",
+        args: [giftSigner(key).address],
+        account,
+        chain: celo,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      return { amount: before?.amount ?? 0n };
     },
 
     async verificationLink(returnTo: string) {

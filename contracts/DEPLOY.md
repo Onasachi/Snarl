@@ -1,4 +1,9 @@
-# Deploying SnarlWeekly
+# Deploying snarl's contracts
+
+Two of them, independent of each other, both on Celo:
+
+- **`SnarlWeekly`** — the Great Untangle's prize pool. Has an owner, who opens weeks.
+- **`SnarlGifts`** — G$ attached to a gift link. Has no owner at all.
 
 ## There is no testnet
 
@@ -85,6 +90,20 @@ CELOSCAN_API_KEY=… pnpm hardhat verify --network celo <address> \
   0xC361A6E67822a0EDc17D899227dd9FC50BD62F42 <owner>
 ```
 
+## Deploying the gift escrow
+
+```
+PRIVATE_KEY=… pnpm hardhat run scripts/deploy-gifts.ts --network celo
+```
+
+Then `VITE_SNARL_GIFTS=<address>`. There is no owner to set and nothing to administer —
+no pause, no sweep, no rescue. Tokens sent straight to it rather than through `send` are
+gone, which is the price of nobody being able to empty it.
+
+A gift's money goes up *before* its link exists, and the link is then the only key to it.
+The app keeps the keys it escrowed so an unopened gift can be taken back after 30 days;
+those keys survive "clear progress", because that money is not progress.
+
 ## Opening a week
 
 ```
@@ -108,6 +127,6 @@ between them. `open-week.ts` warns if you are late.
 
 ## Still not done
 
-- Nothing here has run against a real wallet. The fork tests impersonate; they do not sign.
-- The gift escrow does not exist. A gift link carries a secret but no address, so the tip
-  from the pond is still a nice message and no money.
+- Nothing here has run against a real wallet. The fork tests impersonate; they do not sign
+  with a wallet a person controls.
+- Nobody pays the gas for someone else's claim. `open` allows it; no service does it.

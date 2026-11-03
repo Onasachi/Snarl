@@ -1,30 +1,55 @@
 import { useMemo, useState } from "react";
 import { creatureById } from "~/data";
 import type { Creature } from "~/engine";
-import { giftLink } from "~/game/gift";
+import { giftLink, makeGiftKey } from "~/game/gift";
 import { useGame } from "~/game/store";
 import { CreatureSvg } from "~/render/CreatureSvg";
+import { formatAmount, formatG$ } from "~/wallet";
+
+/** What the Gift screen needs to know about money, when there is a wallet to ask. */
+export interface GiftTips {
+  /** False with no wallet connected or no escrow contract: there is then no tip box. */
+  enabled: boolean;
+  balance: bigint;
+  decimals: number;
+  busy: boolean;
+  /** Puts G$ behind the link. True once it is actually escrowed. */
+  onSend: (key: string, amount: bigint) => Promise<boolean>;
+  /**
+   * Takes back a gift nobody opened. "gone" means somebody already has it, which is the
+   * happy ending and the one case where there is nothing left to wait for.
+   */
+  onReclaim: (key: string) => Promise<"taken" | "gone" | "failed">;
+}
 
 /**
  * Screen 14: give one of your creatures to someone. The whole gift rides in the link's
  * fragment, so there is nothing to sign up for at either end and nothing kept anywhere.
  *
- * The design pairs this with a G$ tip. That part is not built: a link has no address
- * behind it until someone opens it, so a tip needs either the recipient's wallet up front
- * or an escrow contract to hold it. Neither exists yet, and a tip box that quietly did
- * nothing would be worse than no tip box.
+ * G$ cannot ride in a fragment the same way, because a link has no address behind it
+ * until somebody opens it. So the link carries a one-time key instead and the escrow
+ * contract holds the money against it — which means the money goes up *before* the link
+ * exists, and the link is then the only way to it.
  */
 export function GiftScreen({
   onBack,
   onToast,
+  tips,
 }: {
   onBack: () => void;
   onToast: (m: string) => void;
+  tips: GiftTips;
 }) {
   const freed = useGame((s) => s.freed);
+  const sentTips = useGame((s) => s.sentTips);
+  const recordSentTip = useGame((s) => s.recordSentTip);
+  const forgetSentTip = useGame((s) => s.forgetSentTip);
   const [chosen, setChosen] = useState<string | null>(null);
   const [from, setFrom] = useState("");
+  const [amount, setAmount] = useState("");
   const [link, setLink] = useState<string | null>(null);
+  /** What ended up escrowed behind the link on screen, if anything. */
+  const [linked, setLinked] = useState<bigint | null>(null);
 
   // One of each: a pond with four Pips should offer Pip once.
   const options = useMemo(() => {
@@ -42,16 +67,57 @@ export function GiftScreen({
 
   const creature = chosen ? creatureById(chosen) : undefined;
 
-  const make = () => {
+  // The typed amount in the token's smallest unit, or null if it is not a number, not
+  // positive, or more than there is.
+  const tipAmount = useMemo(() => {
+    if (!tips.enabled || !amount.trim()) return null;
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value <= 0) return null;
+    const units = BigInt(Math.round(value * 100)) * 10n ** BigInt(tips.decimals - 2);
+    return units > 0n && units <= tips.balance ? units : null;
+  }, [amount, tips.enabled, tips.decimals, tips.balance]);
+
+  const tipTyped = tips.enabled && amount.trim() !== "";
+
+  const make = async () => {
     if (!creature) return;
+    setLinked(null);
     const origin = `${window.location.origin}${window.location.pathname}`;
+
+    // Money first. A link that promises G$ before the G$ is escrowed is a link that
+    // lies, so if this fails there is no link.
+    let key: string | undefined;
+    if (tipAmount !== null) {
+      const made = makeGiftKey();
+      if (!(await tips.onSend(made, tipAmount))) {
+        onToast("The G$ did not go through. The link is not made.");
+        return;
+      }
+      key = made;
+      setLinked(tipAmount);
+      recordSentTip({
+        key: made,
+        creature: creature.id,
+        amount: tipAmount.toString(),
+        at: Date.now(),
+      });
+    }
+
     setLink(
       giftLink(origin, {
         id: creature.id,
         at: Date.now(),
         ...(from.trim() ? { from: from.trim() } : {}),
+        ...(key ? { key } : {}),
       }),
     );
+  };
+
+  const takeBack = async (key: string) => {
+    const outcome = await tips.onReclaim(key);
+    if (outcome === "failed") return;
+    forgetSentTip(key);
+    onToast(outcome === "gone" ? "Someone already opened that one." : "Taken back.");
   };
 
   const share = async () => {
@@ -162,11 +228,121 @@ export function GiftScreen({
           />
         </label>
 
+        {tips.enabled && !link && (
+          <label style={{ display: "grid", gap: 6, marginTop: 16 }}>
+            <span
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 12,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--ink2)",
+              }}
+            >
+              <span>Add G$ (optional)</span>
+              <span className="tnum" style={{ textTransform: "none", letterSpacing: 0 }}>
+                {formatG$(tips.balance, tips.decimals)} yours
+              </span>
+            </span>
+            <input
+              value={amount}
+              onChange={(event) => {
+                setAmount(event.target.value.replace(/[^\d.]/g, ""));
+                setLink(null);
+              }}
+              inputMode="decimal"
+              placeholder="0"
+              aria-invalid={tipTyped && tipAmount === null}
+              style={{
+                minHeight: 48,
+                padding: "0 14px",
+                border: `1px solid ${tipTyped && tipAmount === null ? "var(--warm)" : "var(--card-line)"}`,
+                borderRadius: 14,
+                background: "transparent",
+                color: "var(--ink)",
+                fontFamily: "inherit",
+                fontSize: 16,
+              }}
+            />
+            <span style={{ fontSize: 13, color: "var(--ink2)" }}>
+              {tipTyped && tipAmount === null
+                ? "More than you have, or not a number."
+                : "It waits in escrow until someone opens the link. Yours again after a month if nobody does."}
+            </span>
+          </label>
+        )}
+
+        {sentTips.length > 0 && !link && (
+          <div style={{ marginTop: 22, display: "grid", gap: 8 }}>
+            <span
+              style={{
+                fontSize: 12,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--ink2)",
+              }}
+            >
+              Waiting to be opened
+            </span>
+            {sentTips.map((tip) => (
+              <div
+                key={tip.key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  padding: "10px 14px",
+                  border: "1px solid var(--card-line)",
+                  borderRadius: 14,
+                }}
+              >
+                <span style={{ fontSize: 15 }}>
+                  {creatureById(tip.creature)?.name ?? "A creature"}
+                  <span className="tnum" style={{ color: "var(--ink2)" }}>
+                    {" · "}
+                    {formatAmount(BigInt(tip.amount), tips.decimals)}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void takeBack(tip.key)}
+                  disabled={tips.busy}
+                  style={{
+                    minHeight: 36,
+                    padding: "0 12px",
+                    border: "1px solid var(--card-line)",
+                    borderRadius: 999,
+                    background: "transparent",
+                    color: "var(--ink2)",
+                    fontSize: 13,
+                    cursor: tips.busy ? "default" : "pointer",
+                  }}
+                >
+                  Take back
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {link && (
           <div style={{ marginTop: 20, display: "grid", gap: 10 }}>
-            <p style={{ fontSize: 13, color: "var(--ink2)", margin: 0 }}>
-              Anyone who opens this gets {creature?.name} in their pond. The link holds the whole
-              gift, so nothing is stored anywhere.
+            <p style={{ fontSize: 13, lineHeight: 1.45, color: "var(--ink2)", margin: 0 }}>
+              {linked === null ? (
+                <>
+                  Anyone who opens this gets {creature?.name} in their pond. The link holds the
+                  whole gift, so nothing is stored anywhere.
+                </>
+              ) : (
+                <>
+                  Anyone who opens this gets {creature?.name} and the{" "}
+                  {formatAmount(linked, tips.decimals)} waiting behind it. The creature is in the
+                  link; the money is in a contract, and this link is the only key to it. Lose the
+                  link and you can take the money back in a month.
+                </>
+              )}
             </p>
             <code
               style={{
@@ -195,8 +371,8 @@ export function GiftScreen({
       >
         <button
           type="button"
-          onClick={link ? () => void share() : make}
-          disabled={!creature}
+          onClick={link ? () => void share() : () => void make()}
+          disabled={!creature || tips.busy || (tipTyped && tipAmount === null)}
           style={{
             width: "100%",
             minHeight: 52,
@@ -209,7 +385,13 @@ export function GiftScreen({
             cursor: creature ? "pointer" : "default",
           }}
         >
-          {link ? "Send the link" : "Make a link"}
+          {tips.busy
+            ? "Putting the gift up…"
+            : link
+              ? "Send the link"
+              : tipAmount !== null
+                ? `Make a link with ${formatAmount(tipAmount, tips.decimals)}`
+                : "Make a link"}
         </button>
       </footer>
     </>

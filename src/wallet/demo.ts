@@ -1,4 +1,4 @@
-import type { ClaimStatus, WalletAccount, WalletPort, WeekStatus } from "./port";
+import type { ClaimStatus, TipStatus, WalletAccount, WalletPort, WeekStatus } from "./port";
 
 /**
  * A wallet that holds nothing and moves nothing, so every state of the claim card can be
@@ -20,6 +20,9 @@ const DEMO_POOL = 120_000n * 10n ** 18n;
 const DEMO_ENTRANTS = 1283;
 const CLAIMED_KEY = "snarl.demo.claimedAt";
 const BALANCE_KEY = "snarl.demo.balance";
+/** One entry per gift key, so a link can be escrowed, opened and taken back. */
+const TIP_KEY = (key: string) => `snarl.demo.tip.${key.slice(0, 12)}`;
+const DEMO_SENDER = "0x5ab1ec0de0000000000000000000000000000002" as const;
 
 const read = (key: string): string | null => {
   try {
@@ -48,6 +51,8 @@ export const markDemoVerified = (): void => write(VERIFIED_KEY, "yes");
 
 export function createDemoWallet(): WalletPort {
   return {
+    tipsSupported: true,
+
     async connect(): Promise<WalletAccount> {
       await sleep(400);
       return { address: DEMO_ADDRESS, chainId: 42220, label: "the demo wallet" };
@@ -102,6 +107,74 @@ export function createDemoWallet(): WalletPort {
       await sleep(700);
       const amount = DEMO_POOL / BigInt(DEMO_ENTRANTS + 1);
       write(COLLECTED_KEY, String(id));
+      write(BALANCE_KEY, (BigInt(read(BALANCE_KEY) ?? "0") + amount).toString());
+      return { amount };
+    },
+
+    async tip(key: string): Promise<TipStatus | null> {
+      await sleep(200);
+      const stored = read(TIP_KEY(key));
+      if (!stored) return null;
+      const { from, amount, opened, reclaimableAt } = JSON.parse(stored) as {
+        from: string;
+        amount: string;
+        opened: boolean;
+        reclaimableAt: number;
+      };
+      return {
+        from: from as `0x${string}`,
+        amount: BigInt(amount),
+        decimals: DECIMALS,
+        opened,
+        reclaimableAt: new Date(reclaimableAt),
+      };
+    },
+
+    async sendTip(key: string, amount: bigint) {
+      await sleep(900);
+      const balance = BigInt(read(BALANCE_KEY) ?? "0");
+      if (balance < amount) throw new Error("not enough G$");
+      write(BALANCE_KEY, (balance - amount).toString());
+      write(
+        TIP_KEY(key),
+        JSON.stringify({
+          from: DEMO_ADDRESS,
+          amount: amount.toString(),
+          opened: false,
+          // Already reclaimable, so the demo can look at taking one back without
+          // waiting a month for it.
+          reclaimableAt: Date.now() - 1000,
+        }),
+      );
+    },
+
+    async openTip(key: string) {
+      await sleep(800);
+      const stored = read(TIP_KEY(key));
+      if (!stored) throw new Error("no gift");
+      const gift = JSON.parse(stored) as { amount: string; opened: boolean };
+      if (gift.opened) throw new Error("already opened");
+      const amount = BigInt(gift.amount);
+
+      // A link opened in this browser came from somewhere else, so the money did not
+      // leave this demo wallet's balance — it arrives in it.
+      write(
+        TIP_KEY(key),
+        JSON.stringify({ ...JSON.parse(stored), from: DEMO_SENDER, opened: true }),
+      );
+      write(BALANCE_KEY, (BigInt(read(BALANCE_KEY) ?? "0") + amount).toString());
+      return { amount };
+    },
+
+    async reclaimTip(key: string) {
+      await sleep(800);
+      const stored = read(TIP_KEY(key));
+      if (!stored) throw new Error("no gift");
+      const gift = JSON.parse(stored) as { amount: string; opened: boolean };
+      if (gift.opened) throw new Error("already opened");
+      const amount = BigInt(gift.amount);
+
+      write(TIP_KEY(key), JSON.stringify({ ...JSON.parse(stored), opened: true }));
       write(BALANCE_KEY, (BigInt(read(BALANCE_KEY) ?? "0") + amount).toString());
       return { amount };
     },

@@ -229,6 +229,106 @@ const forked = Boolean(process.env.FORK);
     ).to.be.revertedWithCustomError(weekly, "NothingToCollect");
   });
 
+  describe("gifts", () => {
+    const TIP = ethers.parseEther("500");
+    const WINDOW = 30 * 24 * 3600;
+
+    async function gifted() {
+      const [bystander] = await ethers.getSigners();
+      if (!bystander) throw new Error("no signers");
+      const gifts = await (await ethers.getContractFactory("SnarlGifts")).deploy(CELO.g$);
+      await gifts.waitForDeployment();
+
+      // A sender with no history on Celo. It matters: G$ balances are not static for
+      // every account on this chain — see "accrues nothing of its own" below — and
+      // Hardhat's own first account turns out to be one of the accounts that accrue.
+      const sender = await human(ethers.Wallet.createRandom().address);
+      const g$ = new ethers.Contract(CELO.g$, erc20Abi, sender);
+
+      const faucet = await human(CELO.ubi);
+      await (new ethers.Contract(CELO.g$, erc20Abi, faucet) as any).transfer(sender.address, TIP);
+      await g$.approve(await gifts.getAddress(), TIP);
+
+      return { sender, bystander, g$, gifts, link: ethers.Wallet.createRandom() };
+    }
+
+    const signFor = async (gifts: { getAddress(): Promise<string> }, link: ethers.HDNodeWallet, to: string) =>
+      link.signMessage(
+        ethers.getBytes(
+          ethers.keccak256(
+            ethers.AbiCoder.defaultAbiCoder().encode(
+              ["string", "uint256", "address", "address", "address"],
+              ["snarl gift", 42220, await gifts.getAddress(), link.address, to],
+            ),
+          ),
+        ),
+      );
+
+    it("carries real G$ behind a link, and holds exactly what arrived", async () => {
+      const { sender, g$, gifts, link } = await loadFixture(gifted);
+      const receipt = await (await gifts.connect(sender).send(link.address, TIP, WINDOW)).wait();
+      expect(await g$.balanceOf(await gifts.getAddress())).to.equal(TIP);
+      console.log(`        send() gas: ${receipt?.gasUsed}`);
+    });
+
+    it("pays a wallet that has never held anything, with somebody else's gas", async () => {
+      const { sender, bystander, g$, gifts, link } = await loadFixture(gifted);
+      await gifts.connect(sender).send(link.address, TIP, WINDOW);
+
+      // A brand new address: no CELO, no stablecoin, nothing to pay a fee with. This is
+      // the ordinary case for someone opening their first gift link, and the reason
+      // `open` lets anyone submit the signature.
+      const newcomer = ethers.Wallet.createRandom().address;
+      expect(await ethers.provider.getBalance(newcomer)).to.equal(0n);
+
+      const signature = await signFor(gifts, link, newcomer);
+      const receipt = await (
+        await gifts.connect(bystander).open(link.address, newcomer, signature)
+      ).wait();
+
+      expect(await g$.balanceOf(newcomer)).to.equal(TIP);
+      expect(await ethers.provider.getBalance(newcomer)).to.equal(0n);
+      console.log(`        open() gas: ${receipt?.gasUsed}`);
+    });
+
+    it("cannot be re-aimed by whoever sees the signature first", async () => {
+      const { sender, bystander, gifts, link } = await loadFixture(gifted);
+      await gifts.connect(sender).send(link.address, TIP, WINDOW);
+
+      const signature = await signFor(gifts, link, ethers.Wallet.createRandom().address);
+      await expect(
+        gifts.connect(bystander).open(link.address, bystander.address, signature),
+      ).to.be.revertedWithCustomError(gifts, "WrongKey");
+    });
+
+    it("accrues nothing of its own, however long a gift waits", async () => {
+      const { sender, g$, gifts, link } = await loadFixture(gifted);
+      await gifts.connect(sender).send(link.address, TIP, 365 * 24 * 3600);
+
+      // Some accounts on Celo accrue G$ as time passes: `balanceOf` for them is a
+      // function of the clock, not a stored number. A contract holding somebody else's
+      // gift for a year must be neither richer nor — far more importantly — poorer for
+      // the wait, because it has promised every last unit of it to one address.
+      const held = await g$.balanceOf(await gifts.getAddress());
+      await time.increase(365 * 24 * 3600);
+      expect(await g$.balanceOf(await gifts.getAddress())).to.equal(held);
+      expect(held).to.equal(TIP);
+    });
+
+    it("goes back to the sender in real G$ if nobody opens it", async () => {
+      const { sender, g$, gifts, link } = await loadFixture(gifted);
+      await gifts.connect(sender).send(link.address, TIP, WINDOW);
+
+      await time.increase(WINDOW + 1);
+      await expect(gifts.connect(sender).reclaim(link.address)).to.changeTokenBalance(
+        g$,
+        sender,
+        TIP,
+      );
+      expect(await g$.balanceOf(await gifts.getAddress())).to.equal(0);
+    });
+  });
+
   after(async () => {
     if (forked) await network.provider.send("hardhat_reset", []);
   });

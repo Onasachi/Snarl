@@ -3,19 +3,36 @@ import type { Gift } from "~/game/gift";
 import { giftedCreature } from "~/game/gift";
 import { CreatureSvg } from "~/render/CreatureSvg";
 import { useThemeId } from "~/theme/ThemeProvider";
+import { formatAmount, type TipStatus } from "~/wallet";
+
+/** The money side of a received gift, when the link carried a key and a contract holds it. */
+export interface ReceivedTip {
+  status: TipStatus | null;
+  /** True when this browser already has a wallet open. */
+  connected: boolean;
+  busy: boolean;
+  onConnect: () => void;
+  onTake: () => void;
+}
 
 /**
  * What opening a gift link looks like. No account, no wallet, no sign-up: the creature is
  * in the link, and accepting it puts it in this pond.
+ *
+ * G$ is the one part that cannot work that way. If the link carries money, taking it
+ * needs an address to pay, so it needs a wallet — but only for the money. The creature
+ * does not wait for it.
  */
 export function GiftReceived({
   gift,
   onAccept,
   onDecline,
+  tip,
 }: {
   gift: Gift;
   onAccept: () => void;
   onDecline: () => void;
+  tip: ReceivedTip;
 }) {
   const themeId = useThemeId();
   const creature = giftedCreature(gift);
@@ -69,6 +86,24 @@ export function GiftReceived({
         {creature.lore}
       </p>
 
+      {tip.status && (
+        <p
+          className="tnum"
+          style={{
+            margin: "14px 0 0",
+            padding: "8px 16px",
+            border: "1px solid var(--card-line)",
+            borderRadius: 999,
+            fontSize: 17,
+            color: tip.status.opened ? "var(--ink2)" : "var(--ink)",
+          }}
+        >
+          {tip.status.opened
+            ? "The G$ on this link is gone"
+            : `and ${formatAmount(tip.status.amount, tip.status.decimals)}`}
+        </p>
+      )}
+
       <button
         type="button"
         onClick={onAccept}
@@ -87,6 +122,32 @@ export function GiftReceived({
       >
         Add to my pond
       </button>
+      {tip.status && !tip.status.opened && (
+        <button
+          type="button"
+          onClick={tip.connected ? tip.onTake : tip.onConnect}
+          disabled={tip.busy}
+          style={{
+            marginTop: 10,
+            minWidth: 200,
+            minHeight: 48,
+            border: "1px solid var(--card-line)",
+            borderRadius: 16,
+            background: "transparent",
+            color: "var(--ink)",
+            fontSize: 16,
+            fontWeight: 500,
+            cursor: tip.busy ? "default" : "pointer",
+          }}
+        >
+          {tip.busy
+            ? "…"
+            : tip.connected
+              ? `Take the ${formatAmount(tip.status.amount, tip.status.decimals)}`
+              : "Open a wallet for the G$"}
+        </button>
+      )}
+
       <button
         type="button"
         onClick={onDecline}

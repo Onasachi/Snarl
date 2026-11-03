@@ -18,7 +18,7 @@ import { Toast, useToast } from "~/game/Toast";
 import { freedByLabel, useDailyCount } from "~/game/useDailyCount";
 import { VerifySheet } from "~/game/VerifySheet";
 import { WEEKLY_CREATURE, weekId, weekKey, weeklySeed } from "~/game/weekly";
-import { claimCardState, formatAmount } from "~/wallet";
+import { claimCardState, formatAmount, type TipStatus } from "~/wallet";
 import { returningFromVerification, useWallet } from "~/wallet/useWallet";
 
 type Screen = "splash" | "puzzle" | "pond" | "gift" | "untangle";
@@ -270,6 +270,55 @@ export function App() {
     }
   }, [toast, wallet, weekNumber]);
 
+  // G$ behind the gift link that was just opened, if there is any. Read without
+  // connecting anything: the amount is worth seeing before deciding to get a wallet.
+  const [giftTip, setGiftTip] = useState<TipStatus | null>(null);
+  useEffect(() => {
+    if (!gift?.key) {
+      setGiftTip(null);
+      return;
+    }
+    let live = true;
+    void wallet.loadTip(gift.key).then((found) => {
+      if (live) setGiftTip(found);
+    });
+    return () => {
+      live = false;
+    };
+  }, [gift?.key, wallet.loadTip]);
+
+  const takeGiftTip = useCallback(async () => {
+    if (!gift?.key) return;
+    const amount = await wallet.openTip(gift.key);
+    if (amount === null) return;
+    setGiftTip(await wallet.loadTip(gift.key));
+    toast.show(
+      `${formatAmount(amount, wallet.status?.decimals ?? 18)} is yours. ${
+        giftedCreature(gift)?.name ?? "The creature"
+      } too, if you take it.`,
+    );
+  }, [gift, toast, wallet]);
+
+  const giftTips = useMemo(
+    () => ({
+      // A tip box only appears when there is a wallet open with something in it and a
+      // contract to hold it. Otherwise a gift is a creature, exactly as it was.
+      enabled: wallet.tipsSupported && wallet.account !== null,
+      balance: wallet.status?.balance ?? 0n,
+      decimals: wallet.status?.decimals ?? 18,
+      busy: wallet.busy,
+      onSend: (key: string, amount: bigint) => wallet.sendTip(key, amount),
+      onReclaim: async (key: string) => {
+        if ((await wallet.reclaimTip(key)) !== null) return "taken" as const;
+        // It may have failed because somebody opened it while it sat in the list. That
+        // is not an error to wave at the sender; it is the gift having worked.
+        const now = await wallet.loadTip(key);
+        return now?.opened ? ("gone" as const) : ("failed" as const);
+      },
+    }),
+    [wallet],
+  );
+
   const dailyChips = ["Rare · Daily Snarl", freedByLabel(freedToday)].filter(
     (chip): chip is string => chip !== null,
   );
@@ -353,7 +402,9 @@ export function App() {
         />
       )}
 
-      {screen === "gift" && <GiftScreen onBack={() => setScreen("pond")} onToast={toast.show} />}
+      {screen === "gift" && (
+        <GiftScreen onBack={() => setScreen("pond")} onToast={toast.show} tips={giftTips} />
+      )}
 
       {screen === "untangle" && (
         <GreatUntangle
@@ -388,6 +439,13 @@ export function App() {
             toast.show(creature ? `${creature.name} joined your pond.` : "Added to your pond.");
           }}
           onDecline={() => setGift(null)}
+          tip={{
+            status: giftTip,
+            connected: wallet.account !== null,
+            busy: wallet.busy,
+            onConnect: () => void wallet.connect(),
+            onTake: () => void takeGiftTip(),
+          }}
         />
       )}
     </PhoneFrame>

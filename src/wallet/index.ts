@@ -4,6 +4,7 @@ export type {
   Address,
   ClaimCardState,
   ClaimStatus,
+  TipStatus,
   WalletAccount,
   WalletPort,
   WeekStatus,

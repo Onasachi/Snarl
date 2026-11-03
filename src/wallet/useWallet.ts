@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createWallet, walletAvailable, wantsDemoWallet } from "./index";
-import type { ClaimStatus, WalletAccount, WalletPort, WeekStatus } from "./port";
+import type { ClaimStatus, TipStatus, WalletAccount, WalletPort, WeekStatus } from "./port";
 
 /** Set once the player has connected, so a reload or a verification trip can resume. */
 const RESUME_KEY = "snarl.wallet.resume";
@@ -64,6 +64,7 @@ export function useWallet() {
   const [error, setError] = useState<WalletError | null>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [week, setWeek] = useState<WeekStatus | null>(null);
+  const [tipsSupported, setTipsSupported] = useState(false);
   const port = useRef<WalletPort | null>(null);
 
   const load = useCallback(async (): Promise<WalletPort> => {
@@ -86,6 +87,7 @@ export function useWallet() {
       setError(null);
       try {
         const wallet = await load();
+        setTipsSupported(wallet.tipsSupported);
         const connected = await wallet.connect();
         setAccount(connected);
         remember(true);
@@ -164,6 +166,62 @@ export function useWallet() {
   }, []);
 
   /**
+   * What is waiting behind a gift link. Loads the wallet module but connects nothing:
+   * someone opening their first link has no wallet yet and should still see the amount.
+   */
+  const loadTip = useCallback(
+    async (key: string): Promise<TipStatus | null> => {
+      try {
+        const wallet = await load();
+        setTipsSupported(wallet.tipsSupported);
+        return await wallet.tip(key);
+      } catch {
+        return null;
+      }
+    },
+    [load],
+  );
+
+  /** Puts G$ behind a link. Two transactions: the escrow has to be allowed to pull it. */
+  const sendTip = useCallback(async (key: string, amount: bigint): Promise<boolean> => {
+    if (!port.current) return false;
+    setBusy(true);
+    setError(null);
+    try {
+      await port.current.sendTip(key, amount);
+      setStatus(await port.current.getClaimStatus());
+      return true;
+    } catch (cause) {
+      setError(asError(cause));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const takeTip = useCallback(
+    async (key: string, how: "openTip" | "reclaimTip"): Promise<bigint | null> => {
+      if (!port.current) return null;
+      setBusy(true);
+      setError(null);
+      try {
+        const { amount } = await port.current[how](key);
+        setStatus(await port.current.getClaimStatus());
+        return amount;
+      } catch (cause) {
+        setError(asError(cause));
+        return null;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [],
+  );
+
+  const openTip = useCallback((key: string) => takeTip(key, "openTip"), [takeTip]);
+  const reclaimTip = useCallback((key: string) => takeTip(key, "reclaimTip"), [takeTip]);
+
+  /**
    * Hands the player to GoodDollar's own face check and leaves the page. They come back
    * to the same URL, and the status read on their return is what decides anything.
    */
@@ -228,5 +286,10 @@ export function useWallet() {
     loadWeek,
     enterWeek,
     collectWeek,
+    tipsSupported,
+    loadTip,
+    sendTip,
+    openTip,
+    reclaimTip,
   };
 }

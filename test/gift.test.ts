@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeGift, encodeGift, giftFromHash, giftLink } from "~/game/gift";
+import { decodeGift, encodeGift, giftFromHash, giftLink, makeGiftKey } from "~/game/gift";
 
 const gift = { id: "pip", from: "Ada", at: 1_762_000_000_000 };
 
@@ -42,5 +42,32 @@ describe("gift links", () => {
 
   it("survives a missing timestamp", () => {
     expect(decodeGift(btoa('{"id":"pip"}'))).toEqual({ id: "pip", at: 0 });
+  });
+});
+
+describe("the one-time key a tip rides on", () => {
+  it("is 32 bytes of base64url, and a different one every time", () => {
+    const key = makeGiftKey();
+    expect(key).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(atob(key.replace(/-/g, "+").replace(/_/g, "/")).length).toBe(32);
+    expect(new Set(Array.from({ length: 50 }, makeGiftKey)).size).toBe(50);
+  });
+
+  it("survives the round trip, and the link carries it", () => {
+    const key = makeGiftKey();
+    const withKey = { ...gift, key };
+    expect(decodeGift(encodeGift(withKey))?.key).toBe(key);
+    expect(giftFromHash(new URL(giftLink("https://snarl.example/", withKey)).hash)?.key).toBe(key);
+  });
+
+  it("is absent, not empty, on a gift with no money behind it", () => {
+    expect(decodeGift(encodeGift(gift))).not.toHaveProperty("key");
+  });
+
+  // Whatever arrives here is about to be handed to a signer.
+  it("drops anything that is not shaped like a key", () => {
+    for (const bad of ["", "short", `${makeGiftKey()}x`, "!".repeat(43), 42, null, {}]) {
+      expect(decodeGift(encodeGift({ ...gift, key: bad as string }))?.key).toBeUndefined();
+    }
   });
 });

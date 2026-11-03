@@ -29,6 +29,19 @@ export interface FreedCreature {
   from?: string;
 }
 
+/**
+ * A gift link this device put G$ behind. Kept because the link is the only key to that
+ * money: if it is never opened, this is what lets the sender take it back.
+ */
+export interface SentTip {
+  /** The link's one-time key. Whoever has this can open the gift. */
+  key: string;
+  creature: string;
+  /** Decimal string: IndexedDB holds JSON, and this is a bigint by the time it is spent. */
+  amount: string;
+  at: number;
+}
+
 interface GameState {
   /** False until IndexedDB has been read. The pond must not flash empty before then. */
   hydrated: boolean;
@@ -52,6 +65,8 @@ interface GameState {
    * bigints by the time they reach the chain.
    */
   weeklyProof: { week: string; xs: string[]; ys: string[] } | null;
+  /** Gift links with money behind them, newest first, until they are opened or taken back. */
+  sentTips: SentTip[];
   theme: ThemeId;
   sound: boolean;
   /** When today's Daily Snarl was freed, for "you freed it at 08:14". */
@@ -74,6 +89,9 @@ interface GameState {
     creature: Creature,
     proof: { xs: string[]; ys: string[] },
   ) => void;
+  recordSentTip: (tip: SentTip) => void;
+  /** Once a gift is opened or taken back, there is nothing left to remember. */
+  forgetSentTip: (key: string) => void;
   setTheme: (theme: ThemeId) => void;
   setSound: (sound: boolean) => void;
   clearProgress: () => Promise<void>;
@@ -111,6 +129,7 @@ export const useGame = create<GameState>()(
       weeklyWeek: null,
       weeklyEarnedWeek: null,
       weeklyProof: null,
+      sentTips: [],
       theme: "night",
       sound: true,
 
@@ -180,6 +199,11 @@ export const useGame = create<GameState>()(
           };
         }),
 
+      recordSentTip: (tip) => setState((s) => ({ sentTips: [tip, ...s.sentTips] })),
+
+      forgetSentTip: (key) =>
+        setState((s) => ({ sentTips: s.sentTips.filter((tip) => tip.key !== key) })),
+
       setTheme: (theme) => setState({ theme }),
 
       setSound: (sound) => {
@@ -202,6 +226,8 @@ export const useGame = create<GameState>()(
           weeklyWeek: null,
           weeklyEarnedWeek: null,
           weeklyProof: null,
+          // `sentTips` survives on purpose. It is the only key to money somebody put up
+          // and nobody has taken yet, and that is not progress to be cleared.
         });
         getState().openDay();
       },

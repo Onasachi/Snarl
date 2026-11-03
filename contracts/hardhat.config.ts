@@ -17,7 +17,8 @@ const FORK_BLOCK = Number(process.env.FORK_BLOCK ?? 81_816_364);
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.24",
-    settings: { optimizer: { enabled: true, runs: 200 } },
+    // Celo is an OP-stack chain well past Cancun, and OpenZeppelin 5.6 needs `mcopy`.
+    settings: { optimizer: { enabled: true, runs: 200 }, evmVersion: "cancun" },
   },
   networks: {
     hardhat: process.env.FORK

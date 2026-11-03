@@ -401,10 +401,55 @@ in CELO, but it is charged. A week's share has to be worth more than that or the
 costs more than it gives — which is a reason to keep the creature as the prize and let the
 pool stay at zero until somebody funds it generously, not a reason to shrink the pool.
 
-Not done: the deploy itself, which needs a funded key and a multisig owner that are not
-mine to supply; and the gift escrow that would make the tip from Phase 6 real — a link has
-no address behind it, but it does carry a secret, and G$ locked against that secret's hash
-is a contract someone can claim by revealing it.
+### Phase 10 — The gift escrow ⚠️ built, not deployed
+
+Phase 6 left the tip out because a link has no address behind it until somebody opens it.
+`SnarlGifts.sol` is the answer, and the interesting part is what the link carries.
+
+**Not a secret — a key.** The obvious design locks G$ against `keccak256(secret)` and pays
+whoever reveals the secret. That design is broken in public: the moment the secret is in
+the mempool, anyone watching can copy it, submit the same claim with their own address and
+a higher fee, and take the money. So the link carries 32 random bytes that *are* a private
+key, the gift is filed under the address that key derives to, and claiming means signing a
+message that names the wallet being paid. A signature seen in the mempool is good for one
+address and useless re-aimed.
+
+Which has a second effect worth the whole design on its own: **anyone may submit that
+signature.** The person most likely to be opening a gift link is someone who has never held
+a token and cannot pay for a transaction. The signature decides where the money goes, so
+whoever pays the gas gains nothing by paying it. Nobody does that yet — but the contract
+never has to change for somebody to start.
+
+**No owner.** Not Ownable, not Pausable, nothing. Nobody can pause it, sweep it or change
+it; tokens sent straight to it instead of through `send` are gone. An escrow somebody can
+empty is not an escrow. An unopened gift goes back to its sender after 30 days, and the app
+keeps the keys it escrowed so that is actually reachable — those survive "clear progress",
+because money somebody put up is not progress to be cleared.
+
+16 unit tests and 5 on the Celo fork. The one that matters most is the thief: he has the
+entire signature, in public, before it is mined, and it is no use to him.
+
+**Two findings from the fork, again.** G$'s `balanceOf` is not static for every account on
+Celo — some accrue, per second, at rates unrelated to their balance, and Hardhat's own
+first account turns out to be one of them, which is how it surfaced. A contract that has
+promised every unit of a gift to one address must not drift, so there is now a test that
+holds a gift for a year and checks it is neither richer nor poorer. (It is not. Freshly
+deployed contracts accrue nothing.) And OpenZeppelin 5.6 needs `mcopy`, so everything now
+compiles for Cancun, which Celo is well past.
+
+**The digest is pinned from both sides.** The client signs; the contract rebuilds and
+recovers. Nothing checks them against each other at runtime, and by the time anyone would
+find out the money is already escrowed. So a vector taken from the contract through ethers
+is asserted against viem's encoding in the app's tests, and against Solidity in the
+contract's. Same bytes, three implementations.
+
+The whole loop was driven through the demo wallet: 900 G$ → escrow 50 → the link opens in
+another session showing "and 50.00 G$" → taken → 900 again; then 25 escrowed and taken back,
+875 → 900. The waiting list heals itself when a gift turns out to have been opened already.
+
+Not done: the deploys themselves. `SnarlWeekly` needs a funded key and a multisig owner,
+neither of which is mine to supply; `SnarlGifts` needs only the key. And nothing here has
+ever been signed by a wallet a person actually controls.
 
 ## 4. Decisions worth making now
 
