@@ -1,0 +1,113 @@
+# Deploying SnarlWeekly
+
+## There is no testnet
+
+GoodDollar's identity registry is what makes the Great Untangle's pool mean anything: one
+entry per verified person. That registry exists on Celo mainnet and nowhere else.
+
+- **Alfajores** has been retired. `alfajores-forno.celo-testnet.org` no longer resolves.
+- **Celo Sepolia** replaced it (chain `11142220`) and has **no GoodDollar on it**: G$,
+  the identity registry and the UBI scheme are all absent at their known addresses.
+
+A testnet deploy would therefore prove the plumbing and skip the only part that is
+interesting. What stands in for a testnet is a **fork of Celo itself** — the real token,
+the real registry, real verified humans, and no money at risk:
+
+```
+pnpm test:fork
+```
+
+That suite deploys the contract against the live addresses, has three accounts that
+claimed UBI on Celo enter with Glint's real shape, settles the week, pays them, and rolls
+what nobody collected into the next week. It is pinned to a block so it stays reproducible.
+
+## What the fork found
+
+GoodDollar's `IdentityV4` does not have a single authentication period. It has a ladder:
+
+```
+reverifyDaysOptions = [3, 180]      // live on Celo
+```
+
+`isWhitelisted` indexes that ladder by the account's `authCount`, so a person's **first**
+verification lasts **three days**, and `authCount` cycles back to `0` after the long rung —
+so this is not only a newcomer's problem. Meanwhile `authenticationPeriod()` reports `180`,
+the longest rung, which is misleading if you read only that.
+
+The week is seven days. So someone can verify on Monday, free the knot, enter the pool, and
+be asking for re-verification by Thursday. Asking the registry again at collection time
+would strand their share and sweep it away. The contract therefore asks **once, at entry**:
+`collect` takes an address already recorded as an entrant at its word, and only falls back
+to the registry for a linked wallet. `scripts/identity-expiry.ts` prints the live ladder.
+
+## What you need
+
+| | |
+|---|---|
+| A funded Celo key | `PRIVATE_KEY` in the environment. ~0.5 CELO covers the deploy. |
+| An owner | **A multisig.** The owner opens weeks, pauses, and sweeps uncollected shares. |
+| G$ for the pool | Optional. A week can open empty and anyone may `fund` it afterwards. |
+
+Gas, at Celo's 200 gwei floor:
+
+| | gas | CELO |
+|---|---|---|
+| deploy | 2,105,097 | 0.42 |
+| `openKnot` + `approve` | ~300,000 | 0.06 |
+| **`enter`** | **376,519** | **0.075** |
+| `collect` | ~90,000 | 0.018 |
+
+`enter` is the one that matters, because a player pays it. Inside MiniPay they pay it
+through fee abstraction — out of their stablecoin balance, not in CELO — but they do pay
+it. **A week's share has to be worth more than that**, or the button costs more than it
+gives. Decide the pool size against the current G$ rate before funding anything; a week
+that opens empty still awards Glint, which is what the screen promises.
+
+## Deploy
+
+```
+cd contracts
+PRIVATE_KEY=… OWNER=<multisig> pnpm hardhat run scripts/deploy.ts --network celo
+```
+
+It refuses to run if either GoodDollar address has no code on the network, and refuses to
+make the deployer its own owner unless you say `I_ACCEPT_SINGLE_KEY_OWNER=yes`.
+
+Then give the address to the app as `VITE_SNARL_WEEKLY`. Until that variable is set the
+game behaves exactly as it did before there was a contract: the weekly screen counts the
+player's own passes and promises nothing.
+
+Verify the source while you are here:
+
+```
+CELOSCAN_API_KEY=… pnpm hardhat verify --network celo <address> \
+  0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A \
+  0xC361A6E67822a0EDc17D899227dd9FC50BD62F42 <owner>
+```
+
+## Opening a week
+
+```
+WEEKLY=<address> WEEK=2026-W45 AMOUNT=120000 \
+  pnpm hardhat run scripts/open-week.ts --network celo
+```
+
+The knot, the week's number and its timestamps all come from the game's own files
+(`test/fixtures/`), checked against the game's `weekKey`, `weekId` and creature by
+`test/chain-fixtures.test.ts` in the app. Nothing here is typed in by hand.
+
+**Weeks must overlap.** The game's week is the player's *local* ISO week, and the
+contract's is one timestamp, so for a day or so either side of Monday the two disagree
+about which week it is — by up to 26 hours, UTC+14 to UTC-12. The table handles this:
+
+- `closesAt` is **Monday 12:00 UTC**, which is Sunday midnight for the last player on earth.
+- `openBy` is **Sunday 10:00 UTC**, which is Monday midnight for the first.
+
+So open week *N+1* before week *N* closes. Both are open for 26 hours and nobody falls
+between them. `open-week.ts` warns if you are late.
+
+## Still not done
+
+- Nothing here has run against a real wallet. The fork tests impersonate; they do not sign.
+- The gift escrow does not exist. A gift link carries a secret but no address, so the tip
+  from the pond is still a nice message and no money.

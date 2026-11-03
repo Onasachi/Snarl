@@ -352,9 +352,59 @@ With no contract address configured the screen is exactly what it was: local pas
 pool, no promises. Verified through the demo wallet — pool read, entered, share collected,
 balance moved — but the live path has still never run against a deployed contract.
 
-Not done: deployment, and the gift escrow that would make the tip from Phase 6 real — a
-link has no address behind it, but it does carry a secret, and G$ locked against that
-secret's hash is a contract someone can claim by revealing it.
+### Phase 9 — Rehearsed against the real Celo ⚠️ not deployed
+
+Mainnet is not the risky option here. It is the only one. **There is no testnet that knows
+who is a verified person:** Alfajores has been retired — `alfajores-forno.celo-testnet.org`
+does not resolve any more — and Celo Sepolia, which replaced it, has nothing at G$'s,
+the identity registry's or the UBI scheme's addresses. A testnet deploy would prove the
+plumbing and skip the only interesting part.
+
+So the dress rehearsal is **a fork of Celo itself** (`pnpm test:fork`), against the real
+token and the real registry, with three accounts that really claimed UBI at the pinned
+block. Eight tests: the pool funds in real G$ and holds exactly what arrived, three real
+humans enter with Glint's real shape, a real address with no identity root is turned away,
+a tangled drawing is turned away, everyone is paid, and an uncollected share rolls over.
+The whole deploy was then rehearsed end to end against a forked node — deploy, approve,
+open a 120,000 G$ week — using the same commands `contracts/DEPLOY.md` gives for mainnet.
+
+**The fork found a bug that no mock could have.** GoodDollar's `IdentityV4` has no single
+authentication period. It has a ladder, `reverifyDaysOptions`, live on Celo as `[3, 180]`,
+indexed by the account's `authCount`: a person's *first* verification lasts **three days**,
+and `authCount` cycles back to zero after the long rung, so it recurs for everyone. (The
+`authenticationPeriod()` getter reports `180`, the longest rung, which is misleading if you
+read only that.) The week is seven days. Someone can verify on Monday, free the knot, enter,
+and be asked to re-verify by Thursday — and `collect` was asking the registry a second
+time, which would have reverted on exactly the newcomers a GoodDollar game brings in, their
+shares swept away a week later.
+
+Fixed by asking **once, at entry**: `collect` takes an address already down as an entrant at
+its word — nothing but `enter` can write that, and only after a root passed the check — and
+falls back to the registry only for a linked wallet. The client's `week()` reads the same way
+round, so the collect button appears for someone the registry has stopped vouching for.
+Three unit tests on the mock, and the fork test now asserts that all three real accounts
+read as unverified by Sunday and are paid anyway.
+
+Two smaller things the rehearsal settled:
+
+**Weeks have to overlap.** The game's week is the player's *local* ISO week; the contract's
+is one timestamp. Those disagree by up to 26 hours, UTC+14 to UTC-12. So `closesAt` is
+Monday 12:00 UTC (Sunday midnight for the last player on earth) and a week must be open by
+Sunday 10:00 UTC (Monday midnight for the first). `contracts/test/fixtures/weeks.json`
+carries the table, generated from the game's own `weekKey` and `weekId` and checked against
+them by `test/chain-fixtures.test.ts`, so the number the owner opens cannot drift from the
+number the app looks up. Glint's shape travels the same way rather than being retyped.
+
+**`enter` costs the player 376,519 gas, about 0.075 CELO** at Celo's 200 gwei floor. Inside
+MiniPay that is charged through fee abstraction, out of their stablecoin balance rather than
+in CELO, but it is charged. A week's share has to be worth more than that or the button
+costs more than it gives — which is a reason to keep the creature as the prize and let the
+pool stay at zero until somebody funds it generously, not a reason to shrink the pool.
+
+Not done: the deploy itself, which needs a funded key and a multisig owner that are not
+mine to supply; and the gift escrow that would make the tip from Phase 6 real — a link has
+no address behind it, but it does carry a secret, and G$ locked against that secret's hash
+is a contract someone can claim by revealing it.
 
 ## 4. Decisions worth making now
 

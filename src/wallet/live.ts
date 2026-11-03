@@ -32,6 +32,9 @@ const ENV =
 const CELO_ID = SupportedChains.CELO;
 const CELO_HEX = `0x${CELO_ID.toString(16)}`;
 
+/** What the identity registry returns for someone it has no record of. */
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 interface Eip1193Provider {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>;
   isMiniPay?: boolean;
@@ -165,29 +168,38 @@ export function createLiveWallet(): WalletPort {
       const { address: account, identitySdk: identity } = await ready();
       const { root } = await identity.getWhitelistedRoot(account);
 
-      const [knot, entered, collected] = await Promise.all([
+      // Who this wallet collects as, the contract's way round. Entries are filed under a
+      // person's identity root, but the contract takes an address already down as an
+      // entrant at its word, verified today or not — GoodDollar asks people to re-verify
+      // on a ladder that starts at three days and the week is seven, so by Sunday the
+      // registry may have no root to offer. The wallet's own address is therefore the
+      // first place to look, and the root only the fallback for a linked wallet.
+      const filedUnder = [account, root].filter(
+        (a, i, all) => a !== ZERO_ADDRESS && all.indexOf(a) === i,
+      );
+      const read = (fn: "entered" | "collected", who: Address) =>
+        publicClient.readContract({
+          address: WEEKLY_ADDRESS,
+          abi: snarlWeeklyAbi,
+          functionName: fn,
+          args: [id, who],
+        });
+
+      const [knot, entries, collections] = await Promise.all([
         publicClient.readContract({
           address: WEEKLY_ADDRESS,
           abi: snarlWeeklyAbi,
           functionName: "knot",
           args: [id],
         }),
-        publicClient.readContract({
-          address: WEEKLY_ADDRESS,
-          abi: snarlWeeklyAbi,
-          functionName: "entered",
-          args: [id, root],
-        }),
-        publicClient.readContract({
-          address: WEEKLY_ADDRESS,
-          abi: snarlWeeklyAbi,
-          functionName: "collected",
-          args: [id, root],
-        }),
+        Promise.all(filedUnder.map((who) => read("entered", who as Address))),
+        Promise.all(filedUnder.map((who) => read("collected", who as Address))),
       ]);
 
       // A week nobody has opened reads as all zeroes. That is not a week.
       if (knot.closesAt === 0n) return null;
+
+      const mine = entries.indexOf(true);
 
       return {
         pool: knot.pool,
@@ -195,8 +207,8 @@ export function createLiveWallet(): WalletPort {
         closesAt: new Date(Number(knot.closesAt) * 1000),
         settled: knot.settled,
         share: knot.share,
-        entered,
-        collected,
+        entered: mine !== -1,
+        collected: mine !== -1 ? (collections[mine] ?? false) : false,
         decimals,
       };
     },

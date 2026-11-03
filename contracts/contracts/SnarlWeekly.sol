@@ -189,8 +189,8 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
         if (k.closesAt == 0) revert UnknownKnot();
         if (!k.settled) revert NotSettled();
 
-        address root = _rootOf(msg.sender);
-        if (!entered[week][root] || collected[week][root]) revert NothingToCollect();
+        address root = _collectingRootOf(week, msg.sender);
+        if (collected[week][root]) revert NothingToCollect();
 
         uint256 amount = k.share;
         if (amount == 0) revert NothingToCollect();
@@ -252,6 +252,29 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
     function _rootOf(address account) private view returns (address root) {
         root = identity.getWhitelistedRoot(account);
         if (root == address(0)) revert NotVerified();
+    }
+
+    /**
+     * Who this sender is collecting as.
+     *
+     * Entering is the moment that asks whether you are a verified person. Collecting, up
+     * to a week later, must not ask again — because GoodDollar's answer changes. Its
+     * registry re-verifies on a ladder, and the first rung on Celo is three days: someone
+     * who verifies, plays, and enters on Monday is being asked to re-verify by Thursday,
+     * and the ladder cycles, so this is not only a newcomer's problem. Asking twice would
+     * mean a week where people who did everything right cannot be paid, and their shares
+     * are swept away.
+     *
+     * So a sender already down as an entrant is taken at their word: nothing but this
+     * contract's own `enter` can write that, and only after a root passed the check. Any
+     * other sender must still be a wallet linked to a root that entered, which is the
+     * linked-wallet case and does need the registry.
+     */
+    function _collectingRootOf(uint32 week, address account) private view returns (address) {
+        if (entered[week][account]) return account;
+        address root = _rootOf(account);
+        if (!entered[week][root]) revert NothingToCollect();
+        return root;
     }
 
 }

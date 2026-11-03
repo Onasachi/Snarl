@@ -161,6 +161,55 @@ describe("SnarlWeekly", () => {
       ).to.be.revertedWithCustomError(s.weekly, "NotVerified");
     });
 
+    it("still pays someone whose verification lapsed after they entered", async () => {
+      const s = await enterBoth();
+      await time.increaseTo(s.closesAt);
+      await s.weekly.settle(WEEK);
+
+      // GoodDollar re-verifies on a ladder whose first rung is three days, and the week
+      // is seven. Being asked to show your face again is not the same as never having
+      // been a person, and the entry is already on the books.
+      await s.identity.link(s.ada.address, ethers.ZeroAddress);
+      expect(await s.identity.isWhitelisted(s.ada.address)).to.equal(false);
+
+      await expect(s.weekly.connect(s.ada).collect(WEEK)).to.changeTokenBalance(
+        s.g$,
+        s.ada,
+        POOL / 2n,
+      );
+    });
+
+    it("still pays a linked wallet whose person is down as an entrant", async () => {
+      const s = await enterBoth();
+      await time.increaseTo(s.closesAt);
+      await s.weekly.settle(WEEK);
+
+      // Ada entered from her first wallet; her second one collects, and the registry is
+      // what ties the two together.
+      await expect(s.weekly.connect(s.adaSecondWallet).collect(WEEK)).to.changeTokenBalance(
+        s.g$,
+        s.adaSecondWallet,
+        POOL / 2n,
+      );
+      await expect(s.weekly.connect(s.ada).collect(WEEK)).to.be.revertedWithCustomError(
+        s.weekly,
+        "NothingToCollect",
+      );
+    });
+
+    it("pays nobody who entered nothing, verified or not", async () => {
+      const s = await enterBoth();
+      await time.increaseTo(s.closesAt);
+      await s.weekly.settle(WEEK);
+
+      // Verified, and still not an entrant.
+      await s.identity.link(s.stranger.address, s.stranger.address);
+      await expect(s.weekly.connect(s.stranger).collect(WEEK)).to.be.revertedWithCustomError(
+        s.weekly,
+        "NothingToCollect",
+      );
+    });
+
     it("will not pay before the week is settled", async () => {
       const s = await enterBoth();
       await time.increaseTo(s.closesAt);
