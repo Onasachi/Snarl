@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createWallet, walletAvailable, wantsDemoWallet } from "./index";
-import type { ClaimStatus, WalletAccount, WalletPort } from "./port";
+import type { ClaimStatus, WalletAccount, WalletPort, WeekStatus } from "./port";
 
 /** Set once the player has connected, so a reload or a verification trip can resume. */
 const RESUME_KEY = "snarl.wallet.resume";
@@ -63,6 +63,7 @@ export function useWallet() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<WalletError | null>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
+  const [week, setWeek] = useState<WeekStatus | null>(null);
   const port = useRef<WalletPort | null>(null);
 
   const load = useCallback(async (): Promise<WalletPort> => {
@@ -108,6 +109,50 @@ export function useWallet() {
     setError(null);
     try {
       const { amount } = await port.current.claim();
+      setStatus(await port.current.getClaimStatus());
+      return amount;
+    } catch (cause) {
+      setError(asError(cause));
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  /** Reads one week of the Great Untangle. Null when no contract is configured. */
+  const loadWeek = useCallback(async (id: number) => {
+    if (!port.current) return;
+    try {
+      setWeek(await port.current.week(id));
+    } catch {
+      // A read that fails leaves the screen speaking for the player alone, which is what
+      // it does with no contract at all.
+    }
+  }, []);
+
+  const enterWeek = useCallback(async (id: number, xs: bigint[], ys: bigint[]) => {
+    if (!port.current) return false;
+    setBusy(true);
+    setError(null);
+    try {
+      await port.current.enterWeek(id, xs, ys);
+      setWeek(await port.current.week(id));
+      return true;
+    } catch (cause) {
+      setError(asError(cause));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const collectWeek = useCallback(async (id: number): Promise<bigint | null> => {
+    if (!port.current) return null;
+    setBusy(true);
+    setError(null);
+    try {
+      const { amount } = await port.current.collectWeek(id);
+      setWeek(await port.current.week(id));
       setStatus(await port.current.getClaimStatus());
       return amount;
     } catch (cause) {
@@ -169,5 +214,19 @@ export function useWallet() {
     })();
   }, [account, connect]);
 
-  return { account, status, busy, error, available, connect, claim, verify, refresh };
+  return {
+    account,
+    status,
+    busy,
+    error,
+    available,
+    week,
+    connect,
+    claim,
+    verify,
+    refresh,
+    loadWeek,
+    enterWeek,
+    collectWeek,
+  };
 }

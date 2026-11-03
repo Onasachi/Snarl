@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Pt } from "~/engine";
+import { solvedLayout, toChainPositions } from "~/engine";
 import { DAILY_CREATURE, dailySeed, isDailySolved } from "~/game/daily";
 import { giftedCreature, giftFromHash } from "~/game/gift";
 import { MoreSheet } from "~/game/MoreSheet";
@@ -15,7 +17,7 @@ import { useGame } from "~/game/store";
 import { Toast, useToast } from "~/game/Toast";
 import { freedByLabel, useDailyCount } from "~/game/useDailyCount";
 import { VerifySheet } from "~/game/VerifySheet";
-import { WEEKLY_CREATURE, weekKey, weeklySeed } from "~/game/weekly";
+import { WEEKLY_CREATURE, weekId, weekKey, weeklySeed } from "~/game/weekly";
 import { claimCardState, formatAmount } from "~/wallet";
 import { returningFromVerification, useWallet } from "~/wallet/useWallet";
 
@@ -115,7 +117,7 @@ export function App() {
   }, [tutorialStep]);
 
   const next = useCallback(
-    (moves: number) => {
+    (moves: number, pos: readonly Pt[]) => {
       if (mode !== "weekly") recordFreed(creature, moves);
 
       if (isDaily) {
@@ -130,7 +132,13 @@ export function App() {
       // pond: everyone is working the same creature, and ten copies of it is not a pond.
       if (isWeekly) {
         const first = weeklyEarnedWeek !== week;
-        recordWeeklySolve(week, WEEKLY_CREATURE);
+        // The board as they left it, in the integers the contract reads, so entering the
+        // pool later sends their own drawing rather than one the game supplied.
+        const { xs, ys } = toChainPositions(pos);
+        recordWeeklySolve(week, WEEKLY_CREATURE, {
+          xs: xs.map(String),
+          ys: ys.map(String),
+        });
         setMode("progress");
         setScreen("untangle");
         if (first) {
@@ -231,6 +239,37 @@ export function App() {
     );
   }, [wallet.error, toast]);
 
+  // The Great Untangle's pool, when there is one. Read on opening the screen, never at
+  // startup: a player who never goes there never touches a chain.
+  const weekNumber = useMemo(() => weekId(week), [week]);
+  const weeklyProof = useGame((s) => s.weeklyProof);
+  const weeklyEarned = weeklyEarnedWeek === week;
+
+  useEffect(() => {
+    if (screen === "untangle" && wallet.account) void wallet.loadWeek(weekNumber);
+  }, [screen, wallet.account, wallet.loadWeek, weekNumber]);
+
+  const enterPool = useCallback(async () => {
+    // Their own drawing if it is still here; the creature's true shape if it is not. The
+    // contract accepts any untangled drawing, so this is about whose it is, not whether
+    // it passes.
+    const drawing =
+      weeklyProof?.week === week
+        ? { xs: weeklyProof.xs.map(BigInt), ys: weeklyProof.ys.map(BigInt) }
+        : toChainPositions(solvedLayout(WEEKLY_CREATURE.nodes, 12));
+
+    if (await wallet.enterWeek(weekNumber, drawing.xs, drawing.ys)) {
+      toast.show("You are in this week's pool.");
+    }
+  }, [toast, wallet, week, weekNumber, weeklyProof]);
+
+  const collectPool = useCallback(async () => {
+    const amount = await wallet.collectWeek(weekNumber);
+    if (amount !== null && wallet.week) {
+      toast.show(`${formatAmount(amount, wallet.week.decimals)} collected.`);
+    }
+  }, [toast, wallet, weekNumber]);
+
   const dailyChips = ["Rare · Daily Snarl", freedByLabel(freedToday)].filter(
     (chip): chip is string => chip !== null,
   );
@@ -323,6 +362,13 @@ export function App() {
           onAddSolve={() => {
             setMode("weekly");
             setScreen("puzzle");
+          }}
+          chain={{
+            status: wallet.week,
+            busy: wallet.busy,
+            freedHere: weeklyEarned,
+            onEnter: () => void enterPool(),
+            onCollect: () => void collectPool(),
           }}
         />
       )}

@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect } from "react";
+import type { Pt } from "~/engine";
 import { NameCard } from "~/game/NameCard";
 import { ToolButton } from "~/game/Tools";
 import { type UsePuzzleOptions, usePuzzle } from "~/game/usePuzzle";
@@ -14,8 +15,12 @@ export interface PuzzleScreenProps extends UsePuzzleOptions {
   nudgesLeft: number;
   /** Label on the name card's button. */
   nextLabel: string;
-  /** Called with the move count, so the pond can record how the creature was freed. */
-  onNext: (moves: number) => void;
+  /**
+   * Called with the move count and the board as the player left it. The weekly knot sends
+   * that drawing to the contract, so it is theirs on chain rather than a layout the game
+   * supplied for them.
+   */
+  onNext: (moves: number, pos: readonly Pt[]) => void;
   /** Draws attention to Nudge the first time it is available. */
   highlightNudge?: boolean;
   showNudge?: boolean;
@@ -202,7 +207,7 @@ export function PuzzleScreen({
           creature={creature}
           chips={shownChips}
           actionLabel={nextLabel}
-          onAction={() => onNext(p.moves)}
+          onAction={() => onNext(p.moves, p.pos)}
         />
       )}
     </>

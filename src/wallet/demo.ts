@@ -1,4 +1,4 @@
-import type { ClaimStatus, WalletAccount, WalletPort } from "./port";
+import type { ClaimStatus, WalletAccount, WalletPort, WeekStatus } from "./port";
 
 /**
  * A wallet that holds nothing and moves nothing, so every state of the claim card can be
@@ -13,6 +13,11 @@ const DEMO_ADDRESS = "0x5ab1ec0de0000000000000000000000000000001" as const;
 const DECIMALS = 18;
 const DAILY = 152_370_000_000_000_000_000n;
 const VERIFIED_KEY = "snarl.demo.verified";
+const ENTERED_KEY = "snarl.demo.weekEntered";
+const COLLECTED_KEY = "snarl.demo.weekCollected";
+/** A pool with people already in it, so the screen has something to show. */
+const DEMO_POOL = 120_000n * 10n ** 18n;
+const DEMO_ENTRANTS = 1283;
 const CLAIMED_KEY = "snarl.demo.claimedAt";
 const BALANCE_KEY = "snarl.demo.balance";
 
@@ -67,6 +72,38 @@ export function createDemoWallet(): WalletPort {
       write(BALANCE_KEY, balance.toString());
       write(CLAIMED_KEY, Date.now().toString());
       return { amount: DAILY };
+    },
+
+    async week(id: number): Promise<WeekStatus | null> {
+      await sleep(250);
+      const entered = read(ENTERED_KEY) === String(id);
+      const entrants = DEMO_ENTRANTS + (entered ? 1 : 0);
+      return {
+        pool: DEMO_POOL,
+        entrants,
+        closesAt: midnight(),
+        // The real contract only settles once the week is over. The demo settles as soon
+        // as you have entered, because the point of it is to be able to look at every
+        // state without waiting until Sunday.
+        settled: entered,
+        share: DEMO_POOL / BigInt(entrants),
+        entered,
+        collected: read(COLLECTED_KEY) === String(id),
+        decimals: DECIMALS,
+      };
+    },
+
+    async enterWeek(id: number) {
+      await sleep(700);
+      write(ENTERED_KEY, String(id));
+    },
+
+    async collectWeek(id: number) {
+      await sleep(700);
+      const amount = DEMO_POOL / BigInt(DEMO_ENTRANTS + 1);
+      write(COLLECTED_KEY, String(id));
+      write(BALANCE_KEY, (BigInt(read(BALANCE_KEY) ?? "0") + amount).toString());
+      return { amount };
     },
 
     async verificationLink(returnTo: string) {

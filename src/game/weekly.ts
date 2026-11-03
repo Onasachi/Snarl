@@ -28,6 +28,15 @@ export function weekKey(date: Date = new Date()): string {
 
 export const weeklySeed = (week: string): number => seedFromString(week);
 
+/**
+ * The week as the contract numbers it: 2026-W45 becomes 202645. Readable in a block
+ * explorer, which matters when somebody has to open a week by hand.
+ */
+export function weekId(week: string): number {
+  const [year, number] = week.split("-W") as [string, string];
+  return Number(year) * 100 + Number(number);
+}
+
 /** Milliseconds until the week's knot is replaced, at the end of Sunday. */
 export function msUntilNextWeek(now: Date = new Date()): number {
   const daysLeft = 7 - ((now.getDay() + 6) % 7);

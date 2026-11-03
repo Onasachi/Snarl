@@ -15,7 +15,15 @@ import {
   type WalletClient,
 } from "viem";
 import { celo } from "viem/chains";
-import type { Address, ClaimStatus, WalletAccount, WalletPort } from "./port";
+import { snarlWeeklyAbi } from "~/chain/snarlWeekly";
+import type { Address, ClaimStatus, WalletAccount, WalletPort, WeekStatus } from "./port";
+
+/**
+ * The Great Untangle's pool. Unset until it is deployed, and while it is unset the game
+ * behaves exactly as it did before there was a contract: the weekly screen counts the
+ * player's own passes and promises nothing.
+ */
+const WEEKLY_ADDRESS = import.meta.env.VITE_SNARL_WEEKLY as Address | undefined;
 
 /** GoodDollar has no testnet: staging and production are different contracts on Celo. */
 const ENV =
@@ -59,6 +67,7 @@ export function createLiveWallet(): WalletPort {
   let address: Address | null = null;
   let claimSdk: ClaimSDK | null = null;
   let identitySdk: IdentitySDK | null = null;
+  let walletClient: ReturnType<typeof createWalletClient> | null = null;
 
   const contracts = chainConfigs[CELO_ID].contracts[ENV];
   const decimals = CHAIN_DECIMALS[CELO_ID];
@@ -90,7 +99,7 @@ export function createLiveWallet(): WalletPort {
         });
       }
 
-      const walletClient = createWalletClient({
+      walletClient = createWalletClient({
         account: address,
         chain: celo,
         transport: custom(found),
@@ -149,6 +158,81 @@ export function createLiveWallet(): WalletPort {
       const before = await claim.checkEntitlement();
       await claim.claim();
       return { amount: before.amount };
+    },
+
+    async week(id: number): Promise<WeekStatus | null> {
+      if (!WEEKLY_ADDRESS) return null;
+      const { address: account, identitySdk: identity } = await ready();
+      const { root } = await identity.getWhitelistedRoot(account);
+
+      const [knot, entered, collected] = await Promise.all([
+        publicClient.readContract({
+          address: WEEKLY_ADDRESS,
+          abi: snarlWeeklyAbi,
+          functionName: "knot",
+          args: [id],
+        }),
+        publicClient.readContract({
+          address: WEEKLY_ADDRESS,
+          abi: snarlWeeklyAbi,
+          functionName: "entered",
+          args: [id, root],
+        }),
+        publicClient.readContract({
+          address: WEEKLY_ADDRESS,
+          abi: snarlWeeklyAbi,
+          functionName: "collected",
+          args: [id, root],
+        }),
+      ]);
+
+      // A week nobody has opened reads as all zeroes. That is not a week.
+      if (knot.closesAt === 0n) return null;
+
+      return {
+        pool: knot.pool,
+        entrants: knot.entrants,
+        closesAt: new Date(Number(knot.closesAt) * 1000),
+        settled: knot.settled,
+        share: knot.share,
+        entered,
+        collected,
+        decimals,
+      };
+    },
+
+    async enterWeek(id: number, xs: bigint[], ys: bigint[]) {
+      if (!WEEKLY_ADDRESS) throw new Error("no-contract");
+      const { address: account } = await ready();
+      if (!walletClient) throw new Error("wallet not connected");
+
+      const hash = await walletClient.writeContract({
+        address: WEEKLY_ADDRESS,
+        abi: snarlWeeklyAbi,
+        functionName: "enter",
+        args: [id, xs, ys],
+        account,
+        chain: celo,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+    },
+
+    async collectWeek(id: number) {
+      if (!WEEKLY_ADDRESS) throw new Error("no-contract");
+      const { address: account } = await ready();
+      if (!walletClient) throw new Error("wallet not connected");
+
+      const before = await this.week(id);
+      const hash = await walletClient.writeContract({
+        address: WEEKLY_ADDRESS,
+        abi: snarlWeeklyAbi,
+        functionName: "collect",
+        args: [id],
+        account,
+        chain: celo,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      return { amount: before?.share ?? 0n };
     },
 
     async verificationLink(returnTo: string) {

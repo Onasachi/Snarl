@@ -26,6 +26,19 @@ export interface ClaimStatus {
  * citizen SDK, and a demo one that lets every state be driven without a wallet or a
  * single real transaction.
  */
+/** What the chain says about one week of the Great Untangle. */
+export interface WeekStatus {
+  pool: bigint;
+  entrants: number;
+  closesAt: Date;
+  settled: boolean;
+  /** Each entrant's share, once the week is settled. */
+  share: bigint;
+  entered: boolean;
+  collected: boolean;
+  decimals: number;
+}
+
 export interface WalletPort {
   connect(): Promise<WalletAccount>;
   getClaimStatus(): Promise<ClaimStatus>;
@@ -36,6 +49,17 @@ export interface WalletPort {
    * the camera never belongs to this app — and it returns the player to `returnTo`.
    */
   verificationLink(returnTo: string): Promise<string>;
+
+  /**
+   * The Great Untangle's pool. Null everywhere means no contract is configured, and the
+   * screen then speaks only for the player in front of it, exactly as it did before there
+   * was a contract at all.
+   */
+  week(id: number): Promise<WeekStatus | null>;
+  /** Enters the week by handing the contract an untangled drawing of its knot. */
+  enterWeek(id: number, xs: bigint[], ys: bigint[]): Promise<void>;
+  /** Takes this person's share of a settled week. */
+  collectWeek(id: number): Promise<{ amount: bigint }>;
 }
 
 export type ClaimCardState = "disconnected" | "unverified" | "ready" | "claimed";

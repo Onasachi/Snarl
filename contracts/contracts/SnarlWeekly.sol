@@ -51,23 +51,23 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
     IERC20 public immutable token;
     IIdentityV2 public immutable identity;
 
-    mapping(uint16 week => Knot) private _knots;
+    mapping(uint32 week => Knot) private _knots;
     /** Keyed by identity root, so linked wallets count as one person. */
-    mapping(uint16 week => mapping(address root => bool)) public entered;
-    mapping(uint16 week => mapping(address root => bool)) public collected;
+    mapping(uint32 week => mapping(address root => bool)) public entered;
+    mapping(uint32 week => mapping(address root => bool)) public collected;
 
     /** How many of a week's entrants have taken their share. */
-    mapping(uint16 week => uint32 count) public collectedCount;
+    mapping(uint32 week => uint32 count) public collectedCount;
 
     /** G$ spoken for by open weeks, so the owner cannot withdraw it. */
     uint256 public locked;
 
-    event KnotOpened(uint16 indexed week, uint256 pool, uint64 closesAt);
-    event KnotFunded(uint16 indexed week, address indexed from, uint256 amount);
-    event Entered(uint16 indexed week, address indexed root, address indexed by);
-    event Settled(uint16 indexed week, uint32 entrants, uint256 share);
-    event Collected(uint16 indexed week, address indexed root, address to, uint256 amount);
-    event Swept(uint16 indexed from, uint16 indexed into, uint256 amount);
+    event KnotOpened(uint32 indexed week, uint256 pool, uint64 closesAt);
+    event KnotFunded(uint32 indexed week, address indexed from, uint256 amount);
+    event Entered(uint32 indexed week, address indexed root, address indexed by);
+    event Settled(uint32 indexed week, uint32 entrants, uint256 share);
+    event Collected(uint32 indexed week, address indexed root, address to, uint256 amount);
+    event Swept(uint32 indexed from, uint32 indexed into, uint256 amount);
 
     error UnknownKnot();
     error KnotExists();
@@ -88,7 +88,7 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
         identity = identityContract;
     }
 
-    function knot(uint16 week) external view returns (Knot memory) {
+    function knot(uint32 week) external view returns (Knot memory) {
         return _knots[week];
     }
 
@@ -97,7 +97,7 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
      * a week with no money is still a week, and the creature inside it is the real prize.
      */
     function openKnot(
-        uint16 week,
+        uint32 week,
         bytes calldata edges,
         uint32 beads,
         uint64 closesAt,
@@ -125,13 +125,13 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
     }
 
     /** Anyone can add to a week's pool. A sponsor is just an address that cares. */
-    function fund(uint16 week, uint256 amount) external {
+    function fund(uint32 week, uint256 amount) external {
         if (_knots[week].closesAt == 0) revert UnknownKnot();
         if (block.timestamp >= _knots[week].closesAt) revert KnotClosed();
         _fund(week, amount);
     }
 
-    function _fund(uint16 week, uint256 amount) private {
+    function _fund(uint32 week, uint256 amount) private {
         token.safeTransferFrom(msg.sender, address(this), amount);
         _knots[week].pool += uint128(amount);
         locked += amount;
@@ -146,7 +146,7 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
      * drawing is the player's business.
      */
     function enter(
-        uint16 week,
+        uint32 week,
         int256[] calldata xs,
         int256[] calldata ys
     ) external whenNotPaused nonReentrant {
@@ -172,7 +172,7 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
      * Freezes the share once the week is over. Anyone may call it: the sooner it happens
      * the sooner people are paid, and it takes no side.
      */
-    function settle(uint16 week) public {
+    function settle(uint32 week) public {
         Knot storage k = _knots[week];
         if (k.closesAt == 0) revert UnknownKnot();
         if (block.timestamp < k.closesAt) revert KnotOpen();
@@ -184,7 +184,7 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
     }
 
     /** Takes this person's share of a settled week. */
-    function collect(uint16 week) external nonReentrant {
+    function collect(uint32 week) external nonReentrant {
         Knot storage k = _knots[week];
         if (k.closesAt == 0) revert UnknownKnot();
         if (!k.settled) revert NotSettled();
@@ -208,7 +208,7 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
      * What nobody came for rolls into another week rather than back to whoever funded it.
      * Only reachable once the collection window has passed.
      */
-    function sweep(uint16 from, uint16 into) external onlyOwner {
+    function sweep(uint32 from, uint32 into) external onlyOwner {
         Knot storage old = _knots[from];
         if (old.closesAt == 0 || _knots[into].closesAt == 0) revert UnknownKnot();
         if (!old.settled) revert NotSettled();

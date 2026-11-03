@@ -1,6 +1,13 @@
 import type { WalletPort } from "./port";
 
-export type { Address, ClaimCardState, ClaimStatus, WalletAccount, WalletPort } from "./port";
+export type {
+  Address,
+  ClaimCardState,
+  ClaimStatus,
+  WalletAccount,
+  WalletPort,
+  WeekStatus,
+} from "./port";
 export { claimCardState, formatAmount, formatG$ } from "./port";
 
 /** Development only, and only when asked for: ?wallet=demo. */

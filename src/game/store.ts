@@ -46,6 +46,12 @@ interface GameState {
   weeklyWeek: string | null;
   /** The week whose knot has already given up its creature. One per week. */
   weeklyEarnedWeek: string | null;
+  /**
+   * The board as the player left it when they freed the week's knot, kept so it can be
+   * sent to the contract later. Decimal strings: IndexedDB holds JSON, and these are
+   * bigints by the time they reach the chain.
+   */
+  weeklyProof: { week: string; xs: string[]; ys: string[] } | null;
   theme: ThemeId;
   sound: boolean;
   /** When today's Daily Snarl was freed, for "you freed it at 08:14". */
@@ -63,7 +69,11 @@ interface GameState {
    * Adds a pass at the week's knot, and the first pass of a week puts its creature in the
    * pond. Further passes still count; they just do not hand out a second one.
    */
-  recordWeeklySolve: (week: string, creature: Creature) => void;
+  recordWeeklySolve: (
+    week: string,
+    creature: Creature,
+    proof: { xs: string[]; ys: string[] },
+  ) => void;
   setTheme: (theme: ThemeId) => void;
   setSound: (sound: boolean) => void;
   clearProgress: () => Promise<void>;
@@ -100,6 +110,7 @@ export const useGame = create<GameState>()(
       weeklySolves: 0,
       weeklyWeek: null,
       weeklyEarnedWeek: null,
+      weeklyProof: null,
       theme: "night",
       sound: true,
 
@@ -149,10 +160,11 @@ export const useGame = create<GameState>()(
           lastDailyAt: Date.now(),
         })),
 
-      recordWeeklySolve: (week, creature) =>
+      recordWeeklySolve: (week, creature, proof) =>
         setState((s) => {
           const earned = s.weeklyEarnedWeek === week;
           return {
+            weeklyProof: { week, xs: proof.xs, ys: proof.ys },
             weeklyWeek: week,
             weeklySolves: nextWeeklySolves(s.weeklyWeek, s.weeklySolves, week),
             weeklyEarnedWeek: week,
@@ -189,6 +201,7 @@ export const useGame = create<GameState>()(
           weeklySolves: 0,
           weeklyWeek: null,
           weeklyEarnedWeek: null,
+          weeklyProof: null,
         });
         getState().openDay();
       },

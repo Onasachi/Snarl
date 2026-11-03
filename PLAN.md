@@ -332,10 +332,29 @@ that cares, and a week with no money is still a week.
 crossing on chain, exactly as it does in the engine), and the pool through entering,
 settling, collecting, sweeping, pausing and custody.
 
-Not done: deployment, wiring the Great Untangle screen to it, and the gift escrow that
-would make the tip from Phase 6 real — a link has no address behind it, but it does carry a
-secret, and G$ locked against that secret's hash is a contract someone can claim by
-revealing it.
+**The screen is wired to it.** The Great Untangle shows the pool and how many people are
+in, and once the week's knot has been freed here it offers to enter — sending the board as
+the player left it, so what lands on chain is their own drawing rather than a layout the
+game supplied. After the week settles the same button collects their share.
+
+The piece that makes that safe is `src/engine/exact.ts`: the contract's rule again, in
+exact integers, so the client can ask what the chain would say before anyone pays gas to
+hear it. The game's engine works in floats and needs an epsilon; the contract has none and
+cannot be argued with. A test runs both over every creature, solved and tangled, across
+twenty-five seeds each, and they agree every time — which is the real reason to trust the
+button.
+
+The week's id on chain is the date: `2026-W45` becomes `202645`, readable in a block
+explorer, which matters when somebody has to open a week by hand. That needed the
+contract's week to widen from `uint16` to `uint32`.
+
+With no contract address configured the screen is exactly what it was: local passes, no
+pool, no promises. Verified through the demo wallet — pool read, entered, share collected,
+balance moved — but the live path has still never run against a deployed contract.
+
+Not done: deployment, and the gift escrow that would make the tip from Phase 6 real — a
+link has no address behind it, but it does carry a secret, and G$ locked against that
+secret's hash is a contract someone can claim by revealing it.
 
 ## 4. Decisions worth making now
 

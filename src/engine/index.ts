@@ -1,4 +1,11 @@
 export {
+  CHAIN_GRID,
+  exactCrossings,
+  isUntangledOnChain,
+  packEdges,
+  toChainPositions,
+} from "./exact";
+export {
   crossingCountFor,
   crossings,
   crossingsInvolving,
