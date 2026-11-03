@@ -274,8 +274,18 @@ same frame. The timing tests take the quickest of several runs rather than the a
 suite shares its machine with its own workers, so a mean measures the noise. The first
 version of this test was flaky for exactly that reason.
 
-Not done: the four store frames, and a real-device pass on iOS Safari and Android Chrome.
-The device pass is the only remaining work that could invalidate something already built.
+**The four store frames are built**, from the real renderer and the real cards rather than
+drawn again by hand — a frame that drifts from the game is worse than no frame. They are a
+development-only view: `?frames=1` to look at them, `&scale=1` to render at full size for
+capture, and nothing of them reaches a production build. Each is 1290 × 2796, the largest
+size the stores ask for; every other size they want is a downscale.
+
+The pond's two cards are drawn for a 390pt phone in absolute pixels, so the fourth frame
+renders them at that width and scales them up rather than keeping a second copy of the
+same layout at frame size.
+
+Not done: a real-device pass on iOS Safari and Android Chrome. It is the only remaining
+work that could invalidate something already built.
 
 ## 4. Decisions worth making now
 
