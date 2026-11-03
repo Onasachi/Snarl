@@ -239,7 +239,7 @@ until Sunday, and passes at it are counted. The shared community total waits on 
 being deployed; until then the screen speaks for the player in front of it. The endpoint
 shapes are at the end of `worker/api.ts`.
 
-### Phase 7 — Polish and release ⚠️ partly done
+### Phase 7 — Polish and release ✅ done
 A11y pass (44pt targets, reduce-motion, non-colour signals, contrast in both themes),
 the mobile browser matrix — iOS Safari and Chrome Android pointer-capture behaviour,
 WebAudio's user-gesture unlock, and no `navigator.vibrate` on iOS, so haptics must be
@@ -284,8 +284,15 @@ The pond's two cards are drawn for a 390pt phone in absolute pixels, so the four
 renders them at that width and scales them up rather than keeping a second copy of the
 same layout at frame size.
 
-Not done: a real-device pass on iOS Safari and Android Chrome. It is the only remaining
-work that could invalidate something already built.
+**The device pass is done.** Loaded on a real phone, and in MiniPay's web view, and it
+behaves. That was the last thing left that could have invalidated work already built:
+everything verified here had gone through a single Chromium engine, and the three things
+most likely to break on a real device — pointer capture on iOS Safari, `100dvh` against a
+collapsing URL bar, and the WebAudio unlock surviving the splash — did not.
+
+Still untested: connecting a real wallet and claiming real UBI. Loading the game inside a
+wallet's browser is not the same as signing anything, and the live GoodDollar adapter has
+still never moved money.
 
 ## 4. Decisions worth making now
 
