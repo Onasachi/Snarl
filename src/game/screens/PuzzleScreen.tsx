@@ -143,6 +143,8 @@ export function PuzzleScreen({
             hit={6.8}
             svgRef={p.svgRef}
             onBeadDown={p.onBeadDown}
+            onBeadKeyDown={p.onBeadKeyDown}
+            onBeadFocus={p.onBeadFocus}
             onPointerMove={p.onPointerMove}
             onPointerUp={p.onPointerUp}
             onPointerCancel={p.onPointerUp}

@@ -261,10 +261,21 @@ developer props, with Journal and Shop as honest "not built yet" rows; and the a
 drawn by `scripts/make-icons.py` with everything inside the middle 60% so the maskable
 version survives being cropped to a circle.
 
-Not done: the four store frames, a real-device pass on iOS Safari and Android Chrome, and
-perf on a mid Android. One honest gap to carry: beads are dragged, and dragging has no
-keyboard path, so the puzzle itself cannot be played without a pointer. Every other
-surface can.
+**The puzzle can be played without a pointer now.** Every bead is a focusable control with
+its own name, arrow keys move it — two grid units, eight with shift — and a visit to a bead
+counts as one move however many keys are pressed, because that is what a drag costs and par
+has to mean the same thing either way. Verified by solving a whole knot with nothing but
+the keyboard: two beads, ten arrow presses, two moves, under par, name card and all.
+
+**The drag loop has a budget.** One pointermove costs one `crossingsInvolving` on the
+heaviest creature, and the test holds it under 0.5ms — a frame is 16.6ms, and a mid-range
+Android runs this five to ten times slower while also paying for React and layout in the
+same frame. The timing tests take the quickest of several runs rather than the average: a
+suite shares its machine with its own workers, so a mean measures the noise. The first
+version of this test was flaky for exactly that reason.
+
+Not done: the four store frames, and a real-device pass on iOS Safari and Android Chrome.
+The device pass is the only remaining work that could invalidate something already built.
 
 ## 4. Decisions worth making now
 

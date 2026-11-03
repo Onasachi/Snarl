@@ -35,6 +35,17 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/render/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noSvgWithoutTitle": "off",
+            "useSemanticElements": "off"
+          }
+        }
+      }
     }
   ]
 }

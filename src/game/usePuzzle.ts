@@ -1,4 +1,5 @@
 import {
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -32,6 +33,9 @@ export type PuzzlePhase = "play" | "inhale" | "unfurl" | "free";
 
 /** Beads cannot be dragged into the very edge of the grid. */
 const EDGE = 4;
+/** How far one arrow key nudges a bead, and how far with shift held. */
+const KEY_STEP = 2;
+const KEY_STEP_FAST = 8;
 const BOARD_PAD = 12;
 
 const SPARKLE_MS = 750;
@@ -87,6 +91,8 @@ export function usePuzzle({
   const fixed = useRef<Crossing[]>([]);
   const prevKeys = useRef<Set<string>>(new Set());
   const ladder = useRef(new PluckLadder());
+  /** The bead the keyboard is working on, so one visit counts as one move. */
+  const keyboardBead = useRef(-1);
   const raf = useRef(0);
   const timers = useRef<number[]>([]);
   const reduceRef = useRef(reduce);
@@ -115,6 +121,7 @@ export function usePuzzle({
     clearTimers();
     prevKeys.current = new Set(cr.map(key));
     ladder.current.reset();
+    keyboardBead.current = -1;
     posRef.current = tangled;
 
     setPos(tangled);
@@ -220,6 +227,7 @@ export function usePuzzle({
 
       audio.tick();
       buzz(HAPTIC.tap);
+      keyboardBead.current = -1;
       setDrag(bead);
       setNudge(null);
       setHand(null);
@@ -268,6 +276,75 @@ export function usePuzzle({
       setCrossings(cr);
     },
     [commit, creature, drag, later, toGrid],
+  );
+
+  /**
+   * Beads can also be moved with the arrow keys. Dragging is the one thing in this game
+   * that a pointer is required for, and leaving it there would put the whole puzzle out
+   * of reach of anyone who does not use one.
+   *
+   * A visit to a bead counts as one move however many keys are pressed, which is what a
+   * drag costs: par has to mean the same thing either way.
+   */
+  const moveBeadBy = useCallback(
+    (bead: number, dx: number, dy: number) => {
+      if (phase !== "play") return;
+
+      const current = posRef.current;
+      const from = current[bead]!;
+      const next = copy(current);
+      next[bead] = [
+        Math.max(EDGE, Math.min(100 - EDGE, from[0] + dx)),
+        Math.max(EDGE, Math.min(100 - EDGE, from[1] + dy)),
+      ];
+
+      if (keyboardBead.current !== bead) {
+        keyboardBead.current = bead;
+        setHistory((h) => h.concat([copy(current)]));
+        setMoves((m) => m + 1);
+        audio.init();
+        audio.tick();
+      }
+
+      const cr = allCrossings(next, creature.edges);
+      const keys = new Set(cr.map(key));
+      if ([...prevKeys.current].some((k) => !keys.has(k))) {
+        audio.pluck(ladder.current.next());
+        buzz(HAPTIC.resolve);
+      }
+      prevKeys.current = keys;
+
+      commit(next);
+      setCrossings(cr);
+      setNudge(null);
+      setHand(null);
+      setDropped(bead);
+      setDropKey((k) => k + 1);
+      if (cr.length === 0) solve();
+    },
+    [commit, creature, phase, solve],
+  );
+
+  /** Leaving a bead ends its move, so coming back to it costs another one. */
+  const onBeadFocus = useCallback((bead: number) => {
+    if (keyboardBead.current !== bead) keyboardBead.current = -1;
+  }, []);
+
+  const onBeadKeyDown = useCallback(
+    (bead: number, e: ReactKeyboardEvent<SVGCircleElement>) => {
+      const step = e.shiftKey ? KEY_STEP_FAST : KEY_STEP;
+      const deltas: Record<string, [number, number]> = {
+        ArrowLeft: [-step, 0],
+        ArrowRight: [step, 0],
+        ArrowUp: [0, -step],
+        ArrowDown: [0, step],
+      };
+      const delta = deltas[e.key];
+      if (!delta) return;
+      e.preventDefault();
+      moveBeadBy(bead, delta[0], delta[1]);
+    },
+    [moveBeadBy],
   );
 
   const onPointerUp = useCallback(() => {
@@ -352,6 +429,8 @@ export function usePuzzle({
     underPar: moves <= creature.par,
     svgRef,
     onBeadDown,
+    onBeadKeyDown,
+    onBeadFocus,
     onPointerMove,
     onPointerUp,
     undo,

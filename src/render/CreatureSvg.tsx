@@ -1,4 +1,9 @@
-import type { CSSProperties, PointerEvent as ReactPointerEvent, Ref } from "react";
+import type {
+  CSSProperties,
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+  Ref,
+} from "react";
 import { creatureColor, creatureTint, type ThemeId, theme } from "~/data";
 import type { Creature, Crossing, Nudge, Pt } from "~/engine";
 import { solvedLayout } from "~/engine";
@@ -45,6 +50,8 @@ export interface CreatureSvgProps {
   /** Two or fewer crossings left: the creature calms down and peeks. */
   slowShiver?: boolean;
   onBeadDown?: (bead: number, e: ReactPointerEvent<SVGCircleElement>) => void;
+  onBeadKeyDown?: (bead: number, e: ReactKeyboardEvent<SVGCircleElement>) => void;
+  onBeadFocus?: (bead: number) => void;
   svgRef?: Ref<SVGSVGElement>;
   onPointerMove?: (e: ReactPointerEvent<SVGSVGElement>) => void;
   onPointerUp?: (e: ReactPointerEvent<SVGSVGElement>) => void;
@@ -54,7 +61,13 @@ export interface CreatureSvgProps {
 
 /**
  * The whole drawing kit: strings, crossing rings, beads, eyes, the Nudge ghost and the
- * tutorial hand. One component draws the creature in every state it has — tangled on the
+ * tutorial hand.
+ *
+ * Accessibility lives here rather than in the lint config: the board carries a <title>,
+ * every bead is a focusable control with its own name and arrow-key handling, and a
+ * decorative copy is hidden outright. Two a11y rules are turned off for this directory
+ * because they match on string literals and on <button>, and neither can appear inside an
+ * <svg>. One component draws the creature in every state it has — tangled on the
  * board, freed on a card, a silhouette for a Daily Snarl nobody has solved yet.
  */
 export function CreatureSvg({
@@ -78,6 +91,8 @@ export function CreatureSvg({
   still = false,
   slowShiver = false,
   onBeadDown,
+  onBeadKeyDown,
+  onBeadFocus,
   svgRef,
   onPointerMove,
   onPointerUp,
@@ -123,8 +138,15 @@ export function CreatureSvg({
         touchAction: "none",
         ...style,
       }}
-      aria-hidden="true"
+      {...(onBeadDown ? {} : { "aria-hidden": true as const })}
     >
+      {/* Only the board is worth announcing; everywhere else this drawing sits beside text
+          that already says what it is, and is hidden from assistive tech above. */}
+      <title>
+        {onBeadDown
+          ? `${creature.name}, tangled. Move the beads so no strings cross.`
+          : creature.name}
+      </title>
       <g style={{ animation: shiver }}>
         {creature.edges.map((e, k) => {
           const a = points[e[0]]!;
@@ -307,8 +329,17 @@ export function CreatureSvg({
               {onBeadDown && (
                 <circle
                   r={hit ?? 6.5}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={
+                    i === creature.eye
+                      ? `${creature.name}'s head bead`
+                      : `${creature.name}, bead ${i + 1} of ${points.length}`
+                  }
                   style={{ fill: "transparent", cursor: lifted ? "grabbing" : "grab" }}
                   onPointerDown={(e) => onBeadDown(i, e)}
+                  onKeyDown={onBeadKeyDown ? (e) => onBeadKeyDown(i, e) : undefined}
+                  onFocus={onBeadFocus ? () => onBeadFocus(i) : undefined}
                 />
               )}
             </g>

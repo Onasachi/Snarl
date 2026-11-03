@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ALL_CREATURES, CREATURES, RARE, TUTORIAL } from "~/data";
 import type { Creature, Pt } from "~/engine";
 import {
+  crossings as allCrossings,
   crossings,
   crossingsInvolving,
   crossingTouchesBead,
@@ -18,6 +19,21 @@ const SEEDS = Array.from({ length: 40 }, (_, i) => i);
 const SCRAMBLED = ALL_CREATURES.filter((c) => !c.scrambled);
 
 const totalCrossings = (c: Creature, pos: readonly Pt[]) => crossings(pos, c.edges).length;
+
+/**
+ * The quickest of several runs, not the average. A test suite shares a machine with its
+ * own other workers, so a mean measures the noise; the best run still catches a real
+ * regression, which shows up as everything getting slower.
+ */
+const fastest = (runs: number, work: () => void): number => {
+  let best = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < runs; i++) {
+    const t0 = performance.now();
+    work();
+    best = Math.min(best, performance.now() - t0);
+  }
+  return best;
+};
 
 describe("roster", () => {
   it("has 2 tutorial knots, 10 World 1 creatures and 1 rare", () => {
@@ -220,9 +236,10 @@ describe("scramble", () => {
   it("opens a puzzle fast enough to feel instant", () => {
     // Shelby and Ollie take the repair path, which is the slow one.
     for (const c of [CREATURES[8]!, CREATURES[9]!]) {
-      const t0 = performance.now();
-      for (const seed of SEEDS.slice(0, 10)) scramble(c, seed);
-      const each = (performance.now() - t0) / 10;
+      const each =
+        fastest(3, () => {
+          for (const seed of SEEDS.slice(0, 10)) scramble(c, seed);
+        }) / 10;
       expect(each, `${c.id} took ${each.toFixed(0)}ms per open`).toBeLessThan(120);
     }
   });
@@ -276,6 +293,41 @@ describe("nudge", () => {
     expect(totalCrossings(bub, pos)).toBeGreaterThan(0);
     const n = nudge(pos, bub.edges);
     expect(n.gain).toBeGreaterThan(0);
+  });
+});
+
+describe("the drag loop's budget", () => {
+  // One pointermove costs one crossingsInvolving. A frame is 16.6ms at 60fps, and this
+  // machine is not the phone anyone plays on, so the budget is deliberately far below it:
+  // a mid-range Android runs this roughly five to ten times slower, and the drag also has
+  // to pay for React and the browser's own layout in the same frame.
+  it("recounts a dragged bead far inside a frame, on the heaviest creature", () => {
+    const ollie = CREATURES[9]!;
+    expect(ollie.edges.length).toBeGreaterThanOrEqual(29);
+    const pos = scramble(ollie, 11, 12)!;
+
+    const passes = 200;
+    const each =
+      fastest(5, () => {
+        for (let i = 0; i < passes; i++) crossingsInvolving(i % pos.length, pos, ollie.edges);
+      }) / passes;
+
+    expect(each, `${each.toFixed(3)}ms per drag frame`).toBeLessThan(0.5);
+  });
+
+  it("is cheaper than the full recount it replaces", () => {
+    const ollie = CREATURES[9]!;
+    const pos = scramble(ollie, 11, 12)!;
+    const passes = 200;
+
+    const incremental = fastest(5, () => {
+      for (let i = 0; i < passes; i++) crossingsInvolving(i % pos.length, pos, ollie.edges);
+    });
+    const full = fastest(5, () => {
+      for (let i = 0; i < passes; i++) allCrossings(pos, ollie.edges);
+    });
+
+    expect(incremental).toBeLessThan(full);
   });
 });
 
