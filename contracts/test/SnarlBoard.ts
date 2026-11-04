@@ -119,6 +119,25 @@ describe("SnarlBoard", () => {
     });
   });
 
+  describe("handing it over", () => {
+    it("moves ownership only when the new owner takes it", async () => {
+      const { board, owner, ada } = await setup();
+      await board.transferOwnership(ada.address);
+      expect(await board.owner()).to.equal(owner.address);
+      await board.connect(ada).acceptOwnership();
+      expect(await board.owner()).to.equal(ada.address);
+      await board.connect(ada).addCreature(50, BUB.edges, BUB.beads);
+    });
+
+    it("cannot be left with no owner, which would freeze the roster", async () => {
+      const { board } = await setup();
+      await expect(board.renounceOwnership()).to.be.revertedWithCustomError(
+        board,
+        "OwnershipIsNotRenounceable",
+      );
+    });
+  });
+
   describe("the real roster", () => {
     it("registers every creature in the game and accepts each one's true shape", async () => {
       const { board, ada } = await setup();

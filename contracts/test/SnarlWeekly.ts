@@ -387,6 +387,33 @@ describe("SnarlWeekly", () => {
     });
   });
 
+  describe("handing it over", () => {
+    it("moves ownership only when the new owner takes it", async () => {
+      const s = await setup();
+      // The owner is going to a multisig one day. A one-step transfer to a mistyped
+      // address would be as permanent as everything else here.
+      await s.weekly.transferOwnership(s.ada.address);
+      expect(await s.weekly.owner()).to.equal(s.owner.address);
+      expect(await s.weekly.pendingOwner()).to.equal(s.ada.address);
+
+      await expect(s.weekly.connect(s.bob).acceptOwnership()).to.be.revertedWithCustomError(
+        s.weekly,
+        "OwnableUnauthorizedAccount",
+      );
+      await s.weekly.connect(s.ada).acceptOwnership();
+      expect(await s.weekly.owner()).to.equal(s.ada.address);
+    });
+
+    it("cannot be left with no owner at all", async () => {
+      const s = await setup();
+      await expect(s.weekly.renounceOwnership()).to.be.revertedWithCustomError(
+        s.weekly,
+        "OwnershipIsNotRenounceable",
+      );
+      expect(await s.weekly.owner()).to.equal(s.owner.address);
+    });
+  });
+
   describe("custody", () => {
     it("never lets the owner touch what a week is holding", async () => {
       const s = await setup();

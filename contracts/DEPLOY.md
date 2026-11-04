@@ -12,6 +12,32 @@ with each one being absent.
   can only add creatures to the roster: never change one, never remove one, never touch
   a score.
 
+## You do not need the multisig first
+
+The two contracts that hold an owner are `Ownable2Step`, so ownership moves later without
+redeploying anything. Deploy with a single key, set up a Safe when you get to it, then
+`transferOwnership(safe)` and have the Safe `acceptOwnership()`. Until it accepts, nothing
+has moved — which is the point: a one-step transfer to a mistyped address would be as
+permanent as everything else here. Neither contract can be left with no owner at all;
+`renounceOwnership` reverts.
+
+**What a single key can and cannot do in the meantime.** It cannot take the pool. `rescue`
+is capped at `balance − locked`, `sweep` moves G$ between weeks and never to an address,
+and the only path out toward a person is `collect`, by somebody who entered. What a
+compromised key *can* do is grief: pause entries so a week's pool splits among fewer
+people, open junk weeks, and shuffle uncollected shares around. Annoying and visible,
+not theft.
+
+`SnarlGifts` and `SnarlNames` have no owner at all, so there is nothing to hand over and
+no reason to wait for anything.
+
+Suggested order:
+
+1. `SnarlGifts` and `SnarlNames` — ownerless, deploy whenever.
+2. `SnarlBoard`, then register the roster.
+3. `SnarlWeekly`, then open the first week.
+4. A Safe, then `transferOwnership` on 2 and 3.
+
 ## There is no testnet
 
 GoodDollar's identity registry is what makes the Great Untangle's pool mean anything: one

@@ -4,6 +4,7 @@ pragma solidity 0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -28,7 +29,7 @@ import {Planarity} from "./Planarity.sol";
  * The pool is G$ and nothing else. The contract never mints, never prices anything, and
  * holds only what somebody deliberately put in it.
  */
-contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
+contract SnarlWeekly is Ownable2Step, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using Planarity for bytes;
 
@@ -104,6 +105,7 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
     error BadWindow();
     error NotSweepableYet();
     error SameKnot();
+    error OwnershipIsNotRenounceable();
     error NothingSpare();
 
     constructor(IERC20 g$, IIdentityV2 identityContract, address owner) Ownable(owner) {
@@ -318,6 +320,22 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
         uint256 spare = token.balanceOf(address(this)) - locked;
         if (amount > spare) revert NothingSpare();
         token.safeTransfer(to, amount);
+    }
+
+
+    /**
+     * Ownership moves in two steps, and cannot be given up.
+     *
+     * Two steps because the owner will be handed to a multisig later and a one-step
+     * transfer to a mistyped address is as permanent as everything else here. The new
+     * owner has to call `acceptOwnership` themselves, so an address that cannot do that
+     * never becomes the owner.
+     *
+     * Not renounceable because the inherited version does exactly what this contract
+     * must never do: leave it with no owner at all, which would be permanent.
+     */
+    function renounceOwnership() public pure override {
+        revert OwnershipIsNotRenounceable();
     }
 
     function pause() external onlyOwner {

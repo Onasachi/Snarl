@@ -542,9 +542,21 @@ prices or swaps, no fee or treasury accrues to us anywhere, the owner can never 
 pooled G$, pausing cannot trap funds, and `collect` deliberately does not re-check
 verification so the three-day re-verification rung can never strand a payout.
 
-Not done: the deploys themselves. `SnarlWeekly` and `SnarlBoard` need a funded key and a
-multisig owner, neither of which is mine to supply; `SnarlGifts` and `SnarlNames` need only
-the key. And nothing here has ever been signed by a wallet a person actually controls.
+**The owner can move, and cannot vanish.** Both contracts that have one are now
+`Ownable2Step`, so a single key can deploy today and hand over to a multisig later without
+redeploying: the new owner has to call `acceptOwnership` themselves, so a transfer to a
+mistyped address never takes effect. `renounceOwnership` reverts in both — the inherited
+version does precisely what neither must ever do, which is leave the contract with no
+owner permanently.
+
+That makes the multisig a thing to arrange rather than a thing to wait for. It is worth
+being clear about what a single key can do in the meantime: not take the pool — `rescue`
+is capped at `balance − locked`, `sweep` only ever moves G$ between weeks, and `collect`
+by an entrant is the single path out toward a person — but it can grief, by pausing
+entries so a week splits among fewer people, or opening junk weeks.
+
+Not done: the deploys themselves, which need a funded key that is not mine to supply. And
+nothing here has ever been signed by a wallet a person actually controls.
 
 ## 4. Decisions worth making now
 

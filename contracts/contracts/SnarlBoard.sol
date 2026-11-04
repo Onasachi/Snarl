@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 import {IIdentityV2} from "./IIdentityV2.sol";
 import {Planarity} from "./Planarity.sol";
@@ -24,7 +25,7 @@ import {Planarity} from "./Planarity.sol";
  * otherwise. `distinct` is the honest column: the roster is finite, each creature counts
  * once, and a full set is a full set whoever drew it.
  */
-contract SnarlBoard is Ownable {
+contract SnarlBoard is Ownable2Step {
     using Planarity for bytes;
 
     struct Creature {
@@ -59,6 +60,7 @@ contract SnarlBoard is Ownable {
     error NoSuchCreature();
     error CreatureExists();
     error StillTangled(uint256 crossings);
+    error OwnershipIsNotRenounceable();
 
     constructor(IIdentityV2 identityContract, address owner) Ownable(owner) {
         identity = identityContract;
@@ -107,6 +109,22 @@ contract SnarlBoard is Ownable {
         record.untangles += 1;
         record.lastAt = uint64(block.timestamp);
         emit Untangled(root, id, record.untangles, first);
+    }
+
+
+    /**
+     * Ownership moves in two steps, and cannot be given up.
+     *
+     * Two steps because the owner will be handed to a multisig later and a one-step
+     * transfer to a mistyped address is as permanent as everything else here. The new
+     * owner has to call `acceptOwnership` themselves, so an address that cannot do that
+     * never becomes the owner.
+     *
+     * Not renounceable because the inherited version does exactly what this contract
+     * must never do: leave it with no owner at all, which would be permanent.
+     */
+    function renounceOwnership() public pure override {
+        revert OwnershipIsNotRenounceable();
     }
 
     function playerCount() external view returns (uint256) {
