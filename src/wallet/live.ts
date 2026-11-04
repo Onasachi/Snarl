@@ -21,8 +21,11 @@ import { snarlBoardAbi, weeklyPlayersAbi } from "~/chain/snarlBoard";
 import { giftDigest, snarlGiftsAbi } from "~/chain/snarlGifts";
 import { snarlNamesAbi } from "~/chain/snarlNames";
 import { snarlWeeklyAbi } from "~/chain/snarlWeekly";
+import { planFor, WEEK_PLANS, WEEKLY_KNOT } from "~/chain/weeks";
 import type {
   Address,
+  AdminState,
+  AdminWeek,
   BoardRow,
   ClaimStatus,
   Standing,
@@ -697,6 +700,113 @@ export function createLiveWallet(): WalletPort {
         abi: snarlWeeklyAbi,
         functionName: "fund",
         args: [week, amount],
+        account,
+        chain: celo,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+    },
+
+    async adminState(): Promise<AdminState | null> {
+      if (!WEEKLY_ADDRESS) return null;
+      const now = Math.floor(Date.now() / 1000);
+
+      const [owner, weeksOpened, locked] = await Promise.all([
+        publicClient.readContract({
+          address: WEEKLY_ADDRESS,
+          abi: snarlWeeklyAbi,
+          functionName: "owner",
+        }),
+        publicClient.readContract({
+          address: WEEKLY_ADDRESS,
+          abi: snarlWeeklyAbi,
+          functionName: "weeksOpened",
+        }),
+        publicClient.readContract({
+          address: WEEKLY_ADDRESS,
+          abi: snarlWeeklyAbi,
+          functionName: "locked",
+        }),
+      ]);
+
+      // Only the weeks that are still worth acting on: the past is on the explorer.
+      const upcoming = WEEK_PLANS.filter((plan) => plan.sweepableAt > now).slice(0, 8);
+      const knots = await Promise.all(
+        upcoming.map((plan) =>
+          publicClient.readContract({
+            address: WEEKLY_ADDRESS,
+            abi: snarlWeeklyAbi,
+            functionName: "knot",
+            args: [plan.id],
+          }),
+        ),
+      );
+
+      const weeks: AdminWeek[] = upcoming.map((plan, i) => {
+        const knot = knots[i];
+        const opened = (knot?.closesAt ?? 0n) !== 0n;
+        return {
+          id: plan.id,
+          label: plan.label,
+          opened,
+          settled: knot?.settled ?? false,
+          pool: knot?.pool ?? 0n,
+          entrants: knot?.entrants ?? 0,
+          closesAt: new Date(plan.closesAt * 1000),
+          due: !opened && now > plan.openBy && now < plan.closesAt,
+          settleable: opened && !(knot?.settled ?? false) && now >= plan.closesAt,
+        };
+      });
+
+      return {
+        owner,
+        isOwner: address !== null && owner.toLowerCase() === address.toLowerCase(),
+        weeksOpened,
+        locked,
+        decimals,
+        weeks,
+      };
+    },
+
+    async openWeek(week: number) {
+      if (!WEEKLY_ADDRESS) throw new Error("no-contract");
+      const { address: account } = await ready();
+      if (!walletClient) throw new Error("wallet not connected");
+      if (!onCelo) throw new Error("wrong-chain");
+
+      // The timestamps come from the generated table, never from the screen. A week
+      // number can be opened once and never again, so a typo would burn it permanently.
+      const plan = planFor(week);
+      if (!plan) throw new Error("no such week in the table");
+
+      const hash = await walletClient.writeContract({
+        address: WEEKLY_ADDRESS,
+        abi: snarlWeeklyAbi,
+        functionName: "openKnot",
+        args: [
+          plan.id,
+          WEEKLY_KNOT.edges,
+          WEEKLY_KNOT.beads,
+          BigInt(plan.closesAt),
+          BigInt(plan.sweepableAt),
+          0n,
+        ],
+        account,
+        chain: celo,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+    },
+
+    async settleWeek(week: number) {
+      if (!WEEKLY_ADDRESS) throw new Error("no-contract");
+      const { address: account } = await ready();
+      if (!walletClient) throw new Error("wallet not connected");
+      if (!onCelo) throw new Error("wrong-chain");
+
+      const hash = await walletClient.writeContract({
+        address: WEEKLY_ADDRESS,
+        abi: snarlWeeklyAbi,
+        functionName: "settle",
+        args: [week],
         account,
         chain: celo,
       });

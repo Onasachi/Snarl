@@ -93,6 +93,32 @@ export interface Standing {
   root: Address | null;
 }
 
+/** One week, as the contract has it, for whoever is keeping them open. */
+export interface AdminWeek {
+  id: number;
+  label: string;
+  opened: boolean;
+  settled: boolean;
+  pool: bigint;
+  entrants: number;
+  closesAt: Date;
+  /** It is already this week somewhere, so it should be open by now. */
+  due: boolean;
+  /** Past its closing time and not settled: anyone can settle it. */
+  settleable: boolean;
+}
+
+export interface AdminState {
+  /** Who the contract answers to. */
+  owner: Address;
+  /** True when the connected wallet is that address. Nothing else grants anything. */
+  isOwner: boolean;
+  weeksOpened: number;
+  locked: bigint;
+  decimals: number;
+  weeks: AdminWeek[];
+}
+
 export interface WalletPort {
   /** False when no escrow contract is configured. A gift is then a creature and no more. */
   readonly tipsSupported: boolean;
@@ -146,6 +172,19 @@ export interface WalletPort {
    * be backed by the people playing it rather than waiting for a sponsor.
    */
   backWeek(week: number, amount: bigint): Promise<void>;
+
+  /**
+   * What the pool looks like to whoever keeps it running. Null when no pool is deployed.
+   *
+   * Readable by anyone — it is all public on chain anyway, and pretending otherwise would
+   * only mean lying to the person reading it. What is *not* open to anyone is `openKnot`,
+   * and that is the contract's business, not this screen's.
+   */
+  adminState(): Promise<AdminState | null>;
+  /** Opens a week with the knot and timestamps from the generated table. */
+  openWeek(week: number): Promise<void>;
+  /** Freezes a closed week's share so entrants can collect. Anyone may call it. */
+  settleWeek(week: number): Promise<void>;
 }
 
 export type ClaimCardState = "disconnected" | "unverified" | "expired" | "ready" | "claimed";

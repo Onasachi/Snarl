@@ -48,6 +48,51 @@ export const snarlWeeklyAbi = [
     outputs: [{ type: "bool" }],
   },
   {
+    type: "function",
+    name: "owner",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "locked",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "weeksOpened",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint32" }],
+  },
+  {
+    // onlyOwner. A week number can be opened once and never again, so the app hands it
+    // the generated table rather than letting anybody type a timestamp.
+    type: "function",
+    name: "openKnot",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "week", type: "uint32" },
+      { name: "edges", type: "bytes" },
+      { name: "beads", type: "uint32" },
+      { name: "closesAt", type: "uint64" },
+      { name: "sweepableAt", type: "uint64" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    // Open to anybody: the sooner a week settles the sooner people are paid.
+    type: "function",
+    name: "settle",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "week", type: "uint32" }],
+    outputs: [],
+  },
+  {
     // Open to anybody, which is what lets a week be backed by the people playing it.
     type: "function",
     name: "fund",

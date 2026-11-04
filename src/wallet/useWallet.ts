@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { boardAvailable, createWallet, walletAvailable, wantsDemoWallet } from "./index";
 import type {
+  AdminState,
   ClaimStatus,
   Standing,
   TipStatus,
@@ -75,6 +76,7 @@ export function useWallet() {
   const [tipsSupported, setTipsSupported] = useState(false);
   const [boardSupported, setBoardSupported] = useState(boardAvailable);
   const [standing, setStanding] = useState<Standing | null>(null);
+  const [admin, setAdmin] = useState<AdminState | null>(null);
   const port = useRef<WalletPort | null>(null);
 
   const load = useCallback(async (): Promise<WalletPort> => {
@@ -175,6 +177,38 @@ export function useWallet() {
       setBusy(false);
     }
   }, []);
+
+  /** The pool as whoever keeps it running sees it. Readable without a wallet. */
+  const loadAdmin = useCallback(async () => {
+    try {
+      const wallet = await load();
+      setAdmin(await wallet.adminState());
+    } catch {
+      setAdmin(null);
+    }
+  }, [load]);
+
+  const runAdmin = useCallback(
+    async (what: "openWeek" | "settleWeek", week: number): Promise<boolean> => {
+      if (!port.current) return false;
+      setBusy(true);
+      setError(null);
+      try {
+        await port.current[what](week);
+        setAdmin(await port.current.adminState());
+        return true;
+      } catch (cause) {
+        setError(asError(cause));
+        return false;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [],
+  );
+
+  const openWeek = useCallback((week: number) => runAdmin("openWeek", week), [runAdmin]);
+  const settleWeek = useCallback((week: number) => runAdmin("settleWeek", week), [runAdmin]);
 
   /** Puts G$ into a week's pool. True once it is actually in. */
   const backWeek = useCallback(async (id: number, amount: bigint): Promise<boolean> => {
@@ -366,6 +400,10 @@ export function useWallet() {
     enterWeek,
     collectWeek,
     backWeek,
+    admin,
+    loadAdmin,
+    openWeek,
+    settleWeek,
     tipsSupported,
     boardSupported,
     standing,

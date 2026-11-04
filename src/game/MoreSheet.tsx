@@ -10,10 +10,13 @@ import { useGame } from "~/game/store";
 export function MoreSheet({
   onClose,
   onBoard,
+  onWeeks,
 }: {
   onClose: () => void;
   /** Absent when no board is deployed, and then there is no row for it. */
   onBoard?: () => void;
+  /** Only present for somebody who asked for it with `?weeks`. */
+  onWeeks?: () => void;
 }) {
   const theme = useGame((s) => s.theme);
   const setTheme = useGame((s) => s.setTheme);
@@ -148,6 +151,31 @@ export function MoreSheet({
             }}
           >
             <span>The Board</span>
+            <span aria-hidden="true" style={{ color: "var(--ink2)" }}>
+              ›
+            </span>
+          </button>
+        )}
+
+        {onWeeks && (
+          <button
+            type="button"
+            onClick={onWeeks}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "100%",
+              minHeight: 56,
+              padding: "0 4px",
+              border: "none",
+              background: "transparent",
+              color: "var(--ink)",
+              fontSize: 17,
+              cursor: "pointer",
+            }}
+          >
+            <span>Weeks</span>
             <span aria-hidden="true" style={{ color: "var(--ink2)" }}>
               ›
             </span>

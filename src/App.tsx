@@ -14,6 +14,7 @@ import {
   playCaption,
   TUTORIAL_KNOTS,
 } from "~/game/progress";
+import { AdminScreen } from "~/game/screens/AdminScreen";
 import { BoardScreen } from "~/game/screens/BoardScreen";
 import { DailySolved } from "~/game/screens/DailySolved";
 import { GiftReceived } from "~/game/screens/GiftReceived";
@@ -30,7 +31,7 @@ import { WEEKLY_CREATURE, weekId, weekKey, weeklySeed } from "~/game/weekly";
 import { claimCardState, formatAmount, type TipStatus } from "~/wallet";
 import { returningFromVerification, useWallet } from "~/wallet/useWallet";
 
-type Screen = "splash" | "puzzle" | "pond" | "gift" | "untangle" | "board";
+type Screen = "splash" | "puzzle" | "pond" | "gift" | "untangle" | "board" | "weeks";
 /** Ordinary progress through World 1, today's rare knot, or a pass at the week's. */
 type Mode = "progress" | "daily" | "weekly";
 
@@ -57,6 +58,12 @@ const takeGiftFromUrl = () => {
 /** Read once, before React runs, for a link opened cold. */
 const ARRIVED_WITH_GIFT = takeGiftFromUrl();
 
+/**
+ * `?weeks` asks for the screen that keeps the pool running. Read once, at module scope,
+ * like the gift: a flag the app decides on at startup rather than re-derives.
+ */
+const ASKED_FOR_ADMIN = new URLSearchParams(window.location.search).has("weeks");
+
 export function App() {
   // Coming back from the face check lands on the pond, where they left off, rather than
   // on the splash screen as if they had just arrived. A gift link lands there too: the
@@ -71,6 +78,12 @@ export function App() {
   const [verifySheet, setVerifySheet] = useState(false);
   const [moreSheet, setMoreSheet] = useState(false);
   const [gift, setGift] = useState(ARRIVED_WITH_GIFT);
+  /**
+   * The weeks screen is reached by asking for it. That hides it from players rather than
+   * protecting it — the contract's `onlyOwner` is the only thing that protects anything,
+   * and the screen says so to a wallet that is not the owner.
+   */
+  const [wantsAdmin] = useState(ASKED_FOR_ADMIN);
   const toast = useToast();
 
   const hydrated = useGame((s) => s.hydrated);
@@ -351,6 +364,10 @@ export function App() {
     if (screen === "board") void wallet.loadBoard();
   }, [screen, wallet.loadBoard]);
 
+  useEffect(() => {
+    if (screen === "weeks") void wallet.loadAdmin();
+  }, [screen, wallet.loadAdmin]);
+
   const putOnBoard = useCallback(
     async (slug: string) => {
       const id = chainIdOf(slug);
@@ -468,6 +485,14 @@ export function App() {
                 },
               }
             : {})}
+          {...(wantsAdmin
+            ? {
+                onWeeks: () => {
+                  setMoreSheet(false);
+                  setScreen("weeks");
+                },
+              }
+            : {})}
         />
       )}
 
@@ -476,6 +501,26 @@ export function App() {
           busy={wallet.busy}
           onStart={() => void wallet.verify()}
           onClose={() => setVerifySheet(false)}
+        />
+      )}
+
+      {screen === "weeks" && (
+        <AdminScreen
+          state={wallet.admin}
+          connected={wallet.account !== null}
+          busy={wallet.busy}
+          onBack={() => setScreen("pond")}
+          onConnect={() => void wallet.connect()}
+          onOpen={(week) => {
+            void wallet.openWeek(week).then((done) => {
+              if (done) toast.show("Week open. The pool starts at nothing.");
+            });
+          }}
+          onSettle={(week) => {
+            void wallet.settleWeek(week).then((done) => {
+              if (done) toast.show("Settled. Entrants can collect.");
+            });
+          }}
         />
       )}
 

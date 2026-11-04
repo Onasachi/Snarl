@@ -676,10 +676,31 @@ seven alone. The pot also cost the screen its layout the first time — it went 
 footer, which pushed the buttons over the board — so it now sits with the pool it belongs
 to, and the panel scrolls from the top rather than centring content taller than itself.
 
-Not done: Celoscan verification, which needs an API key that is not mine; opening the first
-week, which is what makes the pot reachable at all; moving both owners to a multisig; and
-a dashboard over what the chain now records. Nothing here has ever been signed by a wallet
-a person actually controls.
+### Phase 15 — Keeping it running, and a note for whoever is next
+
+**An admin screen, and an honest account of what it is.** "Accessible only by admin" is
+something a static page cannot provide: there is no server, and a hidden button is not a
+lock. What guards `openKnot` is the contract's own `onlyOwner`, which is the only guard
+that could ever matter. So the screen reads `owner()` off the chain and shows the controls
+to that wallet alone — honesty about who can *act*, rather than theatre about who can
+look. Anybody else sees the state, the owner's address, and a sentence saying the contract
+would refuse them.
+
+It is reached with `?weeks`, which hides it from players and protects nothing. It lists
+the weeks worth acting on, marks in warm the ones that are already this week for somebody
+and still closed, and opens or settles them. The knot and the timestamps come from the
+generated table, never from the screen: a week number can be opened once and never again,
+so there is nothing to typo.
+
+**`STATUS.md`** is the short answer to "what is true today and what is next" — addresses,
+the order of the remaining work, the traps that are not guessable from the code, and the
+commands. `PLAN.md` is the reasoning and `DEPLOY.md` the runbook; STATUS is what somebody
+arriving cold should read first.
+
+Not done: opening the first week, which is what makes the pot reachable at all and is now
+two taps rather than a command; Celoscan verification, which needs an API key that is not
+mine; moving both owners to a multisig; and a dashboard over what the chain now records.
+Nothing here has ever been signed by a wallet a person actually controls.
 
 ## 4. Decisions worth making now
 

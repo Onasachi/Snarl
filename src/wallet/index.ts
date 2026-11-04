@@ -2,6 +2,8 @@ import type { WalletPort } from "./port";
 
 export type {
   Address,
+  AdminState,
+  AdminWeek,
   BoardRow,
   ClaimCardState,
   ClaimStatus,

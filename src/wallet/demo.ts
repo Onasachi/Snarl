@@ -1,4 +1,7 @@
+import { WEEK_PLANS } from "~/chain/weeks";
 import type {
+  AdminState,
+  AdminWeek,
   BoardRow,
   ClaimStatus,
   Standing,
@@ -28,6 +31,7 @@ const DEMO_POOL = 120_000n * 10n ** 18n;
 const DEMO_ENTRANTS = 1283;
 /** What this player has put into the pot, so the demo's pool tells the truth about it. */
 const BACKED_KEY = "snarl.demo.backed";
+const OPENED_KEY = "snarl.demo.openedWeeks";
 const CLAIMED_KEY = "snarl.demo.claimedAt";
 const BALANCE_KEY = "snarl.demo.balance";
 /** One entry per gift key, so a link can be escrowed, opened and taken back. */
@@ -283,6 +287,48 @@ export function createDemoWallet(): WalletPort {
       if (balance < amount) throw new Error("not enough G$");
       write(BALANCE_KEY, (balance - amount).toString());
       write(BACKED_KEY, (BigInt(read(BACKED_KEY) ?? "0") + amount).toString());
+    },
+
+    async adminState(): Promise<AdminState> {
+      await sleep(250);
+      const now = Math.floor(Date.now() / 1000);
+      const opened = JSON.parse(read(OPENED_KEY) ?? "[]") as number[];
+
+      const weeks: AdminWeek[] = WEEK_PLANS.filter((plan) => plan.sweepableAt > now)
+        .slice(0, 8)
+        .map((plan) => ({
+          id: plan.id,
+          label: plan.label,
+          opened: opened.includes(plan.id),
+          settled: false,
+          pool: opened.includes(plan.id) ? DEMO_POOL : 0n,
+          entrants: opened.includes(plan.id) ? DEMO_ENTRANTS : 0,
+          closesAt: new Date(plan.closesAt * 1000),
+          due: !opened.includes(plan.id) && now > plan.openBy && now < plan.closesAt,
+          settleable: false,
+        }));
+
+      // The demo wallet is always the owner, because the point of it is to be able to
+      // look at every screen without being anybody in particular.
+      return {
+        owner: DEMO_ADDRESS,
+        isOwner: true,
+        weeksOpened: opened.length,
+        locked: BigInt(opened.length) * DEMO_POOL,
+        decimals: DECIMALS,
+        weeks,
+      };
+    },
+
+    async openWeek(week: number) {
+      await sleep(900);
+      const opened = new Set(JSON.parse(read(OPENED_KEY) ?? "[]") as number[]);
+      opened.add(week);
+      write(OPENED_KEY, JSON.stringify([...opened]));
+    },
+
+    async settleWeek() {
+      await sleep(600);
     },
 
     async verificationLink(returnTo: string) {
