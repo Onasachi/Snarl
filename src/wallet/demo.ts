@@ -111,7 +111,7 @@ export function createDemoWallet(): WalletPort {
 
     async connect(): Promise<WalletAccount> {
       await sleep(400);
-      return { address: DEMO_ADDRESS, chainId: 42220, label: "the demo wallet" };
+      return { address: DEMO_ADDRESS, chainId: 42220, label: "the demo wallet", onCelo: true };
     },
 
     async getClaimStatus(): Promise<ClaimStatus> {
@@ -120,6 +120,7 @@ export function createDemoWallet(): WalletPort {
       const claimedToday = read(CLAIMED_KEY) !== null;
       return {
         verified,
+        everVerified: verified || read(VERIFIED_KEY) === "lapsed",
         entitlement: verified && !claimedToday ? DAILY : 0n,
         nextClaimAt: claimedToday ? midnight() : null,
         balance: BigInt(read(BALANCE_KEY) ?? "0"),

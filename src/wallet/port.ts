@@ -5,11 +5,26 @@ export interface WalletAccount {
   chainId: number;
   /** "MiniPay", "Valora", "the browser wallet" — whatever we can honestly call it. */
   label: string;
+  /**
+   * False when the wallet would not move to Celo. Everything the game *reads* still
+   * works, because reads go through our own client; anything that needs a signature
+   * does not, and the screen says which.
+   */
+  onCelo: boolean;
 }
 
 export interface ClaimStatus {
   /** Verified as a unique person with GoodDollar. Nothing in the game requires this. */
   verified: boolean;
+  /**
+   * True when GoodDollar has verified this person before, whatever it says today.
+   *
+   * The two are not the same question, and telling somebody they are "not verified" when
+   * what GoodDollar means is "show us your face again" reads as a broken app rather than
+   * an expiring credential. Its re-verification ladder starts at three days, so this
+   * happens to ordinary people constantly.
+   */
+  everVerified: boolean;
   /** What can be claimed right now, in the token's smallest unit. */
   entitlement: bigint;
   /** When the next claim opens, if there is nothing to claim now. */
@@ -127,14 +142,18 @@ export interface WalletPort {
   proveUntangle(creature: number, xs: bigint[], ys: bigint[]): Promise<void>;
 }
 
-export type ClaimCardState = "disconnected" | "unverified" | "ready" | "claimed";
+export type ClaimCardState = "disconnected" | "unverified" | "expired" | "ready" | "claimed";
 
 export const claimCardState = (
   account: WalletAccount | null,
   status: ClaimStatus | null,
 ): ClaimCardState => {
   if (!account || !status) return "disconnected";
-  if (!status.verified) return "unverified";
+  // Verified before and not today is a different sentence from never verified, and
+  // GoodDollar produces the first one constantly: its re-verification ladder starts at
+  // three days. Told "you are not verified", somebody who verified last week reasonably
+  // concludes the app cannot see their wallet.
+  if (!status.verified) return status.everVerified ? "expired" : "unverified";
   return status.entitlement > 0n ? "ready" : "claimed";
 };
 

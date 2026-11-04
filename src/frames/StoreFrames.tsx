@@ -212,6 +212,7 @@ export function StoreFrames({ scale }: { scale: number }) {
                 state="ready"
                 status={{
                   verified: true,
+                  everVerified: true,
                   entitlement: 152_370_000_000_000_000_000n,
                   nextClaimAt: null,
                   balance: 0n,

@@ -38,6 +38,14 @@ function copyFor(state: ClaimCardState, status: ClaimStatus | null, hasWallet: b
         action: "Verify",
         filled: false,
       };
+    case "expired":
+      // GoodDollar knows this person; it just wants to see them again.
+      return {
+        title: "Free UBI",
+        subtitle: "GoodDollar needs another look at you",
+        action: "Verify again",
+        filled: false,
+      };
     default:
       return hasWallet
         ? {

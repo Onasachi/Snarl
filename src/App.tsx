@@ -223,7 +223,7 @@ export function App() {
       await wallet.connect();
       return;
     }
-    if (claimState === "unverified") {
+    if (claimState === "unverified" || claimState === "expired") {
       setVerifySheet(true);
       return;
     }

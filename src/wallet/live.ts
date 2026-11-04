@@ -9,6 +9,7 @@ import {
   createPublicClient,
   createWalletClient,
   custom,
+  fallback,
   getAddress,
   http,
   type PublicClient,
@@ -54,12 +55,39 @@ const NAMES_ADDRESS = import.meta.env.VITE_SNARL_NAMES as Address | undefined;
 /** One read covers a pond-sized game. Paging past this is a problem worth having. */
 const BOARD_LIMIT = 500n;
 
-/** GoodDollar has no testnet: staging and production are different contracts on Celo. */
-const ENV =
-  (import.meta.env.VITE_GOODDOLLAR_ENV as "production" | "staging" | undefined) ?? "production";
+/**
+ * GoodDollar has no testnet. "staging" and "development" are *different identity
+ * contracts on Celo mainnet* — three registries at three addresses, all live, all real.
+ *
+ * Which means a person verified on production reads as a complete stranger to the staging
+ * contract, and the app would tell them, truthfully as far as it knows, that they are not
+ * verified. So an unrecognised value is not passed through to the SDK to be looked up and
+ * found missing: it falls back to production and says so.
+ */
+const KNOWN_ENVS = ["production", "staging", "development"] as const;
+type GoodDollarEnv = (typeof KNOWN_ENVS)[number];
+
+const ENV: GoodDollarEnv = (() => {
+  const asked = import.meta.env.VITE_GOODDOLLAR_ENV as string | undefined;
+  if (!asked) return "production";
+  if ((KNOWN_ENVS as readonly string[]).includes(asked)) return asked as GoodDollarEnv;
+  console.warn(
+    `VITE_GOODDOLLAR_ENV="${asked}" is not one of ${KNOWN_ENVS.join(", ")}; using production.`,
+  );
+  return "production";
+})();
 
 const CELO_ID = SupportedChains.CELO;
 const CELO_HEX = `0x${CELO_ID.toString(16)}`;
+
+/** Enough for a wallet that has never heard of Celo to add it. */
+const CELO_PARAMS = {
+  chainId: CELO_HEX,
+  chainName: "Celo",
+  nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
+  rpcUrls: ["https://forno.celo.org"],
+  blockExplorerUrls: ["https://celoscan.io"],
+};
 
 /** What the identity registry returns for someone it has no record of. */
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -68,6 +96,29 @@ interface Eip1193Provider {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>;
   isMiniPay?: boolean;
 }
+
+/** What a wallet announces about itself under EIP-6963. */
+interface AnnouncedProvider {
+  info: { uuid: string; name: string; rdns: string };
+  provider: Eip1193Provider;
+}
+
+/** EIP-1193 says 4001 is the user declining and 4902 is a chain the wallet has never heard of. */
+const errorCode = (cause: unknown): number | undefined => {
+  const code = (cause as { code?: unknown })?.code;
+  return typeof code === "number" ? code : undefined;
+};
+
+/** `lastAuthenticated` is non-zero for anybody GoodDollar has ever verified. */
+const identityAbi = [
+  {
+    type: "function",
+    name: "lastAuthenticated",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const;
 
 const erc20Abi = [
   {
@@ -104,12 +155,60 @@ const giftSigner = (key: string) => {
 };
 
 /**
- * MiniPay injects itself like any other wallet, so there is nothing to design around:
- * if it is there we recognise it and say its name, and if it is not, whatever else is
- * injected works the same way.
+ * Every wallet that answers, not just whichever one won the race to `window.ethereum`.
+ *
+ * With two extensions installed, `window.ethereum` is whoever loaded last, and that is
+ * not necessarily the one holding the account somebody wants to use — the symptom being
+ * an app that "doesn't recognise my wallet" while the wallet is sitting right there.
+ * EIP-6963 exists for exactly this: wallets announce themselves and the page collects
+ * them.
  */
+export async function announcedProviders(): Promise<AnnouncedProvider[]> {
+  const found = new Map<string, AnnouncedProvider>();
+  const listen = (event: Event) => {
+    const detail = (event as CustomEvent<AnnouncedProvider>).detail;
+    if (detail?.info?.uuid) found.set(detail.info.uuid, detail);
+  };
+
+  window.addEventListener("eip6963:announceProvider", listen);
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+  // Wallets answer synchronously, but a tick costs nothing and covers the ones that do not.
+  await new Promise((done) => setTimeout(done, 60));
+  window.removeEventListener("eip6963:announceProvider", listen);
+
+  return [...found.values()];
+}
+
+/** Whatever was injected the old way, if anything was. */
 export const findProvider = (): Eip1193Provider | null =>
   (globalThis as { ethereum?: Eip1193Provider }).ethereum ?? null;
+
+/**
+ * The one to talk to.
+ *
+ * MiniPay first, because inside MiniPay there is nothing else to mean. Otherwise the
+ * wallet that has already authorised an account for this site, which is as close as a
+ * page can get to "the one you meant" without asking — and asking every time would be
+ * worse for the many people who only have one.
+ */
+export async function chooseProvider(): Promise<Eip1193Provider | null> {
+  const injected = findProvider();
+  if (injected?.isMiniPay) return injected;
+
+  const announced = await announcedProviders();
+  if (announced.length === 0) return injected;
+  if (announced.length === 1) return announced[0]?.provider ?? injected;
+
+  for (const candidate of announced) {
+    try {
+      const accounts = (await candidate.provider.request({ method: "eth_accounts" })) as string[];
+      if (accounts.length > 0) return candidate.provider;
+    } catch {
+      // A wallet that will not answer a question with no prompt is not the one.
+    }
+  }
+  return announced[0]?.provider ?? injected;
+}
 
 export const isMiniPay = (): boolean => findProvider()?.isMiniPay === true;
 
@@ -124,11 +223,24 @@ export function createLiveWallet(): WalletPort {
   let claimSdk: ClaimSDK | null = null;
   let identitySdk: IdentitySDK | null = null;
   let walletClient: ReturnType<typeof createWalletClient> | null = null;
+  /** False when the wallet would not move to Celo. Reads are fine; signing is not. */
+  let onCelo = false;
 
   const contracts = chainConfigs[CELO_ID].contracts[ENV];
   const decimals = CHAIN_DECIMALS[CELO_ID];
 
-  const publicClient = createPublicClient({ chain: celo, transport: http() });
+  /**
+   * Reads go through our own client, never the wallet's, so what the chain says does not
+   * depend on which network a wallet happens to be pointed at. Two endpoints rather than
+   * one: a rate limit on a single RPC would otherwise read, to a player, as the app
+   * deciding they are not verified.
+   */
+  const publicClient = createPublicClient({
+    chain: celo,
+    transport: fallback(
+      (chainConfigs[CELO_ID]?.rpcUrls ?? ["https://forno.celo.org"]).map((url) => http(url)),
+    ),
+  });
 
   async function ready() {
     if (!provider || !address || !claimSdk || !identitySdk) throw new Error("wallet not connected");
@@ -140,7 +252,7 @@ export function createLiveWallet(): WalletPort {
     boardSupported: BOARD_ADDRESS !== undefined,
 
     async connect(): Promise<WalletAccount> {
-      const found = findProvider();
+      const found = await chooseProvider();
       if (!found) throw new Error("no-wallet");
       provider = found;
 
@@ -149,13 +261,30 @@ export function createLiveWallet(): WalletPort {
       if (!first) throw new Error("no-account");
       address = getAddress(first) as Address;
 
-      // GoodDollar's contracts live on Celo. Ask once; the wallet decides.
-      const chainId = Number(await found.request({ method: "eth_chainId" }));
-      if (chainId !== CELO_ID) {
-        await found.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: CELO_HEX }],
-        });
+      // GoodDollar's contracts are on Celo, so that is where anything signed has to go.
+      // Asking is worth doing and failing at it is not worth refusing a connection over:
+      // every read below goes through our own Celo client regardless, so somebody whose
+      // wallet will not switch can still be told what GoodDollar says about them. Only
+      // signing needs the wallet itself to be on Celo, and that is checked when it is.
+      onCelo = Number(await found.request({ method: "eth_chainId" })) === CELO_ID;
+      if (!onCelo) {
+        try {
+          await found.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: CELO_HEX }],
+          });
+          onCelo = true;
+        } catch (cause) {
+          // 4902: a wallet that has never been told Celo exists. Offer it, once.
+          if (errorCode(cause) === 4902) {
+            try {
+              await found.request({ method: "wallet_addEthereumChain", params: [CELO_PARAMS] });
+              onCelo = true;
+            } catch {
+              // Declined, or the wallet does not do this. Reads still work.
+            }
+          }
+        }
       }
 
       walletClient = createWalletClient({
@@ -182,19 +311,30 @@ export function createLiveWallet(): WalletPort {
         env: ENV,
       });
 
-      return { address, chainId: CELO_ID, label: found.isMiniPay ? "MiniPay" : "your wallet" };
+      return {
+        address,
+        chainId: CELO_ID,
+        label: found.isMiniPay ? "MiniPay" : "your wallet",
+        onCelo,
+      };
     },
 
     async getClaimStatus(): Promise<ClaimStatus> {
       const { address: account, claimSdk: claim, identitySdk: identity } = await ready();
 
-      const [{ isWhitelisted }, entitlement, balance] = await Promise.all([
+      const [{ isWhitelisted }, entitlement, balance, lastAuthenticated] = await Promise.all([
         identity.getWhitelistedRoot(account),
         claim.checkEntitlement(),
         publicClient.readContract({
           address: contracts!.g$Contract,
           abi: erc20Abi,
           functionName: "balanceOf",
+          args: [account],
+        }),
+        publicClient.readContract({
+          address: contracts!.identityContract,
+          abi: identityAbi,
+          functionName: "lastAuthenticated",
           args: [account],
         }),
       ]);
@@ -205,6 +345,7 @@ export function createLiveWallet(): WalletPort {
 
       return {
         verified: isWhitelisted,
+        everVerified: isWhitelisted || lastAuthenticated > 0n,
         entitlement: entitlement.amount,
         nextClaimAt,
         balance: balance as bigint,

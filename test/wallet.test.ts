@@ -6,8 +6,10 @@ const account: WalletAccount = {
   address: "0x0000000000000000000000000000000000000001",
   chainId: 42220,
   label: "MiniPay",
+  onCelo: true,
 };
 const status = (over: Partial<ClaimStatus> = {}): ClaimStatus => ({
+  everVerified: true,
   verified: true,
   entitlement: 0n,
   nextClaimAt: null,
@@ -54,7 +56,17 @@ describe("the claim card", () => {
   });
 
   it("asks for the face check only once there is a wallet", () => {
-    expect(claimCardState(account, status({ verified: false }))).toBe("unverified");
+    expect(claimCardState(account, status({ verified: false, everVerified: false }))).toBe(
+      "unverified",
+    );
+  });
+
+  it("tells a lapsed verification apart from never having had one", () => {
+    // GoodDollar re-verifies on a ladder starting at three days, so this is the ordinary
+    // case, not an edge one. "You are not verified" would read as a broken app.
+    expect(claimCardState(account, status({ verified: false, everVerified: true }))).toBe(
+      "expired",
+    );
   });
 
   it("offers the claim when there is something to claim", () => {
