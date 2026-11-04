@@ -588,9 +588,64 @@ is live rather than merely deployed.
 The app reads the live board with no wallet connected and says nobody has put anything up
 yet, which is true.
 
+### Phase 13 — Tested against someone else's rejection
+
+A GoodBuilders rejection of another project, taken as a test to run against this one.
+
+**"The build didn't recognise my whitelisted wallet."** Four ways snarl could have done
+the same thing, all found by reading the live registries rather than by reasoning:
+
+1. **Three registries, one chain.** GoodDollar runs production, staging and development as
+   separate identity contracts on Celo mainnet. A person verified on production is a
+   *complete stranger* to the staging contract — confirmed against a real verified account,
+   which reads "verified" on production and "no record" on staging. An app pointed at the
+   wrong one tells the truth as it knows it and is wrong about the person. An unrecognised
+   `VITE_GOODDOLLAR_ENV` is no longer handed to the SDK to look up and fail; it falls back
+   to production and warns.
+2. **A wallet that has never heard of Celo.** `wallet_switchEthereumChain` answers 4902,
+   which was uncaught, so the connection failed outright. Now the chain is offered, and a
+   wallet that still will not move no longer blocks anything — every read goes through our
+   own Celo client regardless, and only signing needs the wallet itself to be there.
+3. **The wrong wallet answering.** `window.ethereum` is whichever extension loaded last.
+   EIP-6963 discovery now asks all of them, prefers MiniPay, then one that has already
+   authorised an account for this site.
+4. **One RPC.** A rate limit on forno would have read, to a player, as the app deciding
+   they are not verified. Two endpoints now.
+
+And a fifth that is not a bug but reads as one: **lapsed is not the same as never**.
+GoodDollar's re-verification ladder starts at three days, and one of the accounts used in
+the fork tests — verified 1 November — had lapsed by the 4th. "You are not verified" is
+how an app looks broken to somebody who verified last week. The card now says GoodDollar
+needs another look at them. `scripts/check-identity.ts` tells all five cases apart for any
+address in a single read, so "it does not see my wallet" can be answered in seconds rather
+than argued about.
+
+**"G$ integration is very light."** The honest audit, because this is the one where snarl
+is exposed rather than safe:
+
+- The **daily UBI card** is exactly what that feedback called out, and snarl is *more*
+  exposed than the project they rejected: there the claim at least followed a win, while
+  here it is simply a card on the pond. Anyone can claim UBI in GoodDollar's own wallet
+  without playing anything.
+- The **gift escrow** is the strongest piece, and it is genuinely not available elsewhere:
+  G$ attached to a link, claimable by somebody who has never held a token, with the gas
+  payable by anyone. That is a way to hand G$ to a person who does not yet have a wallet,
+  with a reason to open one attached. It is closer to onboarding than to a feature.
+- The **weekly pool** distributes G$ to verified humans who solved something. A
+  distribution mechanism, not a use.
+- The **board and names** touch no G$ at all.
+
+Which leaves the thing a reviewer would notice: **nothing in snarl requires spending G$.**
+Every surface gives it out or moves it sideways. Take G$ away entirely and the game is
+unchanged — so G$ is attached to snarl in three places and load-bearing in none. The
+obvious candidate is Nudges, which are free and capped at three a day; priced in G$ they
+would close the loop from claim to play. That is a game-design decision with teeth — it
+taxes the poorest players hardest — and not one to make quietly.
+
 Not done: Celoscan verification, which needs an API key that is not mine; opening the first
-week, which is a decision about pool size rather than a step; and moving both owners to a
-multisig. Nothing here has ever been signed by a wallet a person actually controls.
+week, which is a decision about pool size rather than a step; moving both owners to a
+multisig; and the question of whether G$ should be load-bearing. Nothing here has ever been
+signed by a wallet a person actually controls.
 
 ## 4. Decisions worth making now
 
