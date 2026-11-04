@@ -16,6 +16,13 @@ import {IIdentityV2} from "./IIdentityV2.sol";
  * like somebody else's. The pond is small and friendly and should stay that way.
  *
  * There is no owner. Nobody can rename or un-name anybody, and that includes us.
+ *
+ * Which is exactly why a handful of names are refused at birth. A registry with no owner
+ * cannot take a name back, so `gooddollar` or `minipay` in a stranger's hands would be
+ * permanent, on a contract snarl deployed, inside somebody else's ecosystem. The reserved
+ * list is fixed in the constructor and emitted name by name, so what is blocked is
+ * readable from the deployment's own logs. Nobody can hold these — not a squatter, and
+ * not the organisations they name either. Better unheld than wrongly held.
  */
 contract SnarlNames {
     IIdentityV2 public immutable identity;
@@ -28,16 +35,28 @@ contract SnarlNames {
     /** How many names have ever been claimed and not released. */
     uint256 public claimed;
 
+    /** Names nobody may ever take, by hash. Set once, in the constructor. */
+    mapping(bytes32 nameHash => bool) public reserved;
+
     event Claimed(address indexed root, string name, address indexed by);
     event Released(address indexed root, string name);
+    event Reserved(string name);
 
     error NotVerified();
     error BadName();
     error NameTaken();
+    error NameReserved();
     error NoName();
 
-    constructor(IIdentityV2 identityContract) {
+    constructor(IIdentityV2 identityContract, string[] memory reservedNames) {
         identity = identityContract;
+        for (uint256 i = 0; i < reservedNames.length; i++) {
+            // A reserved name has to be a name somebody could otherwise have claimed,
+            // or reserving it protects nothing.
+            if (!_valid(bytes(reservedNames[i]))) revert BadName();
+            reserved[keccak256(bytes(reservedNames[i]))] = true;
+            emit Reserved(reservedNames[i]);
+        }
     }
 
     /** The person behind a name, or zero if nobody has it. */
@@ -64,6 +83,8 @@ contract SnarlNames {
         if (root == address(0)) revert NotVerified();
 
         bytes32 wanted = keccak256(bytes(name));
+        if (reserved[wanted]) revert NameReserved();
+
         address holder = _holder[wanted];
         if (holder == root) return; // Already theirs; nothing to do and nothing to charge for.
         if (holder != address(0)) revert NameTaken();

@@ -1,4 +1,5 @@
 import { ethers, network } from "hardhat";
+import reserved from "../test/fixtures/reserved.json";
 
 /**
  * Names and the board. Two contracts, deployed together because neither is much use
@@ -7,7 +8,9 @@ import { ethers, network } from "hardhat";
  *   PRIVATE_KEY=… OWNER=<multisig> pnpm hardhat run scripts/deploy-board.ts --network celo
  *
  * The board's owner can only ever add creatures to the roster — never change one, never
- * remove one, never touch a score. SnarlNames has no owner at all.
+ * remove one, never touch a score. SnarlNames has no owner at all, which is why a short
+ * list of names is refused in its constructor: with nobody able to take a name back,
+ * `gooddollar` in a stranger's hands would be permanent.
  */
 const CELO_IDENTITY = "0xC361A6E67822a0EDc17D899227dd9FC50BD62F42";
 
@@ -26,7 +29,11 @@ async function main() {
   console.log(`identity  ${identity}`);
   console.log(`owner     ${owner}  (roster only)`);
 
-  const names = await (await ethers.getContractFactory("SnarlNames")).deploy(identity);
+  console.log(`reserved  ${reserved.names.length} names, including ${reserved.names.slice(0, 3).join(", ")}`);
+
+  const names = await (
+    await ethers.getContractFactory("SnarlNames")
+  ).deploy(identity, reserved.names);
   await names.waitForDeployment();
   const board = await (await ethers.getContractFactory("SnarlBoard")).deploy(identity, owner);
   await board.waitForDeployment();

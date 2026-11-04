@@ -1,0 +1,24 @@
+{
+  "note": "Names SnarlNames refuses forever. Passed to its constructor, hashed on chain and emitted one by one, so the list is readable from the logs of the deployment itself. Nobody can claim these, and nobody can grant them either — including the organisations they name. That is the trade: better unheld than held by a stranger.",
+  "names": [
+    "gooddollar",
+    "good_dollar",
+    "gooddollar_official",
+    "gdollar",
+    "goodlabs",
+    "gooddapp",
+    "goodwallet",
+    "minipay",
+    "celo",
+    "snarl",
+    "snarl_official",
+    "admin",
+    "administrator",
+    "moderator",
+    "official",
+    "support",
+    "system",
+    "team",
+    "help"
+  ]
+}

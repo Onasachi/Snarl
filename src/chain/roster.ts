@@ -15,5 +15,6 @@ export const chainIdOf = (slug: string): number | undefined => BY_SLUG.get(slug)
 /** True when this person has already put that creature on the board. */
 export const isOnBoard = (freed: bigint, slug: string): boolean => {
   const id = chainIdOf(slug);
-  return id === undefined ? false : (freed >> BigInt(id)) & 1n ? true : false;
+  if (id === undefined) return false;
+  return ((freed >> BigInt(id)) & 1n) === 1n;
 };

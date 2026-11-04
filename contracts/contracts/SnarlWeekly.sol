@@ -103,6 +103,7 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
     error StillTangled(uint256 crossings);
     error BadWindow();
     error NotSweepableYet();
+    error SameKnot();
     error NothingSpare();
 
     constructor(IERC20 g$, IIdentityV2 identityContract, address owner) Ownable(owner) {
@@ -287,6 +288,13 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
     function sweep(uint32 from, uint32 into) external onlyOwner {
         Knot storage old = _knots[from];
         if (old.closesAt == 0 || _knots[into].closesAt == 0) revert UnknownKnot();
+        // Into itself, `from` and `into` are one storage slot: the pool would come back
+        // whole while every entrant's share was zeroed, destroying their claims and
+        // locking the money up for good. One wrong argument should not be able to do that.
+        if (from == into) revert SameKnot();
+        // A settled week's share is already frozen, so G$ arriving afterwards could never
+        // be collected by anybody.
+        if (_knots[into].settled) revert AlreadySettled();
         if (!old.settled) revert NotSettled();
         if (block.timestamp < old.sweepableAt) revert NotSweepableYet();
 

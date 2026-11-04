@@ -6,7 +6,8 @@ with each one being absent.
 - **`SnarlWeekly`** — the Great Untangle's prize pool, and each person's run of weeks.
   Has an owner, who opens weeks.
 - **`SnarlGifts`** — G$ attached to a gift link. Has no owner at all.
-- **`SnarlNames`** — one name per verified person. Has no owner at all.
+- **`SnarlNames`** — one name per verified person. Has no owner at all, and refuses a
+  short list of names forever.
 - **`SnarlBoard`** — how many knots each person has freed, and which creatures. Its owner
   can only add creatures to the roster: never change one, never remove one, never touch
   a score.
@@ -116,6 +117,14 @@ those keys survive "clear progress", because that money is not progress.
 PRIVATE_KEY=… OWNER=<multisig> pnpm hardhat run scripts/deploy-board.ts --network celo
 ```
 
+**`SnarlNames` reserves names in its constructor, and that is the only chance to.** It has
+no owner, so nothing can take a name back once it is claimed — which would make
+`gooddollar` or `minipay` in a stranger's hands permanent, on a contract we deployed,
+inside somebody else's ecosystem. The list is in `test/fixtures/reserved.json`, hashed on
+chain and emitted name by name so the deployment's own logs say what is blocked. Nobody
+can hold these afterwards, including the organisations they name: better unheld than
+wrongly held. Reserving nineteen names costs about 0.1 CELO.
+
 Then put the game's creatures on the roster, so a proof is checked against the shape snarl
 actually ships rather than one the sender invented:
 
@@ -148,9 +157,22 @@ about which week it is — by up to 26 hours, UTC+14 to UTC-12. The table handle
 
 - `closesAt` is **Monday 12:00 UTC**, which is Sunday midnight for the last player on earth.
 - `openBy` is **Sunday 10:00 UTC**, which is Monday midnight for the first.
+- `sweepableAt` is **ninety days** after that. The contract permits any window; this is a
+  phone game whose players are claiming a daily UBI, and a share somebody earned should
+  not be swept away because they put the phone down for a fortnight.
 
 So open week *N+1* before week *N* closes. Both are open for 26 hours and nobody falls
 between them. `open-week.ts` warns if you are late.
+
+## Two things `sweep` will not do
+
+Both would destroy money rather than move it, and both are one wrong argument away:
+
+- **A week into itself.** `from` and `into` would be the same storage slot — the pool
+  comes back whole while every entrant's share is zeroed, and `locked` keeps counting it,
+  so nobody can collect and nothing can be rescued. Refused with `SameKnot`.
+- **Into a week that has already settled.** Its share is frozen, so G$ arriving afterwards
+  could never be collected by anyone. Refused with `AlreadySettled`.
 
 ## Still not done
 

@@ -1,12 +1,13 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import reserved from "./fixtures/reserved.json";
 
 async function setup() {
   const [ada, adaSecondWallet, bob, stranger] = await ethers.getSigners();
   const identity = await (await ethers.getContractFactory("MockIdentity")).deploy();
   const names = await (
     await ethers.getContractFactory("SnarlNames")
-  ).deploy(await identity.getAddress());
+  ).deploy(await identity.getAddress(), reserved.names);
 
   await identity.link(ada.address, ada.address);
   await identity.link(adaSecondWallet.address, ada.address);
@@ -94,6 +95,45 @@ describe("SnarlNames", () => {
 
     await names.connect(bob).claim("pip");
     expect(await names.rootOf("pip")).to.equal(bob.address);
+  });
+
+  describe("the names nobody may have", () => {
+    it("refuses every one of them, forever", async () => {
+      const { names, ada } = await setup();
+      for (const name of reserved.names) {
+        await expect(names.connect(ada).claim(name), name).to.be.revertedWithCustomError(
+          names,
+          "NameReserved",
+        );
+      }
+      expect(await names.claimed()).to.equal(0);
+    });
+
+    it("says which ones they are, so the list is not a secret", async () => {
+      const { names } = await setup();
+      for (const name of reserved.names) {
+        expect(await names.reserved(ethers.keccak256(ethers.toUtf8Bytes(name))), name).to.equal(
+          true,
+        );
+      }
+      expect(await names.reserved(ethers.keccak256(ethers.toUtf8Bytes("ada")))).to.equal(false);
+    });
+
+    it("covers the ones that would embarrass somebody else", async () => {
+      // Named here as well as in the fixture: these are the point of the mechanism, and a
+      // quiet edit to the list should fail a test rather than pass review.
+      for (const name of ["gooddollar", "minipay", "celo", "goodlabs", "admin", "support"]) {
+        expect(reserved.names, name).to.include(name);
+      }
+    });
+
+    it("will not accept a reservation that is not a claimable name anyway", async () => {
+      const identity = await (await ethers.getContractFactory("MockIdentity")).deploy();
+      const factory = await ethers.getContractFactory("SnarlNames");
+      await expect(
+        factory.deploy(await identity.getAddress(), ["GoodDollar"]),
+      ).to.be.revertedWithCustomError(factory, "BadName");
+    });
   });
 
   it("lets a person stop having a name", async () => {

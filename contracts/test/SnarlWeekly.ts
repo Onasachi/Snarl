@@ -336,6 +336,57 @@ describe("SnarlWeekly", () => {
     });
   });
 
+  describe("sweeping into the wrong place", () => {
+    async function swept() {
+      const s = await setup();
+      await s.weekly.openKnot(WEEK, EDGES, BEADS, s.closesAt, s.sweepableAt, POOL);
+      await s.weekly.openKnot(NEXT, EDGES, BEADS, s.sweepableAt + 1, s.sweepableAt + 2, 0);
+      await s.weekly.connect(s.ada).enter(WEEK, FREE.xs, FREE.ys);
+      await s.weekly.connect(s.bob).enter(WEEK, FREE.xs, FREE.ys);
+
+      await time.increaseTo(s.closesAt);
+      await s.weekly.settle(WEEK);
+      await s.weekly.connect(s.ada).collect(WEEK);
+      await time.increaseTo(s.sweepableAt + 1);
+      return s;
+    }
+
+    it("refuses to sweep a week into itself", async () => {
+      // `from` and `into` would be one storage slot: the pool comes back whole, every
+      // share is zeroed, and Bob's half is locked up with nobody able to reach it.
+      const s = await swept();
+      await expect(s.weekly.sweep(WEEK, WEEK)).to.be.revertedWithCustomError(
+        s.weekly,
+        "SameKnot",
+      );
+      expect((await s.weekly.knot(WEEK)).share).to.equal(POOL / 2n);
+      await expect(s.weekly.connect(s.bob).collect(WEEK)).to.changeTokenBalance(
+        s.g$,
+        s.bob,
+        POOL / 2n,
+      );
+    });
+
+    it("refuses to sweep into a week that has already settled", async () => {
+      const s = await swept();
+      // NEXT closed and settled with nobody in it, so its share is frozen at zero.
+      await time.increaseTo(s.sweepableAt + 2);
+      await s.weekly.settle(NEXT);
+
+      await expect(s.weekly.sweep(WEEK, NEXT)).to.be.revertedWithCustomError(
+        s.weekly,
+        "AlreadySettled",
+      );
+    });
+
+    it("still sweeps into a week that is open", async () => {
+      const s = await swept();
+      await expect(s.weekly.sweep(WEEK, NEXT))
+        .to.emit(s.weekly, "Swept")
+        .withArgs(WEEK, NEXT, POOL / 2n);
+    });
+  });
+
   describe("custody", () => {
     it("never lets the owner touch what a week is holding", async () => {
       const s = await setup();

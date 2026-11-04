@@ -2,6 +2,7 @@ import { loadFixture, setBalance, time } from "@nomicfoundation/hardhat-network-
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import glint from "./fixtures/glint.json";
+import reserved from "./fixtures/reserved.json";
 import roster from "./fixtures/roster.json";
 
 /**
@@ -350,7 +351,9 @@ const forked = Boolean(process.env.FORK);
     async function boarded() {
       const [owner] = await ethers.getSigners();
       if (!owner) throw new Error("no signers");
-      const names = await (await ethers.getContractFactory("SnarlNames")).deploy(CELO.identity);
+      const names = await (
+        await ethers.getContractFactory("SnarlNames")
+      ).deploy(CELO.identity, reserved.names);
       const board = await (
         await ethers.getContractFactory("SnarlBoard")
       ).deploy(CELO.identity, owner.address);
@@ -375,6 +378,19 @@ const forked = Boolean(process.env.FORK);
       expect(await names.nameOf(ada.address)).to.equal("ada");
       expect(await names.rootOf("bob")).to.equal(bob.address);
       expect(await names.namesOf([ada.address, bob.address])).to.deep.equal(["ada", "bob"]);
+    });
+
+    it("will not let a real verified person take a name that is not theirs to take", async () => {
+      const { names } = await boarded();
+      const ada = await human(VERIFIED[0] as string);
+      // Nobody can undo this contract, so these have to be impossible rather than
+      // reversible. Verified or not, in this ecosystem or any other.
+      for (const name of ["gooddollar", "minipay", "celo"]) {
+        await expect(names.connect(ada).claim(name), name).to.be.revertedWithCustomError(
+          names,
+          "NameReserved",
+        );
+      }
     });
 
     it("has nothing for a real address the registry does not vouch for", async () => {

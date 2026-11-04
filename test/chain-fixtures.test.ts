@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import glint from "~/../contracts/test/fixtures/glint.json";
 import roster from "~/../contracts/test/fixtures/roster.json";
 import weeks from "~/../contracts/test/fixtures/weeks.json";
-import { ALL_CREATURES, WEEKLY, creatureById } from "~/data";
+import { ALL_CREATURES, creatureById, WEEKLY } from "~/data";
 import { exactCrossings, packEdges, toChainPositions } from "~/engine/exact";
 import { weekId, weekKey } from "~/game/weekly";
 
@@ -52,7 +52,9 @@ describe("the week table the owner opens weeks from", () => {
       // It is already Monday at UTC+14 twenty-six hours before it is Monday at UTC-12.
       expect(week.openBy).toBe(monday - 26 * HOUR);
       expect(week.closesAt).toBe(monday + 7 * 24 * HOUR);
-      expect(week.sweepableAt).toBe(week.closesAt + 7 * 24 * HOUR);
+      // Ninety days to collect, not seven. A share somebody earned should not be swept
+      // away because they put the phone down for a fortnight.
+      expect(week.sweepableAt).toBe(week.closesAt + 90 * 24 * HOUR);
       // Which means consecutive weeks overlap, and nobody falls between them.
       expect(week.openBy).toBeLessThan(week.closesAt - 7 * 24 * HOUR);
     }

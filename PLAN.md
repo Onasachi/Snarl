@@ -503,6 +503,45 @@ rank 5 with 3 and 3. One bug found doing it — somebody who claims a name befor
 anything has no row on the board, so the screen kept offering them a name they already had.
 Both adapters now give a connected player a row either way.
 
+### Phase 12 — A review before anything is permanent
+
+Read back through all four with one question: could a mechanic here reflect on GoodDollar
+rather than on us? Three things changed as a result.
+
+**Names nobody should hold.** `SnarlNames` has no owner, which is right for a name
+registry and wrong for names that are not anyone's to take: the moment it was live, any
+verified person could have claimed `gooddollar` or `minipay` permanently, on a contract
+snarl deployed, inside somebody else's ecosystem, with no one able to undo it. Nineteen
+names are now refused in the constructor — hashed on chain and emitted one by one, so the
+deployment's own logs say what is blocked. Nobody can hold them afterwards, the
+organisations they name included. Better unheld than wrongly held. It costs about 0.1 CELO.
+
+**Two ways `sweep` could destroy money.** Sweeping a week *into itself* made `from` and
+`into` one storage slot: the pool came back whole while every entrant's share was zeroed,
+and because `locked` kept counting it nobody could collect and nothing could be rescued.
+Sweeping into an *already settled* week added G$ to a frozen share, where it could never
+be collected by anyone. Neither was reachable by an outsider — both needed the owner — and
+both were one wrong argument away from losing other people's money for good. Two guards,
+three tests.
+
+**Seven days to collect, now ninety.** The window was mine to choose and I had chosen
+badly: enter on Monday, come back on the ninth day, and the share was already next week's.
+For a phone game whose players are claiming a daily UBI, that is the wrong trade for
+rolling a pool over sooner.
+
+Named and not changed, because they are judgement rather than defect: pausing concentrates
+a pool among whoever entered first, so the owner should be a multisig; a pool worth much
+more than a daily claim creates demand for verified GoodDollar identities, which is the one
+thing in here that could damage their core asset rather than ours; `untangles` ranks
+spending as much as solving, which the screen says plainly; and the board's owner could add
+a trivially easy creature, which add-only prevents undoing but not doing.
+
+What a reviewer from their side would most likely probe is already right: nothing ever
+writes to a GoodDollar contract, the only call is `getWhitelistedRoot`, nothing mints or
+prices or swaps, no fee or treasury accrues to us anywhere, the owner can never withdraw
+pooled G$, pausing cannot trap funds, and `collect` deliberately does not re-check
+verification so the three-day re-verification rung can never strand a payout.
+
 Not done: the deploys themselves. `SnarlWeekly` and `SnarlBoard` need a funded key and a
 multisig owner, neither of which is mine to supply; `SnarlGifts` and `SnarlNames` need only
 the key. And nothing here has ever been signed by a wallet a person actually controls.
