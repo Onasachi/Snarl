@@ -26,6 +26,8 @@ const COLLECTED_KEY = "snarl.demo.weekCollected";
 /** A pool with people already in it, so the screen has something to show. */
 const DEMO_POOL = 120_000n * 10n ** 18n;
 const DEMO_ENTRANTS = 1283;
+/** What this player has put into the pot, so the demo's pool tells the truth about it. */
+const BACKED_KEY = "snarl.demo.backed";
 const CLAIMED_KEY = "snarl.demo.claimedAt";
 const BALANCE_KEY = "snarl.demo.balance";
 /** One entry per gift key, so a link can be escrowed, opened and taken back. */
@@ -140,15 +142,16 @@ export function createDemoWallet(): WalletPort {
       await sleep(250);
       const entered = read(ENTERED_KEY) === String(id);
       const entrants = DEMO_ENTRANTS + (entered ? 1 : 0);
+      const pool = DEMO_POOL + BigInt(read(BACKED_KEY) ?? "0");
       return {
-        pool: DEMO_POOL,
+        pool,
         entrants,
         closesAt: midnight(),
         // The real contract only settles once the week is over. The demo settles as soon
         // as you have entered, because the point of it is to be able to look at every
         // state without waiting until Sunday.
         settled: entered,
-        share: DEMO_POOL / BigInt(entrants),
+        share: pool / BigInt(entrants),
         entered,
         collected: read(COLLECTED_KEY) === String(id),
         decimals: DECIMALS,
@@ -272,6 +275,14 @@ export function createDemoWallet(): WalletPort {
       freed.add(creature);
       write(FREED_KEY, JSON.stringify([...freed]));
       write(UNTANGLES_KEY, String(Number(read(UNTANGLES_KEY) ?? "0") + 1));
+    },
+
+    async backWeek(_week: number, amount: bigint) {
+      await sleep(900);
+      const balance = BigInt(read(BALANCE_KEY) ?? "0");
+      if (balance < amount) throw new Error("not enough G$");
+      write(BALANCE_KEY, (balance - amount).toString());
+      write(BACKED_KEY, (BigInt(read(BACKED_KEY) ?? "0") + amount).toString());
     },
 
     async verificationLink(returnTo: string) {

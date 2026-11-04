@@ -140,6 +140,12 @@ export interface WalletPort {
   claimName(name: string): Promise<void>;
   /** Files one untangled drawing against a creature's number on the roster. */
   proveUntangle(creature: number, xs: bigint[], ys: bigint[]): Promise<void>;
+
+  /**
+   * Puts G$ into a week's pool. Anyone may: the contract's `fund` is open, so a week can
+   * be backed by the people playing it rather than waiting for a sponsor.
+   */
+  backWeek(week: number, amount: bigint): Promise<void>;
 }
 
 export type ClaimCardState = "disconnected" | "unverified" | "expired" | "ready" | "claimed";

@@ -58,6 +58,12 @@ interface GameState {
   playIndex: number;
   nudges: number;
   nudgeDay: string | null;
+  /**
+   * Nudges bought by putting G$ in a week's pot. Kept apart from the daily three because
+   * they are not a daily allowance: they do not expire at midnight, and the free three
+   * come back tomorrow whether or not these are spent.
+   */
+  extraNudges: number;
   moon: number;
   lastDailyDay: string | null;
   /** Passes contributed to this week's Great Untangle, and the week they belong to. */
@@ -94,6 +100,8 @@ interface GameState {
   completeTutorialStep: () => void;
   advancePlay: () => void;
   spendNudge: () => void;
+  /** Credited after G$ has actually reached the pool, never before. */
+  addExtraNudges: (count: number) => void;
   recordDailySolved: (today?: string) => void;
   /**
    * Adds a pass at the week's knot, and the first pass of a week puts its creature in the
@@ -137,6 +145,7 @@ export const useGame = create<GameState>()(
       playIndex: 1,
       nudges: NUDGES_PER_DAY,
       nudgeDay: null,
+      extraNudges: 0,
       moon: 0,
       lastDailyDay: null,
       lastDailyAt: null,
@@ -187,7 +196,13 @@ export const useGame = create<GameState>()(
 
       advancePlay: () => setState((s) => ({ playIndex: s.playIndex + 1 })),
 
-      spendNudge: () => setState((s) => ({ nudges: Math.max(0, s.nudges - 1) })),
+      // The day's free ones first. Something bought should still be there tomorrow.
+      spendNudge: () =>
+        setState((s) =>
+          s.nudges > 0 ? { nudges: s.nudges - 1 } : { extraNudges: Math.max(0, s.extraNudges - 1) },
+        ),
+
+      addExtraNudges: (count) => setState((s) => ({ extraNudges: s.extraNudges + count })),
 
       recordDailySolved: (today = dayKey()) =>
         setState((s) => ({
@@ -236,6 +251,7 @@ export const useGame = create<GameState>()(
           playIndex: 1,
           nudges: NUDGES_PER_DAY,
           nudgeDay: null,
+          extraNudges: 0,
           moon: 0,
           lastDailyDay: null,
           lastDailyAt: null,

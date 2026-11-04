@@ -8,6 +8,9 @@ import {
   moonLabel,
   NUDGES_PER_DAY,
   nudgesForDay,
+  nudgesForPot,
+  POT_MINIMUM_G$,
+  POT_NUDGE_CAP,
   previousDay,
   TUTORIAL_KNOTS,
 } from "~/game/progress";
@@ -71,5 +74,28 @@ describe("the running order", () => {
   it("wraps around World 1 rather than running out", () => {
     expect(creatureForPlay(1).id).toBe("dot");
     expect(creatureForPlay(10).id).toBe(creatureForPlay(0).id);
+  });
+});
+
+describe("putting G$ in the week's pot", () => {
+  it("earns nothing below the minimum, because the fee would be most of it", () => {
+    expect(nudgesForPot(0)).toBe(0);
+    expect(nudgesForPot(100)).toBe(0);
+    expect(nudgesForPot(POT_MINIMUM_G$ - 1)).toBe(0);
+  });
+
+  it("earns a nudge per hundred G$ from the minimum up", () => {
+    expect(nudgesForPot(POT_MINIMUM_G$)).toBe(5);
+    expect(nudgesForPot(750)).toBe(7);
+    expect(nudgesForPot(1000)).toBe(10);
+  });
+
+  it("stops counting well before anyone can buy their way through the game", () => {
+    expect(nudgesForPot(100_000)).toBe(POT_NUDGE_CAP);
+  });
+
+  it("keeps the remainder rather than rounding a part-nudge up", () => {
+    // 599 G$ is five nudges and 99 G$ of generosity, not six nudges.
+    expect(nudgesForPot(599)).toBe(5);
   });
 });

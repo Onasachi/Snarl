@@ -7,7 +7,13 @@ import { DAILY_CREATURE, dailySeed, isDailySolved } from "~/game/daily";
 import { giftedCreature, giftFromHash } from "~/game/gift";
 import { MoreSheet } from "~/game/MoreSheet";
 import { PhoneFrame } from "~/game/PhoneFrame";
-import { creatureForPlay, dayKey, playCaption, TUTORIAL_KNOTS } from "~/game/progress";
+import {
+  creatureForPlay,
+  dayKey,
+  nudgesForPot,
+  playCaption,
+  TUTORIAL_KNOTS,
+} from "~/game/progress";
 import { BoardScreen } from "~/game/screens/BoardScreen";
 import { DailySolved } from "~/game/screens/DailySolved";
 import { GiftReceived } from "~/game/screens/GiftReceived";
@@ -75,6 +81,8 @@ export function App() {
   const lastDailyAt = useGame((s) => s.lastDailyAt);
   const recordFreed = useGame((s) => s.recordFreed);
   const proofs = useGame((s) => s.proofs);
+  const extraNudges = useGame((s) => s.extraNudges);
+  const addExtraNudges = useGame((s) => s.addExtraNudges);
   const completeTutorialStep = useGame((s) => s.completeTutorialStep);
   const advancePlay = useGame((s) => s.advancePlay);
   const spendNudge = useGame((s) => s.spendNudge);
@@ -208,15 +216,22 @@ export function App() {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
-  const noNudges = useCallback(
-    () => toast.show("Out of Nudges for today. Calm view still helps."),
-    [toast],
-  );
-
   // The G$ layer. Nothing above this line knows it exists, and the game is complete
   // without it: no puzzle, pond or streak asks whether a wallet is connected.
   const wallet = useWallet();
   const claimState = claimCardState(wallet.account, wallet.status);
+
+  const noNudges = useCallback(
+    () =>
+      toast.show(
+        // Only mention the pot where it exists and could actually be used. Everywhere
+        // else the sentence is the one it always was.
+        wallet.week && wallet.account
+          ? "Out of Nudges today. Calm view still helps, or back the week for more."
+          : "Out of Nudges for today. Calm view still helps.",
+      ),
+    [toast, wallet.account, wallet.week],
+  );
 
   const onClaimAction = useCallback(async () => {
     if (claimState === "disconnected") {
@@ -240,9 +255,11 @@ export function App() {
     toast.show(
       wallet.error === "no-wallet"
         ? "No wallet found on this device. Puzzles never need one."
-        : wallet.error === "rejected"
-          ? "Left as it was."
-          : "That did not go through. Nothing moved.",
+        : wallet.error === "wrong-chain"
+          ? "Your wallet needs to be on Celo for that."
+          : wallet.error === "rejected"
+            ? "Left as it was."
+            : "That did not go through. Nothing moved.",
     );
   }, [wallet.error, toast]);
 
@@ -269,6 +286,28 @@ export function App() {
       toast.show("You are in this week's pool.");
     }
   }, [toast, wallet, week, weekNumber, weeklyProof]);
+
+  /**
+   * Puts G$ into this week's pool, and credits the nudges it earns — but only after the
+   * money has actually arrived. The nudges are local; the G$ is not, and the order
+   * matters more than it looks.
+   */
+  const backPool = useCallback(
+    async (g$: number) => {
+      const decimals = wallet.status?.decimals ?? 18;
+      const amount = BigInt(Math.round(g$ * 100)) * 10n ** BigInt(decimals - 2);
+      const earned = nudgesForPot(g$);
+      if (earned === 0 || amount <= 0n) return;
+
+      if (await wallet.backWeek(weekNumber, amount)) {
+        addExtraNudges(earned);
+        toast.show(
+          `In the pot. ${earned} ${earned === 1 ? "nudge" : "nudges"} for you, the rest for whoever frees it.`,
+        );
+      }
+    },
+    [addExtraNudges, toast, wallet, weekNumber],
+  );
 
   const collectPool = useCallback(async () => {
     const amount = await wallet.collectWeek(weekNumber);
@@ -381,7 +420,7 @@ export function App() {
           almostFree={isDaily || tutorialStep > 0}
           showNudge={isDaily || !inTutorial || lastTutorialKnot}
           highlightNudge={!isDaily && inTutorial && lastTutorialKnot}
-          nudgesLeft={nudges}
+          nudgesLeft={nudges + extraNudges}
           onSpendNudge={spendNudge}
           onNoNudges={noNudges}
           nextLabel={
@@ -471,6 +510,9 @@ export function App() {
             freedHere: weeklyEarned,
             onEnter: () => void enterPool(),
             onCollect: () => void collectPool(),
+            balance: wallet.status?.balance ?? 0n,
+            canBack: wallet.account !== null && wallet.week !== null,
+            onBack: (g$) => void backPool(g$),
           }}
         />
       )}

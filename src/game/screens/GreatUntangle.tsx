@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { creatureColor } from "~/data";
 import { crossings, scramble } from "~/engine";
+import { G$_PER_NUDGE, nudgesForPot, POT_MINIMUM_G$ } from "~/game/progress";
 import { useGame } from "~/game/store";
 import { endsLabel, WEEKLY_CREATURE, weeklySeed } from "~/game/weekly";
 import { CreatureSvg } from "~/render/CreatureSvg";
@@ -23,6 +24,10 @@ export interface WeeklyChain {
   freedHere: boolean;
   onEnter: () => void;
   onCollect: () => void;
+  /** G$ the player has to put in, and what happens when they do. */
+  balance: bigint;
+  canBack: boolean;
+  onBack: (g$: number) => void;
 }
 
 export function GreatUntangle({
@@ -95,10 +100,13 @@ export function GreatUntangle({
         style={{
           flex: 1,
           display: "grid",
-          alignContent: "center",
+          // Centred while it fits and from the top when it does not, rather than
+          // centring content taller than the screen and cutting the top off it.
+          alignContent: "safe center",
           gap: 6,
           padding: "0 24px",
           minHeight: 0,
+          overflowY: "auto",
         }}
       >
         <p
@@ -206,6 +214,8 @@ export function GreatUntangle({
           </div>
         )}
 
+        <Pot chain={chain} />
+
         <p style={{ fontSize: 13, lineHeight: 1.4, color: "var(--ink2)", margin: "12px 0 0" }}>
           {earned
             ? `${WEEKLY_CREATURE.name} is in your pond. Another one is tangled up in next week's knot.`
@@ -287,5 +297,80 @@ function PoolAction({ chain }: { chain: WeeklyChain }) {
     >
       {busy ? "…" : label}
     </button>
+  );
+}
+
+/**
+ * Backing the week.
+ *
+ * The pool is G$ the players put in, not a sponsor's grant, and what a backer gets is
+ * nudges — so the money that makes the week worth winning comes from the people who would
+ * rather be told where the knot is. The free three a day are untouched; this buys extras,
+ * and those do not expire.
+ *
+ * The minimum is four days of GoodDollar's UBI, which is not greed: the transaction costs
+ * the same fee whatever it carries, and below that the fee is most of what is spent.
+ */
+function Pot({ chain }: { chain: WeeklyChain }) {
+  const [amount, setAmount] = useState("");
+  const { status, busy, balance, canBack, onBack } = chain;
+  const decimals = status?.decimals ?? 18;
+  const typed = Number(amount);
+  const nudges = Number.isFinite(typed) ? nudgesForPot(typed) : 0;
+  const affordable =
+    Number.isFinite(typed) &&
+    BigInt(Math.round(typed * 100)) * 10n ** BigInt(decimals - 2) <= balance;
+
+  if (!status || !canBack) return null;
+
+  return (
+    <div style={{ display: "grid", gap: 6, marginTop: 14 }}>
+      <label style={{ display: "flex", gap: 8 }}>
+        <span className="sr-only">G$ to put in the pot</span>
+        <input
+          value={amount}
+          onChange={(event) => setAmount(event.target.value.replace(/[^\d.]/g, ""))}
+          inputMode="decimal"
+          placeholder={`${POT_MINIMUM_G$} G$ or more`}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 44,
+            padding: "0 14px",
+            border: "1px solid var(--card-line)",
+            borderRadius: 14,
+            background: "transparent",
+            color: "var(--ink)",
+            fontFamily: "inherit",
+            fontSize: 16,
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => onBack(typed)}
+          disabled={busy || nudges === 0 || !affordable}
+          style={{
+            minHeight: 44,
+            padding: "0 18px",
+            border: "1px solid var(--card-line)",
+            borderRadius: 14,
+            background: "transparent",
+            color: nudges > 0 && affordable && !busy ? "var(--ink)" : "var(--ink2)",
+            fontSize: 15,
+            fontWeight: 500,
+            cursor: nudges > 0 && affordable && !busy ? "pointer" : "default",
+          }}
+        >
+          Put in
+        </button>
+      </label>
+      <span style={{ fontSize: 12, lineHeight: 1.45, color: "var(--ink2)" }}>
+        {amount && !affordable
+          ? `More than the ${formatAmount(balance, decimals)} you have.`
+          : nudges > 0
+            ? `${nudges} ${nudges === 1 ? "nudge" : "nudges"}, yours to keep, and the rest of the pool is everyone's on Sunday.`
+            : `The pool is whatever players put in. ${POT_MINIMUM_G$} G$ or more earns a nudge per ${G$_PER_NUDGE}; the free three a day never change.`}
+      </span>
+    </div>
   );
 }

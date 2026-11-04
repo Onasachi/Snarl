@@ -642,10 +642,44 @@ obvious candidate is Nudges, which are free and capped at three a day; priced in
 would close the loop from claim to play. That is a game-design decision with teeth — it
 taxes the poorest players hardest — and not one to make quietly.
 
+### Phase 14 — G$ that the game cannot do without
+
+The answer to "nothing in snarl requires spending G$", and the shape of it was decided by
+Celo's gas price rather than by taste.
+
+**Why it is not a shop.** At 200 gwei a `fund` costs about 0.014 CELO whatever it carries,
+and a GoodDollar daily claim is 123.5 G$ — measured, not guessed: 7,190 people claimed
+887,875 G$ between them today. So a micropayment in G$ costs more in fees than it moves.
+Anything priced for this audience has to be a deliberate act or the fee is most of it,
+which is why the minimum is 500 G$, about four days of UBI, and why what it buys is called
+backing a week rather than buying hints.
+
+**The loop.** Putting G$ in the pot calls `SnarlWeekly.fund`, which was already open to
+anyone, so the week's prize comes from the players rather than from a sponsor. What a
+backer gets is nudges — one per 100 G$, capped at twenty. So the money that makes the week
+worth winning comes from the people who would rather be told where the knot is, and it
+goes back out on Sunday, split equally between everyone who freed it. Claim, back, play,
+win: G$ is the circulation, and with it removed there is no pool and no nudge beyond the
+free ones.
+
+**The floor does not move.** Three nudges a day, free, forever, wallet or no wallet.
+Bought ones are tracked apart and spent only once the day's free ones are gone, so they
+survive midnight rather than evaporating — and the free three come back tomorrow whether
+or not the bought ones were touched. Nobody is worse off than before, which matters for a
+game whose players are on a UBI.
+
+No fee reaches us from any of it. The contract takes nothing, and neither do we.
+
+Driven through the demo wallet: 2,000 G$ in, 750 into the pot, balance 1,250, seven nudges
+credited and a tenth row on the button. Spending one took a free one first and left the
+seven alone. The pot also cost the screen its layout the first time — it went into the
+footer, which pushed the buttons over the board — so it now sits with the pool it belongs
+to, and the panel scrolls from the top rather than centring content taller than itself.
+
 Not done: Celoscan verification, which needs an API key that is not mine; opening the first
-week, which is a decision about pool size rather than a step; moving both owners to a
-multisig; and the question of whether G$ should be load-bearing. Nothing here has ever been
-signed by a wallet a person actually controls.
+week, which is what makes the pot reachable at all; moving both owners to a multisig; and
+a dashboard over what the chain now records. Nothing here has ever been signed by a wallet
+a person actually controls.
 
 ## 4. Decisions worth making now
 

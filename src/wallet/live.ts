@@ -130,6 +130,16 @@ const erc20Abi = [
   },
   {
     type: "function",
+    name: "allowance",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
     name: "approve",
     stateMutability: "nonpayable",
     inputs: [
@@ -649,6 +659,44 @@ export function createLiveWallet(): WalletPort {
         abi: snarlBoardAbi,
         functionName: "prove",
         args: [creature, xs, ys],
+        account,
+        chain: celo,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+    },
+
+    async backWeek(week: number, amount: bigint) {
+      if (!WEEKLY_ADDRESS) throw new Error("no-contract");
+      const { address: account } = await ready();
+      if (!walletClient) throw new Error("wallet not connected");
+      if (!onCelo) throw new Error("wrong-chain");
+
+      // Approve only when the allowance will not cover it. Every avoided transaction is
+      // a fee a player does not pay, and at Celo's floor the fee is the expensive part
+      // of a small contribution.
+      const allowance = await publicClient.readContract({
+        address: contracts!.g$Contract,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [account, WEEKLY_ADDRESS],
+      });
+      if (allowance < amount) {
+        const approval = await walletClient.writeContract({
+          address: contracts!.g$Contract,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [WEEKLY_ADDRESS, amount],
+          account,
+          chain: celo,
+        });
+        await publicClient.waitForTransactionReceipt({ hash: approval });
+      }
+
+      const hash = await walletClient.writeContract({
+        address: WEEKLY_ADDRESS,
+        abi: snarlWeeklyAbi,
+        functionName: "fund",
+        args: [week, amount],
         account,
         chain: celo,
       });

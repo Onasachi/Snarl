@@ -3,6 +3,26 @@ import type { Creature } from "~/engine";
 
 /** Nudges a player gets each day. */
 export const NUDGES_PER_DAY = 3;
+
+/**
+ * What putting G$ in the week's pot is worth, and the least that is worth doing.
+ *
+ * A daily GoodDollar claim is about 120 G$. The minimum here is four days of that, not
+ * to be greedy but because the transaction costs the same fee whatever it carries: at
+ * Celo's floor a contribution has to be a deliberate act or the fee is most of it. This
+ * is backing a week, not buying a packet of hints.
+ *
+ * The free three a day are untouched by any of it. Somebody with no wallet, or no G$,
+ * plays exactly the game they played before.
+ */
+export const POT_MINIMUM_G$ = 500;
+export const G$_PER_NUDGE = 100;
+/** Past this, more G$ is generosity rather than a purchase. */
+export const POT_NUDGE_CAP = 20;
+
+/** How many nudges a contribution earns. Whole nudges only; the remainder is a gift. */
+export const nudgesForPot = (g$: number): number =>
+  g$ < POT_MINIMUM_G$ ? 0 : Math.min(POT_NUDGE_CAP, Math.floor(g$ / G$_PER_NUDGE));
 /** Phases in the streak moon: new moon to full. */
 export const MOON_PHASES = 7;
 

@@ -48,6 +48,17 @@ export const snarlWeeklyAbi = [
     outputs: [{ type: "bool" }],
   },
   {
+    // Open to anybody, which is what lets a week be backed by the people playing it.
+    type: "function",
+    name: "fund",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "week", type: "uint32" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
     type: "function",
     name: "enter",
     stateMutability: "nonpayable",

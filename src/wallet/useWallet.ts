@@ -49,11 +49,12 @@ export const returningFromVerification = (): boolean => {
   }
 };
 
-export type WalletError = "no-wallet" | "rejected" | "failed";
+export type WalletError = "no-wallet" | "wrong-chain" | "rejected" | "failed";
 
 const asError = (cause: unknown): WalletError => {
   const message = String((cause as { message?: string })?.message ?? cause);
   if (message.includes("no-wallet")) return "no-wallet";
+  if (message.includes("wrong-chain")) return "wrong-chain";
   // EIP-1193: 4001 is the user saying no, which is not a failure.
   if (message.includes("4001") || /reject|denied/i.test(message)) return "rejected";
   return "failed";
@@ -170,6 +171,24 @@ export function useWallet() {
     } catch (cause) {
       setError(asError(cause));
       return null;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  /** Puts G$ into a week's pool. True once it is actually in. */
+  const backWeek = useCallback(async (id: number, amount: bigint): Promise<boolean> => {
+    if (!port.current) return false;
+    setBusy(true);
+    setError(null);
+    try {
+      await port.current.backWeek(id, amount);
+      setWeek(await port.current.week(id));
+      setStatus(await port.current.getClaimStatus());
+      return true;
+    } catch (cause) {
+      setError(asError(cause));
+      return false;
     } finally {
       setBusy(false);
     }
@@ -346,6 +365,7 @@ export function useWallet() {
     loadWeek,
     enterWeek,
     collectWeek,
+    backWeek,
     tipsSupported,
     boardSupported,
     standing,
