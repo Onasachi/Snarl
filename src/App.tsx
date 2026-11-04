@@ -27,6 +27,7 @@ import { useGame } from "~/game/store";
 import { Toast, useToast } from "~/game/Toast";
 import { freedByLabel, useDailyCount } from "~/game/useDailyCount";
 import { VerifySheet } from "~/game/VerifySheet";
+import { WalletSheet } from "~/game/WalletSheet";
 import { WEEKLY_CREATURE, weekId, weekKey, weeklySeed } from "~/game/weekly";
 import { claimCardState, formatAmount, type TipStatus } from "~/wallet";
 import { returningFromVerification, useWallet } from "~/wallet/useWallet";
@@ -84,6 +85,8 @@ export function App() {
    * and the screen says so to a wallet that is not the owner.
    */
   const [wantsAdmin] = useState(ASKED_FOR_ADMIN);
+  /** Wallets to choose between, when there is a choice. Empty the rest of the time. */
+  const [wallets, setWallets] = useState<readonly { id: string; name: string }[]>([]);
   const toast = useToast();
 
   const hydrated = useGame((s) => s.hydrated);
@@ -246,9 +249,22 @@ export function App() {
     [toast, wallet.account, wallet.week],
   );
 
+  /**
+   * Connecting asks which wallet first, but only when there is more than one. Picking
+   * for somebody is how Connect ended up opening a wallet for another chain entirely.
+   */
+  const startConnect = useCallback(async () => {
+    const found = await wallet.listWallets();
+    if (found.length > 1) {
+      setWallets(found);
+      return;
+    }
+    await wallet.connect();
+  }, [wallet]);
+
   const onClaimAction = useCallback(async () => {
     if (claimState === "disconnected") {
-      await wallet.connect();
+      await startConnect();
       return;
     }
     if (claimState === "unverified" || claimState === "expired") {
@@ -261,7 +277,7 @@ export function App() {
         toast.show(`${formatAmount(amount, wallet.status.decimals)} claimed. See you tomorrow.`);
       }
     }
-  }, [claimState, toast, wallet]);
+  }, [claimState, startConnect, toast, wallet]);
 
   useEffect(() => {
     if (!wallet.error) return;
@@ -474,6 +490,17 @@ export function App() {
         />
       )}
 
+      {wallets.length > 0 && (
+        <WalletSheet
+          wallets={wallets}
+          onPick={(id) => {
+            setWallets([]);
+            void wallet.connect({ walletId: id });
+          }}
+          onClose={() => setWallets([])}
+        />
+      )}
+
       {moreSheet && (
         <MoreSheet
           onClose={() => setMoreSheet(false)}
@@ -510,7 +537,7 @@ export function App() {
           connected={wallet.account !== null}
           busy={wallet.busy}
           onBack={() => setScreen("pond")}
-          onConnect={() => void wallet.connect()}
+          onConnect={() => void startConnect()}
           onOpen={(week) => {
             void wallet.openWeek(week).then((done) => {
               if (done) toast.show("Week open. The pool starts at nothing.");
@@ -530,7 +557,7 @@ export function App() {
           connected={wallet.account !== null}
           busy={wallet.busy}
           onBack={() => setScreen("pond")}
-          onConnect={() => void wallet.connect()}
+          onConnect={() => void startConnect()}
           onClaimName={wallet.claimName}
           onProve={(slug) => void putOnBoard(slug)}
           onToast={toast.show}
@@ -581,7 +608,7 @@ export function App() {
             status: giftTip,
             connected: wallet.account !== null,
             busy: wallet.busy,
-            onConnect: () => void wallet.connect(),
+            onConnect: () => void startConnect(),
             onTake: () => void takeGiftTip(),
           }}
         />

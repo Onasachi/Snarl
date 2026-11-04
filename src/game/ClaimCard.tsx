@@ -47,20 +47,16 @@ function copyFor(state: ClaimCardState, status: ClaimStatus | null, hasWallet: b
         filled: false,
       };
     default:
-      return hasWallet
-        ? {
-            title: "Free UBI",
-            subtitle: "Connect a wallet to start",
-            action: "Connect",
-            filled: false,
-          }
-        : {
-            // No provider at all. Saying so is kinder than a button that cannot work.
-            title: "Free UBI",
-            subtitle: "Open snarl in a wallet app to claim",
-            action: null,
-            filled: false,
-          };
+      // Connect is offered either way. Whether a wallet exists is checked once, when the
+      // page loads, and a wallet can announce itself later or be installed while somebody
+      // is playing — so a card that refuses to try is a card that tells people with
+      // wallets that they have none. If there is really nothing, tapping says so.
+      return {
+        title: "Free UBI",
+        subtitle: hasWallet ? "Connect a wallet to start" : "Needs a wallet — tap to look",
+        action: "Connect",
+        filled: false,
+      };
   }
 }
 

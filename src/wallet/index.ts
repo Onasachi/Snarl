@@ -42,9 +42,17 @@ export async function createWallet(): Promise<WalletPort> {
   return createLiveWallet();
 }
 
-/** True when a wallet could be connected at all. */
+/**
+ * True when a wallet could be connected at all.
+ *
+ * Both ways of finding one: the old injected `window.ethereum`, and wallets that
+ * announce themselves under EIP-6963 — which some no longer back up with an injection,
+ * so looking only at the old one means telling somebody with a wallet that they have
+ * none.
+ */
 export async function walletAvailable(): Promise<boolean> {
   if (wantsDemoWallet()) return true;
-  const { findProvider } = await import("./live");
-  return findProvider() !== null;
+  const { findProvider, announcedProviders } = await import("./live");
+  if (findProvider() !== null) return true;
+  return (await announcedProviders()).length > 0;
 }

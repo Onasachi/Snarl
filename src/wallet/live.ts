@@ -197,30 +197,43 @@ export const findProvider = (): Eip1193Provider | null =>
   (globalThis as { ethereum?: Eip1193Provider }).ethereum ?? null;
 
 /**
- * The one to talk to.
- *
- * MiniPay first, because inside MiniPay there is nothing else to mean. Otherwise the
- * wallet that has already authorised an account for this site, which is as close as a
- * page can get to "the one you meant" without asking — and asking every time would be
- * worse for the many people who only have one.
+ * Wallets remembered between being listed and being chosen, because a provider is a live
+ * object and cannot travel through a React prop as an id.
  */
-export async function chooseProvider(): Promise<Eip1193Provider | null> {
+const announced = new Map<string, Eip1193Provider>();
+
+/**
+ * Every wallet that could be connected, for the player to choose from.
+ *
+ * Empty when there is nothing to choose: inside MiniPay, or where only one wallet
+ * answered. Choosing for them was the previous behaviour and it was wrong — "already
+ * authorised an account here" picked whichever extension the browser happened to have
+ * let in first, which is how Connect ended up opening a Solana wallet.
+ */
+export async function listWallets(): Promise<{ id: string; name: string }[]> {
+  if (findProvider()?.isMiniPay) return [];
+
+  const found = await announcedProviders();
+  announced.clear();
+  for (const entry of found) announced.set(entry.info.uuid, entry.provider);
+
+  return found.length > 1 ? found.map((e) => ({ id: e.info.uuid, name: e.info.name })) : [];
+}
+
+/**
+ * The wallet to talk to: the one chosen, or the only one there is.
+ *
+ * Nothing here guesses between two wallets. If there is a choice to make it is the
+ * player's, and `listWallets` is how the screen offers it.
+ */
+export async function chooseProvider(id?: string): Promise<Eip1193Provider | null> {
   const injected = findProvider();
   if (injected?.isMiniPay) return injected;
+  if (id) return announced.get(id) ?? null;
 
-  const announced = await announcedProviders();
-  if (announced.length === 0) return injected;
-  if (announced.length === 1) return announced[0]?.provider ?? injected;
-
-  for (const candidate of announced) {
-    try {
-      const accounts = (await candidate.provider.request({ method: "eth_accounts" })) as string[];
-      if (accounts.length > 0) return candidate.provider;
-    } catch {
-      // A wallet that will not answer a question with no prompt is not the one.
-    }
-  }
-  return announced[0]?.provider ?? injected;
+  const found = await announcedProviders();
+  if (found.length === 1) return found[0]?.provider ?? injected;
+  return injected;
 }
 
 export const isMiniPay = (): boolean => findProvider()?.isMiniPay === true;
@@ -261,11 +274,12 @@ export function createLiveWallet(): WalletPort {
   }
 
   return {
+    listWallets,
     tipsSupported: GIFTS_ADDRESS !== undefined,
     boardSupported: BOARD_ADDRESS !== undefined,
 
-    async connect(): Promise<WalletAccount> {
-      const found = await chooseProvider();
+    async connect(walletId?: string): Promise<WalletAccount> {
+      const found = await chooseProvider(walletId);
       if (!found) throw new Error("no-wallet");
       provider = found;
 

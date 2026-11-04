@@ -93,15 +93,24 @@ export function useWallet() {
     }
   }, [account]);
 
+  /** The wallets worth offering a choice between. Empty when there is no choice. */
+  const listWallets = useCallback(async () => {
+    try {
+      return await (await load()).listWallets();
+    } catch {
+      return [];
+    }
+  }, [load]);
+
   const connect = useCallback(
-    async ({ silent = false } = {}) => {
+    async ({ silent = false, walletId }: { silent?: boolean; walletId?: string } = {}) => {
       setBusy(true);
       setError(null);
       try {
         const wallet = await load();
         setTipsSupported(wallet.tipsSupported);
         setBoardSupported(wallet.boardSupported);
-        const connected = await wallet.connect();
+        const connected = await wallet.connect(walletId);
         setAccount(connected);
         remember(true);
         setStatus(await wallet.getClaimStatus());
@@ -393,6 +402,7 @@ export function useWallet() {
     available,
     week,
     connect,
+    listWallets,
     claim,
     verify,
     refresh,

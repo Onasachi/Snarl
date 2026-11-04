@@ -120,11 +120,16 @@ export interface AdminState {
 }
 
 export interface WalletPort {
+  /**
+   * The wallets this device offers, when there is more than one and a choice to make.
+   * Empty inside MiniPay, or where only one answered: a list of one is not a choice.
+   */
+  listWallets(): Promise<{ id: string; name: string }[]>;
   /** False when no escrow contract is configured. A gift is then a creature and no more. */
   readonly tipsSupported: boolean;
   /** False when no board is deployed. The game then keeps score only for itself. */
   readonly boardSupported: boolean;
-  connect(): Promise<WalletAccount>;
+  connect(walletId?: string): Promise<WalletAccount>;
   getClaimStatus(): Promise<ClaimStatus>;
   /** Claims the daily UBI. Returns what actually arrived. */
   claim(): Promise<{ amount: bigint }>;

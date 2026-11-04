@@ -112,6 +112,10 @@ export const markDemoVerified = (): void => write(VERIFIED_KEY, "yes");
 
 export function createDemoWallet(): WalletPort {
   return {
+    async listWallets() {
+      return [];
+    },
+
     tipsSupported: true,
     boardSupported: true,
 
