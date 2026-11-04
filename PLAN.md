@@ -570,9 +570,27 @@ immutable slots were compared against zeros; they come from the build info inste
 `hardhat verify` was pointed at Celoscan's V1 endpoint, which is retired and answers with
 a deprecation notice rather than a verification; one Etherscan V2 key covers every chain.
 
-Not done: the other three deploys, which need a funded key that is not mine to supply, and
-Celoscan verification, which needs an API key that is not either. Nothing here has ever
-been signed by a wallet a person actually controls.
+**All four are live, and the roster with them.** `SnarlNames`
+`0x608e899633239d46055838BB267Bbf13b067975b`, `SnarlBoard`
+`0xa0478a7fAE7917D42B0D99E0f3a307cfe9C01342`, `SnarlWeekly`
+`0x4B901584C3AdD752a1bc25415D2a1997A7701612`, and all fourteen creatures registered with
+their edges and bead counts matching the fixture exactly — which is what `prove` checks a
+drawing against, so it had to be read back one by one rather than trusted.
+
+Then the part that needed no money at all: `eth_call` and `eth_estimateGas` run a
+transaction against the live chain and discard it, so a GoodDollar account verified *right
+now* could be put through the real contracts for free. It could prove Bub, Shelby and
+Glint; it could claim a name; it could not claim `gooddollar`, which came back
+`NameReserved`; and a Shelby with two beads swapped came back `StillTangled(1)`. The last
+two matter most — the reservations hold against a real verified person, and the geometry
+is live rather than merely deployed.
+
+The app reads the live board with no wallet connected and says nobody has put anything up
+yet, which is true.
+
+Not done: Celoscan verification, which needs an API key that is not mine; opening the first
+week, which is a decision about pool size rather than a step; and moving both owners to a
+multisig. Nothing here has ever been signed by a wallet a person actually controls.
 
 ## 4. Decisions worth making now
 

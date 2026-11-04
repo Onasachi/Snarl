@@ -40,6 +40,25 @@ covers every chain through their V2 API, Celo included:
 ETHERSCAN_API_KEY=… pnpm hardhat verify --network celo 0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B 0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A
 ```
 
+### Checked by simulation, free
+
+`eth_call` and `eth_estimateGas` run a transaction against the live chain and throw the
+result away, so what a real person could do can be confirmed without anybody spending
+anything. Against the deployed contracts, with a GoodDollar account that is verified right
+now:
+
+```
+prove bub          would work, 150,298 gas
+prove shelby       would work, 804,369 gas
+prove glint        would work, 300,660 gas
+claim a_real_name  would work
+claim gooddollar   refused with NameReserved
+tangled shelby     refused with StillTangled(1)
+```
+
+The last two are the ones worth having: the reservations hold against a real verified
+person, and the geometry is live rather than merely deployed.
+
 ## You do not need the multisig first
 
 The two contracts that hold an owner are `Ownable2Step`, so ownership moves later without
