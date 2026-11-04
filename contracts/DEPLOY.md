@@ -1,9 +1,15 @@
 # Deploying snarl's contracts
 
-Two of them, independent of each other, both on Celo:
+Four of them, independent of each other, all on Celo. Deploy any subset; the game copes
+with each one being absent.
 
-- **`SnarlWeekly`** — the Great Untangle's prize pool. Has an owner, who opens weeks.
+- **`SnarlWeekly`** — the Great Untangle's prize pool, and each person's run of weeks.
+  Has an owner, who opens weeks.
 - **`SnarlGifts`** — G$ attached to a gift link. Has no owner at all.
+- **`SnarlNames`** — one name per verified person. Has no owner at all.
+- **`SnarlBoard`** — how many knots each person has freed, and which creatures. Its owner
+  can only add creatures to the roster: never change one, never remove one, never touch
+  a score.
 
 ## There is no testnet
 
@@ -103,6 +109,27 @@ gone, which is the price of nobody being able to empty it.
 A gift's money goes up *before* its link exists, and the link is then the only key to it.
 The app keeps the keys it escrowed so an unopened gift can be taken back after 30 days;
 those keys survive "clear progress", because that money is not progress.
+
+## Deploying names and the board
+
+```
+PRIVATE_KEY=… OWNER=<multisig> pnpm hardhat run scripts/deploy-board.ts --network celo
+```
+
+Then put the game's creatures on the roster, so a proof is checked against the shape snarl
+actually ships rather than one the sender invented:
+
+```
+BOARD=<address> PRIVATE_KEY=… pnpm hardhat run scripts/register-roster.ts --network celo
+```
+
+Safe to run again — anything already registered is skipped, and `addCreature` refuses to
+overwrite. **A creature's number is permanent**: it is part of every record anybody has
+ever filed about it. The numbers live in `test/fixtures/roster.json` and are pinned by a
+test in the app; never renumber one, and give a new creature the next free number.
+
+Then `VITE_SNARL_NAMES` and `VITE_SNARL_BOARD`. With the board unset the game keeps score
+only for itself, exactly as before, and The Board row does not appear in the menu.
 
 ## Opening a week
 

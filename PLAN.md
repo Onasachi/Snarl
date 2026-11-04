@@ -447,9 +447,65 @@ The whole loop was driven through the demo wallet: 900 G$ → escrow 50 → the 
 another session showing "and 50.00 G$" → taken → 900 again; then 25 escrowed and taken back,
 875 → 900. The waiting list heals itself when a gift turns out to have been opened already.
 
-Not done: the deploys themselves. `SnarlWeekly` needs a funded key and a multisig owner,
-neither of which is mine to supply; `SnarlGifts` needs only the key. And nothing here has
-ever been signed by a wallet a person actually controls.
+### Phase 11 — Names and the board ⚠️ built, not deployed
+
+Asked for: names, a streak board, and untangles per player, all on chain.
+
+**What a start-and-end clock would have measured.** The first shape of this was a contract
+that timed a solve. It cannot work, and the reason is a choice made in Phase 1: every
+creature's true shape is in this repository. So a script computes the answer before
+calling `start`, submits `end` in the next block, and the board reads one second. An
+on-chain clock measures transaction latency, not skill. Worse, it would have deleted the
+thing that made the pool honest — equal shares mean cheating earns what a thumb earns,
+while a *ranked* board means cheating wins outright. So there is no clock.
+
+**`SnarlNames`** gives one name per GoodDollar identity root — the same key the pool counts
+entries by, which is what makes a name cost something to hold: a second one means being a
+second person. Lowercase, digits and underscore, 3–20 characters, so no name can be
+dressed up to look like another. Claiming a second name releases the first. No owner.
+
+**`SnarlBoard`** counts untangles and which creatures somebody has freed. The roster lives
+in the contract, so a player supplies only positions and cannot invent a two-bead creature
+to farm. Its owner can add a creature and nothing else — not change one, not remove one,
+not touch a score. `addCreature` is permanent, so a creature's number is part of every
+record about it; the numbers are generated from the game's own data into
+`contracts/test/fixtures/roster.json` and pinned by a test, because renumbering one would
+silently re-attribute everything.
+
+**The weekly run** lives in `SnarlWeekly`, which was not deployed and so could still grow
+it: `enter` now also records weeks entered, the current run and the best one. A run is
+counted in *weeks opened*, not week numbers — 2026-W52 is followed by 2027-W01, and an ISO
+year is 52 weeks or 53 — so the contract numbers its own weeks and sidesteps the calendar.
+
+**Two columns, because they measure different things.** `untangles` counts proofs, and a
+proof costs a transaction, so a script can file them as fast as it can pay: that column
+ranks spending as much as solving. `distinct` stops at the roster and cannot be bought
+past. The screen says exactly this, under the table, rather than letting anyone assume
+the first column means something it does not.
+
+**A 46% saving, found by measuring.** Proving the densest creature cost 1,318,078 gas.
+Compiler settings barely moved it — `viaIR` made it slightly worse — because the cost was
+not codegen but Solidity's overflow checks on int256 multiplication, run four times per
+pair of strings, 465 pairs on Shelby. `Planarity.crossings` already rejects any coordinate
+outside 0..10^6 before comparing anything, so every product is within ±10^12 and the checks
+can never fire. One `unchecked` took it to **705,928**, and took `enter` from 374,508 to
+306,872 as well.
+
+The board reads without a wallet — a leaderboard that will not show itself until you
+connect one is a membership card — so the way in is on screen before anyone has connected,
+decided from the environment rather than from a loaded wallet module. Putting a creature up
+sends the drawing the player made, kept per creature in the store for exactly that; the
+contract would take the creature's true shape out of the repository just as happily, which
+is precisely why the game should not hand it over.
+
+Driven through the demo wallet: name claimed, three creatures put up, the row appearing at
+rank 5 with 3 and 3. One bug found doing it — somebody who claims a name before proving
+anything has no row on the board, so the screen kept offering them a name they already had.
+Both adapters now give a connected player a row either way.
+
+Not done: the deploys themselves. `SnarlWeekly` and `SnarlBoard` need a funded key and a
+multisig owner, neither of which is mine to supply; `SnarlGifts` and `SnarlNames` need only
+the key. And nothing here has ever been signed by a wallet a person actually controls.
 
 ## 4. Decisions worth making now
 

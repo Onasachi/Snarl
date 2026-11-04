@@ -2,6 +2,7 @@ import { loadFixture, setBalance, time } from "@nomicfoundation/hardhat-network-
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import glint from "./fixtures/glint.json";
+import roster from "./fixtures/roster.json";
 
 /**
  * The dress rehearsal, against the real thing.
@@ -329,7 +330,101 @@ const forked = Boolean(process.env.FORK);
     });
   });
 
+  describe("names and the board", () => {
+    // The weekly tests above push the clock a fortnight forward to settle and sweep, and
+    // by then GoodDollar wants these accounts to verify again — the three-day rung,
+    // exactly as the pool tests prove. Everything here is about who a person is, so it
+    // starts from the pinned block rather than from wherever the clock was left.
+    before(async () => {
+      await network.provider.send("hardhat_reset", [
+        {
+          forking: {
+            jsonRpcUrl: process.env.FORK_RPC ?? "https://forno.celo.org",
+            blockNumber: Number(process.env.FORK_BLOCK ?? 81_816_364),
+          },
+        },
+      ]);
+      await network.provider.send("evm_mine", []);
+    });
+
+    async function boarded() {
+      const [owner] = await ethers.getSigners();
+      if (!owner) throw new Error("no signers");
+      const names = await (await ethers.getContractFactory("SnarlNames")).deploy(CELO.identity);
+      const board = await (
+        await ethers.getContractFactory("SnarlBoard")
+      ).deploy(CELO.identity, owner.address);
+      await Promise.all([names.waitForDeployment(), board.waitForDeployment()]);
+
+      for (const creature of roster.creatures) {
+        await board.addCreature(creature.id, creature.edges, creature.beads);
+      }
+      return { owner, names, board };
+    }
+
+    it("gives real verified people names, keyed to the real registry", async () => {
+      const { names } = await boarded();
+      const [ada, bob] = [
+        await human(VERIFIED[0] as string),
+        await human(VERIFIED[1] as string),
+      ];
+
+      await names.connect(ada).claim("ada");
+      await names.connect(bob).claim("bob");
+
+      expect(await names.nameOf(ada.address)).to.equal("ada");
+      expect(await names.rootOf("bob")).to.equal(bob.address);
+      expect(await names.namesOf([ada.address, bob.address])).to.deep.equal(["ada", "bob"]);
+    });
+
+    it("has nothing for a real address the registry does not vouch for", async () => {
+      const { names } = await boarded();
+      const nobody = await human(NOT_VERIFIED);
+      await expect(names.connect(nobody).claim("ghost")).to.be.revertedWithCustomError(
+        names,
+        "NotVerified",
+      );
+    });
+
+    it("counts a real person's untangles across the whole roster", async () => {
+      const { board } = await boarded();
+      const ada = await human(VERIFIED[0] as string);
+
+      for (const creature of roster.creatures) {
+        await board.connect(ada).prove(creature.id, creature.solved.xs, creature.solved.ys);
+      }
+
+      const record = await board.records(ada.address);
+      expect(record.untangles).to.equal(roster.creatures.length);
+      expect(record.distinct).to.equal(roster.creatures.length);
+      expect(await board.playerCount()).to.equal(1);
+    });
+
+    it("puts the whole board in one page, ready to be sorted anywhere", async () => {
+      const { board } = await boarded();
+      const ada = await human(VERIFIED[0] as string);
+      const bob = await human(VERIFIED[1] as string);
+
+      await board.connect(ada).prove(glintId(), glint.solved.xs, glint.solved.ys);
+      await board.connect(ada).prove(glintId(), glint.solved.xs, glint.solved.ys);
+      await board.connect(bob).prove(glintId(), glint.solved.xs, glint.solved.ys);
+
+      const [roots, found] = await board.page(0, 50);
+      expect(roots).to.deep.equal([ada.address, bob.address]);
+      expect(found[0]?.untangles).to.equal(2);
+      expect(found[0]?.distinct).to.equal(1);
+      expect(found[1]?.untangles).to.equal(1);
+    });
+  });
+
   after(async () => {
     if (forked) await network.provider.send("hardhat_reset", []);
   });
 });
+
+/** Glint's number on the board, taken from the roster rather than written down twice. */
+const glintId = (): number => {
+  const entry = roster.creatures.find((c) => c.slug === glint.id);
+  if (!entry) throw new Error("Glint is not on the roster");
+  return entry.id;
+};

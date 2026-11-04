@@ -1,4 +1,12 @@
-import type { ClaimStatus, TipStatus, WalletAccount, WalletPort, WeekStatus } from "./port";
+import type {
+  BoardRow,
+  ClaimStatus,
+  Standing,
+  TipStatus,
+  WalletAccount,
+  WalletPort,
+  WeekStatus,
+} from "./port";
 
 /**
  * A wallet that holds nothing and moves nothing, so every state of the claim card can be
@@ -23,6 +31,53 @@ const BALANCE_KEY = "snarl.demo.balance";
 /** One entry per gift key, so a link can be escrowed, opened and taken back. */
 const TIP_KEY = (key: string) => `snarl.demo.tip.${key.slice(0, 12)}`;
 const DEMO_SENDER = "0x5ab1ec0de0000000000000000000000000000002" as const;
+const NAME_KEY = "snarl.demo.name";
+const UNTANGLES_KEY = "snarl.demo.untangles";
+const FREED_KEY = "snarl.demo.freed";
+
+/** Other people on the board, so it has something to be a board of. */
+const NEIGHBOURS: readonly BoardRow[] = [
+  {
+    root: "0xaaa0000000000000000000000000000000000001",
+    name: "wren_",
+    untangles: 41,
+    distinct: 12,
+    freed: 0xfffn,
+    weeks: 9,
+    streak: 4,
+    bestStreak: 9,
+  },
+  {
+    root: "0xaaa0000000000000000000000000000000000002",
+    name: "lilo",
+    untangles: 28,
+    distinct: 14,
+    freed: 0x3fffn,
+    weeks: 11,
+    streak: 11,
+    bestStreak: 11,
+  },
+  {
+    root: "0xaaa0000000000000000000000000000000000003",
+    name: "",
+    untangles: 19,
+    distinct: 7,
+    freed: 0x7fn,
+    weeks: 2,
+    streak: 1,
+    bestStreak: 2,
+  },
+  {
+    root: "0xaaa0000000000000000000000000000000000004",
+    name: "bub_fan_99",
+    untangles: 6,
+    distinct: 5,
+    freed: 0x1fn,
+    weeks: 1,
+    streak: 1,
+    bestStreak: 1,
+  },
+];
 
 const read = (key: string): string | null => {
   try {
@@ -52,6 +107,7 @@ export const markDemoVerified = (): void => write(VERIFIED_KEY, "yes");
 export function createDemoWallet(): WalletPort {
   return {
     tipsSupported: true,
+    boardSupported: true,
 
     async connect(): Promise<WalletAccount> {
       await sleep(400);
@@ -177,6 +233,44 @@ export function createDemoWallet(): WalletPort {
       write(TIP_KEY(key), JSON.stringify({ ...JSON.parse(stored), opened: true }));
       write(BALANCE_KEY, (BigInt(read(BALANCE_KEY) ?? "0") + amount).toString());
       return { amount };
+    },
+
+    async board(): Promise<Standing> {
+      await sleep(300);
+      const freed = JSON.parse(read(FREED_KEY) ?? "[]") as number[];
+      const untangles = Number(read(UNTANGLES_KEY) ?? "0");
+
+      // A name with nothing proved behind it still has a row here, for the same reason
+      // the live adapter makes one: the screen has to know who it is talking to.
+      const mine: BoardRow = {
+        root: DEMO_ADDRESS,
+        name: read(NAME_KEY) ?? "",
+        untangles,
+        distinct: freed.length,
+        freed: freed.reduce((mask, id) => mask | (1n << BigInt(id)), 0n),
+        weeks: read(ENTERED_KEY) ? 1 : 0,
+        streak: read(ENTERED_KEY) ? 1 : 0,
+        bestStreak: read(ENTERED_KEY) ? 1 : 0,
+      };
+
+      const rows = (untangles ? [...NEIGHBOURS, mine] : [...NEIGHBOURS]).sort(
+        (a, b) => b.untangles - a.untangles || b.distinct - a.distinct,
+      );
+      return { rows, mine, root: DEMO_ADDRESS };
+    },
+
+    async claimName(name: string) {
+      await sleep(700);
+      if (NEIGHBOURS.some((row) => row.name === name)) throw new Error("name taken");
+      write(NAME_KEY, name);
+    },
+
+    async proveUntangle(creature: number) {
+      await sleep(800);
+      const freed = new Set(JSON.parse(read(FREED_KEY) ?? "[]") as number[]);
+      freed.add(creature);
+      write(FREED_KEY, JSON.stringify([...freed]));
+      write(UNTANGLES_KEY, String(Number(read(UNTANGLES_KEY) ?? "0") + 1));
     },
 
     async verificationLink(returnTo: string) {

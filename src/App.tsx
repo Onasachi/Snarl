@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { chainIdOf } from "~/chain/roster";
+import { creatureById } from "~/data";
 import type { Pt } from "~/engine";
 import { solvedLayout, toChainPositions } from "~/engine";
 import { DAILY_CREATURE, dailySeed, isDailySolved } from "~/game/daily";
@@ -6,6 +8,7 @@ import { giftedCreature, giftFromHash } from "~/game/gift";
 import { MoreSheet } from "~/game/MoreSheet";
 import { PhoneFrame } from "~/game/PhoneFrame";
 import { creatureForPlay, dayKey, playCaption, TUTORIAL_KNOTS } from "~/game/progress";
+import { BoardScreen } from "~/game/screens/BoardScreen";
 import { DailySolved } from "~/game/screens/DailySolved";
 import { GiftReceived } from "~/game/screens/GiftReceived";
 import { GiftScreen } from "~/game/screens/GiftScreen";
@@ -21,7 +24,7 @@ import { WEEKLY_CREATURE, weekId, weekKey, weeklySeed } from "~/game/weekly";
 import { claimCardState, formatAmount, type TipStatus } from "~/wallet";
 import { returningFromVerification, useWallet } from "~/wallet/useWallet";
 
-type Screen = "splash" | "puzzle" | "pond" | "gift" | "untangle";
+type Screen = "splash" | "puzzle" | "pond" | "gift" | "untangle" | "board";
 /** Ordinary progress through World 1, today's rare knot, or a pass at the week's. */
 type Mode = "progress" | "daily" | "weekly";
 
@@ -71,6 +74,7 @@ export function App() {
   const lastDailyDay = useGame((s) => s.lastDailyDay);
   const lastDailyAt = useGame((s) => s.lastDailyAt);
   const recordFreed = useGame((s) => s.recordFreed);
+  const proofs = useGame((s) => s.proofs);
   const completeTutorialStep = useGame((s) => s.completeTutorialStep);
   const advancePlay = useGame((s) => s.advancePlay);
   const spendNudge = useGame((s) => s.spendNudge);
@@ -118,7 +122,10 @@ export function App() {
 
   const next = useCallback(
     (moves: number, pos: readonly Pt[]) => {
-      if (mode !== "weekly") recordFreed(creature, moves);
+      if (mode !== "weekly") {
+        const { xs, ys } = toChainPositions(pos);
+        recordFreed(creature, moves, { xs: xs.map(String), ys: ys.map(String) });
+      }
 
       if (isDaily) {
         recordDailySolved(today);
@@ -299,6 +306,25 @@ export function App() {
     );
   }, [gift, toast, wallet]);
 
+  // The board reads without a wallet, so it is loaded when the screen opens and not
+  // before: a player who never looks at it never asks a chain for anything.
+  useEffect(() => {
+    if (screen === "board") void wallet.loadBoard();
+  }, [screen, wallet.loadBoard]);
+
+  const putOnBoard = useCallback(
+    async (slug: string) => {
+      const id = chainIdOf(slug);
+      const drawing = proofs[slug];
+      if (id === undefined || !drawing) return;
+
+      if (await wallet.proveUntangle(id, drawing.xs.map(BigInt), drawing.ys.map(BigInt))) {
+        toast.show(`${creatureById(slug)?.name ?? "It"} is on the board.`);
+      }
+    },
+    [proofs, toast, wallet],
+  );
+
   const giftTips = useMemo(
     () => ({
       // A tip box only appears when there is a wallet open with something in it and a
@@ -392,13 +418,38 @@ export function App() {
         />
       )}
 
-      {moreSheet && <MoreSheet onClose={() => setMoreSheet(false)} />}
+      {moreSheet && (
+        <MoreSheet
+          onClose={() => setMoreSheet(false)}
+          {...(wallet.boardSupported
+            ? {
+                onBoard: () => {
+                  setMoreSheet(false);
+                  setScreen("board");
+                },
+              }
+            : {})}
+        />
+      )}
 
       {verifySheet && (
         <VerifySheet
           busy={wallet.busy}
           onStart={() => void wallet.verify()}
           onClose={() => setVerifySheet(false)}
+        />
+      )}
+
+      {screen === "board" && (
+        <BoardScreen
+          standing={wallet.standing}
+          connected={wallet.account !== null}
+          busy={wallet.busy}
+          onBack={() => setScreen("pond")}
+          onConnect={() => void wallet.connect()}
+          onClaimName={wallet.claimName}
+          onProve={(slug) => void putOnBoard(slug)}
+          onToast={toast.show}
         />
       )}
 

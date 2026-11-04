@@ -44,8 +44,23 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
         /** pool / entrants, frozen when the week is settled. */
         uint128 share;
         bool settled;
+        /** 1 for the first week ever opened, 2 for the next, and so on. */
+        uint32 seq;
         /** Two bytes per string: the beads it joins. */
         bytes edges;
+    }
+
+    /**
+     * What somebody has done across every week, so the board does not have to walk the
+     * calendar to find out. Kept here rather than derived, because a streak is a fact
+     * about consecutive weeks and only this contract knows which week followed which.
+     */
+    struct Player {
+        uint32 weeksEntered;
+        /** The seq of the last week they entered, which is how a run is recognised. */
+        uint32 lastSeq;
+        uint32 streak;
+        uint32 bestStreak;
     }
 
     IERC20 public immutable token;
@@ -58,6 +73,13 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
 
     /** How many of a week's entrants have taken their share. */
     mapping(uint32 week => uint32 count) public collectedCount;
+
+    mapping(address root => Player) public players;
+    /** Everyone who has ever entered a week, in the order they first did. */
+    address[] private _everyone;
+
+    /** How many weeks have been opened, ever. The next one's seq. */
+    uint32 public weeksOpened;
 
     /** G$ spoken for by open weeks, so the owner cannot withdraw it. */
     uint256 public locked;
@@ -109,6 +131,7 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
         if (edges.length == 0 || edges.length % 2 != 0) revert Planarity.BadEdgeList();
         if (beads == 0 || beads > 256) revert Planarity.BadPositions();
 
+        weeksOpened += 1;
         _knots[week] = Knot({
             closesAt: closesAt,
             sweepableAt: sweepableAt,
@@ -117,6 +140,7 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
             entrants: 0,
             share: 0,
             settled: false,
+            seq: weeksOpened,
             edges: edges
         });
 
@@ -165,7 +189,59 @@ contract SnarlWeekly is Ownable, Pausable, ReentrancyGuard {
         unchecked {
             k.entrants += 1;
         }
+        _record(root, k.seq);
         emit Entered(week, root, msg.sender);
+    }
+
+    /**
+     * Adds a week to this person's tally.
+     *
+     * A run is counted in weeks opened, not in week numbers: 2026-W52 is followed by
+     * 2027-W01, and an ISO year is 52 weeks or 53 depending on where its Thursdays fall.
+     * Counting the weeks this contract has opened sidesteps the calendar entirely.
+     */
+    function _record(address root, uint32 seq) private {
+        Player storage player = players[root];
+        if (player.weeksEntered == 0) _everyone.push(root);
+
+        unchecked {
+            player.weeksEntered += 1;
+            player.streak = player.lastSeq + 1 == seq ? player.streak + 1 : 1;
+            player.lastSeq = seq;
+            if (player.streak > player.bestStreak) player.bestStreak = player.streak;
+        }
+    }
+
+    function playerCount() external view returns (uint256) {
+        return _everyone.length;
+    }
+
+    /** A page of everyone who has entered a week, unsorted. Ranking is free off chain. */
+    function page(
+        uint256 offset,
+        uint256 limit
+    ) external view returns (address[] memory roots, Player[] memory found) {
+        uint256 total = _everyone.length;
+        if (offset >= total) return (new address[](0), new Player[](0));
+
+        uint256 count = total - offset;
+        if (count > limit) count = limit;
+
+        roots = new address[](count);
+        found = new Player[](count);
+        for (uint256 i = 0; i < count; i++) {
+            address root = _everyone[offset + i];
+            roots[i] = root;
+            found[i] = players[root];
+        }
+    }
+
+    /** The same rows for a set of people the caller already has in hand. */
+    function playersOf(address[] calldata roots) external view returns (Player[] memory found) {
+        found = new Player[](roots.length);
+        for (uint256 i = 0; i < roots.length; i++) {
+            found[i] = players[roots[i]];
+        }
     }
 
     /**

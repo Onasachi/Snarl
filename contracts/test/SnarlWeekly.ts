@@ -220,6 +220,91 @@ describe("SnarlWeekly", () => {
     });
   });
 
+  describe("the tally", () => {
+    /** Opens `count` weeks in a row, each a week after the last. */
+    async function weeks(s: Awaited<ReturnType<typeof setup>>, count: number) {
+      const ids: number[] = [];
+      let closesAt = s.closesAt;
+      for (let i = 0; i < count; i++) {
+        const id = 202600 + i;
+        await s.weekly.openKnot(id, EDGES, BEADS, closesAt, closesAt + 7 * 24 * 3600, 0);
+        ids.push(id);
+        closesAt += 7 * 24 * 3600;
+      }
+      return ids;
+    }
+
+    it("counts the weeks a person has entered, not the wallets they used", async () => {
+      const s = await setup();
+      const [first, second] = await weeks(s, 2);
+
+      await s.weekly.connect(s.ada).enter(first as number, FREE.xs, FREE.ys);
+      await s.weekly.connect(s.adaSecondWallet).enter(second as number, FREE.xs, FREE.ys);
+
+      const ada = await s.weekly.players(s.ada.address);
+      expect(ada.weeksEntered).to.equal(2);
+      expect(await s.weekly.playerCount()).to.equal(1);
+    });
+
+    it("builds a run out of consecutive weeks", async () => {
+      const s = await setup();
+      const ids = await weeks(s, 4);
+      for (const id of ids) await s.weekly.connect(s.ada).enter(id, FREE.xs, FREE.ys);
+
+      const ada = await s.weekly.players(s.ada.address);
+      expect(ada.weeksEntered).to.equal(4);
+      expect(ada.streak).to.equal(4);
+      expect(ada.bestStreak).to.equal(4);
+    });
+
+    it("starts the run again after a week off, and remembers the best one", async () => {
+      const s = await setup();
+      const ids = await weeks(s, 5);
+      // Three in a row, skip the fourth, then the fifth.
+      for (const id of [ids[0], ids[1], ids[2], ids[4]]) {
+        await s.weekly.connect(s.ada).enter(id as number, FREE.xs, FREE.ys);
+      }
+
+      const ada = await s.weekly.players(s.ada.address);
+      expect(ada.weeksEntered).to.equal(4);
+      expect(ada.streak).to.equal(1);
+      expect(ada.bestStreak).to.equal(3);
+    });
+
+    it("counts runs in weeks opened, so a new year does not break one", async () => {
+      const s = await setup();
+      // 2026-W52 then 2027-W01: nowhere near consecutive as numbers.
+      await s.weekly.openKnot(202652, EDGES, BEADS, s.closesAt, s.sweepableAt, 0);
+      await s.weekly.openKnot(
+        202701,
+        EDGES,
+        BEADS,
+        s.closesAt + 7 * 24 * 3600,
+        s.sweepableAt + 7 * 24 * 3600,
+        0,
+      );
+
+      await s.weekly.connect(s.ada).enter(202652, FREE.xs, FREE.ys);
+      await s.weekly.connect(s.ada).enter(202701, FREE.xs, FREE.ys);
+      expect((await s.weekly.players(s.ada.address)).streak).to.equal(2);
+    });
+
+    it("hands out a page of everyone, for a board to sort as it likes", async () => {
+      const s = await setup();
+      const [first] = await weeks(s, 1);
+      await s.weekly.connect(s.ada).enter(first as number, FREE.xs, FREE.ys);
+      await s.weekly.connect(s.bob).enter(first as number, FREE.xs, FREE.ys);
+
+      const [roots, found] = await s.weekly.page(0, 10);
+      expect(roots).to.deep.equal([s.ada.address, s.bob.address]);
+      expect(found[0]?.weeksEntered).to.equal(1);
+
+      expect((await s.weekly.page(1, 10))[0]).to.deep.equal([s.bob.address]);
+      expect((await s.weekly.page(9, 10))[0]).to.deep.equal([]);
+      expect(await s.weekly.playersOf([s.bob.address])).to.have.lengthOf(1);
+    });
+  });
+
   describe("sweeping", () => {
     it("rolls what nobody came for into another week, and closes the door behind it", async () => {
       const s = await setup();

@@ -16,11 +16,15 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { celo } from "viem/chains";
+import { snarlBoardAbi, weeklyPlayersAbi } from "~/chain/snarlBoard";
 import { giftDigest, snarlGiftsAbi } from "~/chain/snarlGifts";
+import { snarlNamesAbi } from "~/chain/snarlNames";
 import { snarlWeeklyAbi } from "~/chain/snarlWeekly";
 import type {
   Address,
+  BoardRow,
   ClaimStatus,
+  Standing,
   TipStatus,
   WalletAccount,
   WalletPort,
@@ -42,6 +46,13 @@ const GIFTS_ADDRESS = import.meta.env.VITE_SNARL_GIFTS as Address | undefined;
 
 /** How long a sender has to wait before an unopened gift can be taken back. */
 const GIFT_WINDOW = 30n * 24n * 3600n;
+
+/** The leaderboard, and the names on it. Either may be absent; the screen copes. */
+const BOARD_ADDRESS = import.meta.env.VITE_SNARL_BOARD as Address | undefined;
+const NAMES_ADDRESS = import.meta.env.VITE_SNARL_NAMES as Address | undefined;
+
+/** One read covers a pond-sized game. Paging past this is a problem worth having. */
+const BOARD_LIMIT = 500n;
 
 /** GoodDollar has no testnet: staging and production are different contracts on Celo. */
 const ENV =
@@ -126,6 +137,7 @@ export function createLiveWallet(): WalletPort {
 
   return {
     tipsSupported: GIFTS_ADDRESS !== undefined,
+    boardSupported: BOARD_ADDRESS !== undefined,
 
     async connect(): Promise<WalletAccount> {
       const found = findProvider();
@@ -387,6 +399,119 @@ export function createLiveWallet(): WalletPort {
       });
       await publicClient.waitForTransactionReceipt({ hash });
       return { amount: before?.amount ?? 0n };
+    },
+
+    async board(): Promise<Standing | null> {
+      if (!BOARD_ADDRESS) return null;
+
+      const [roots, found] = await publicClient.readContract({
+        address: BOARD_ADDRESS,
+        abi: snarlBoardAbi,
+        functionName: "page",
+        args: [0n, BOARD_LIMIT],
+      });
+
+      // Names and weekly runs live in their own contracts, so they are joined on here
+      // rather than duplicated into the board. Two more reads, both free.
+      const [names, weeks] = await Promise.all([
+        NAMES_ADDRESS && roots.length
+          ? publicClient.readContract({
+              address: NAMES_ADDRESS,
+              abi: snarlNamesAbi,
+              functionName: "namesOf",
+              args: [roots],
+            })
+          : Promise.resolve([] as readonly string[]),
+        WEEKLY_ADDRESS && roots.length
+          ? publicClient.readContract({
+              address: WEEKLY_ADDRESS,
+              abi: weeklyPlayersAbi,
+              functionName: "playersOf",
+              args: [roots],
+            })
+          : Promise.resolve(
+              [] as readonly { weeksEntered: number; streak: number; bestStreak: number }[],
+            ),
+      ]);
+
+      const rows: BoardRow[] = roots.map((root, i) => ({
+        root,
+        name: names[i] ?? "",
+        untangles: found[i]?.untangles ?? 0,
+        distinct: found[i]?.distinct ?? 0,
+        freed: found[i]?.freed ?? 0n,
+        weeks: weeks[i]?.weeksEntered ?? 0,
+        streak: weeks[i]?.streak ?? 0,
+        bestStreak: weeks[i]?.bestStreak ?? 0,
+      }));
+      rows.sort((a, b) => b.untangles - a.untangles || b.distinct - a.distinct);
+
+      // Who this wallet is on the board. Only knowable with one open, and the board is
+      // worth reading without one.
+      let root: Address | null = null;
+      if (address && identitySdk) {
+        const resolved = await identitySdk.getWhitelistedRoot(address);
+        root = resolved.root === ZERO_ADDRESS ? null : (resolved.root as Address);
+      }
+
+      // Somebody who has claimed a name but not yet put a creature up has no row on the
+      // board, and the screen still has to know who they are — otherwise it keeps
+      // offering them a name they already took.
+      let mine = rows.find((row) => row.root === root) ?? null;
+      if (!mine && root) {
+        const name = NAMES_ADDRESS
+          ? await publicClient.readContract({
+              address: NAMES_ADDRESS,
+              abi: snarlNamesAbi,
+              functionName: "nameOf",
+              args: [root],
+            })
+          : "";
+        mine = {
+          root,
+          name,
+          untangles: 0,
+          distinct: 0,
+          freed: 0n,
+          weeks: 0,
+          streak: 0,
+          bestStreak: 0,
+        };
+      }
+
+      return { rows, mine, root };
+    },
+
+    async claimName(name: string) {
+      if (!NAMES_ADDRESS) throw new Error("no-contract");
+      const { address: account } = await ready();
+      if (!walletClient) throw new Error("wallet not connected");
+
+      const hash = await walletClient.writeContract({
+        address: NAMES_ADDRESS,
+        abi: snarlNamesAbi,
+        functionName: "claim",
+        args: [name],
+        account,
+        chain: celo,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+    },
+
+    async proveUntangle(creature: number, xs: bigint[], ys: bigint[]) {
+      if (!BOARD_ADDRESS) throw new Error("no-contract");
+      const { address: account } = await ready();
+      if (!walletClient) throw new Error("wallet not connected");
+
+      const hash = await walletClient.writeContract({
+        address: BOARD_ADDRESS,
+        abi: snarlBoardAbi,
+        functionName: "prove",
+        args: [creature, xs, ys],
+        account,
+        chain: celo,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
     },
 
     async verificationLink(returnTo: string) {

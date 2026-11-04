@@ -53,9 +53,36 @@ export interface TipStatus {
   reclaimableAt: Date;
 }
 
+/** One person on the leaderboard. Keyed by identity root, so one row is one human. */
+export interface BoardRow {
+  root: Address;
+  /** "" for somebody who has not claimed one. */
+  name: string;
+  /** Proofs filed. See SnarlBoard's own note on what that does and does not measure. */
+  untangles: number;
+  /** Different creatures freed at least once — the column the roster's size bounds. */
+  distinct: number;
+  /** One bit per creature number, as the contract keeps it. */
+  freed: bigint;
+  weeks: number;
+  streak: number;
+  bestStreak: number;
+}
+
+export interface Standing {
+  /** Everyone, already sorted. */
+  rows: BoardRow[];
+  /** This player's row, which may not be among the rows shown. Null if they have none. */
+  mine: BoardRow | null;
+  /** Their identity root, when a wallet is open — what the board files them under. */
+  root: Address | null;
+}
+
 export interface WalletPort {
   /** False when no escrow contract is configured. A gift is then a creature and no more. */
   readonly tipsSupported: boolean;
+  /** False when no board is deployed. The game then keeps score only for itself. */
+  readonly boardSupported: boolean;
   connect(): Promise<WalletAccount>;
   getClaimStatus(): Promise<ClaimStatus>;
   /** Claims the daily UBI. Returns what actually arrived. */
@@ -88,6 +115,16 @@ export interface WalletPort {
   openTip(key: string): Promise<{ amount: bigint }>;
   /** Takes back a gift nobody opened. Only the sender, only after the window. */
   reclaimTip(key: string): Promise<{ amount: bigint }>;
+
+  /**
+   * The whole board, sorted, with names and weekly runs joined on. Needs no wallet —
+   * a leaderboard nobody can read without connecting one is not a leaderboard.
+   */
+  board(): Promise<Standing | null>;
+  /** Takes a name for this person. Lowercase, digits and underscore, 3–20 characters. */
+  claimName(name: string): Promise<void>;
+  /** Files one untangled drawing against a creature's number on the roster. */
+  proveUntangle(creature: number, xs: bigint[], ys: bigint[]): Promise<void>;
 }
 
 export type ClaimCardState = "disconnected" | "unverified" | "ready" | "claimed";

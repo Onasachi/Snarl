@@ -20,6 +20,14 @@ library Planarity {
     /**
      * Twice the signed area of the triangle abc: positive if c is left of a->b, negative
      * if right, zero if the three are in line.
+     *
+     * Unchecked, and safe to be: `crossings` rejects any drawing with a coordinate
+     * outside 0..GRID before it compares anything, so every difference below is within
+     * ±10^6 and every product within ±10^12. An int256 has room for about 5.8 × 10^76.
+     * This matters because the comparison runs four times for every pair of strings —
+     * 465 pairs on the densest creature in the game — and Solidity's overflow checks on
+     * a multiplication cost more than the multiplication does. Leaving them in was most
+     * of the price of a proof.
      */
     function orientation(
         int256 ax,
@@ -29,7 +37,9 @@ library Planarity {
         int256 cx,
         int256 cy
     ) internal pure returns (int256) {
-        return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+        unchecked {
+            return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+        }
     }
 
     /**

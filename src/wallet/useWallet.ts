@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createWallet, walletAvailable, wantsDemoWallet } from "./index";
-import type { ClaimStatus, TipStatus, WalletAccount, WalletPort, WeekStatus } from "./port";
+import { boardAvailable, createWallet, walletAvailable, wantsDemoWallet } from "./index";
+import type {
+  ClaimStatus,
+  Standing,
+  TipStatus,
+  WalletAccount,
+  WalletPort,
+  WeekStatus,
+} from "./port";
 
 /** Set once the player has connected, so a reload or a verification trip can resume. */
 const RESUME_KEY = "snarl.wallet.resume";
@@ -65,6 +72,8 @@ export function useWallet() {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [week, setWeek] = useState<WeekStatus | null>(null);
   const [tipsSupported, setTipsSupported] = useState(false);
+  const [boardSupported, setBoardSupported] = useState(boardAvailable);
+  const [standing, setStanding] = useState<Standing | null>(null);
   const port = useRef<WalletPort | null>(null);
 
   const load = useCallback(async (): Promise<WalletPort> => {
@@ -88,6 +97,7 @@ export function useWallet() {
       try {
         const wallet = await load();
         setTipsSupported(wallet.tipsSupported);
+        setBoardSupported(wallet.boardSupported);
         const connected = await wallet.connect();
         setAccount(connected);
         remember(true);
@@ -164,6 +174,56 @@ export function useWallet() {
       setBusy(false);
     }
   }, []);
+
+  /**
+   * Reads the board. No wallet needed: a leaderboard that will not show itself without
+   * one is not a leaderboard, it is a membership card.
+   */
+  const loadBoard = useCallback(async () => {
+    try {
+      const wallet = await load();
+      setBoardSupported(wallet.boardSupported);
+      setStanding(await wallet.board());
+    } catch {
+      // A failed read leaves the screen saying it cannot reach the board, which is true.
+      setStanding(null);
+    }
+  }, [load]);
+
+  const claimName = useCallback(async (name: string): Promise<boolean> => {
+    if (!port.current) return false;
+    setBusy(true);
+    setError(null);
+    try {
+      await port.current.claimName(name);
+      setStanding(await port.current.board());
+      return true;
+    } catch (cause) {
+      setError(asError(cause));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const proveUntangle = useCallback(
+    async (creature: number, xs: bigint[], ys: bigint[]): Promise<boolean> => {
+      if (!port.current) return false;
+      setBusy(true);
+      setError(null);
+      try {
+        await port.current.proveUntangle(creature, xs, ys);
+        setStanding(await port.current.board());
+        return true;
+      } catch (cause) {
+        setError(asError(cause));
+        return false;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [],
+  );
 
   /**
    * What is waiting behind a gift link. Loads the wallet module but connects nothing:
@@ -287,6 +347,11 @@ export function useWallet() {
     enterWeek,
     collectWeek,
     tipsSupported,
+    boardSupported,
+    standing,
+    loadBoard,
+    claimName,
+    proveUntangle,
     loadTip,
     sendTip,
     openTip,

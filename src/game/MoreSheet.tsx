@@ -7,7 +7,14 @@ import { useGame } from "~/game/store";
  * honest rows for the two screens that do not exist yet. Reduce motion is not here: it
  * follows the system setting, which is where people have already said what they want.
  */
-export function MoreSheet({ onClose }: { onClose: () => void }) {
+export function MoreSheet({
+  onClose,
+  onBoard,
+}: {
+  onClose: () => void;
+  /** Absent when no board is deployed, and then there is no row for it. */
+  onBoard?: () => void;
+}) {
   const theme = useGame((s) => s.theme);
   const setTheme = useGame((s) => s.setTheme);
   const sound = useGame((s) => s.sound);
@@ -121,6 +128,31 @@ export function MoreSheet({ onClose }: { onClose: () => void }) {
             />
           </span>
         </button>
+
+        {onBoard && (
+          <button
+            type="button"
+            onClick={onBoard}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "100%",
+              minHeight: 56,
+              padding: "0 4px",
+              border: "none",
+              background: "transparent",
+              color: "var(--ink)",
+              fontSize: 17,
+              cursor: "pointer",
+            }}
+          >
+            <span>The Board</span>
+            <span aria-hidden="true" style={{ color: "var(--ink2)" }}>
+              ›
+            </span>
+          </button>
+        )}
 
         <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0 }}>
           {["Journal", "Shop"].map((item) => (

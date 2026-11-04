@@ -42,6 +42,12 @@ export interface SentTip {
   at: number;
 }
 
+/** A drawing as the player left it, in the integers the contracts read. */
+export interface Drawing {
+  xs: string[];
+  ys: string[];
+}
+
 interface GameState {
   /** False until IndexedDB has been read. The pond must not flash empty before then. */
   hydrated: boolean;
@@ -67,13 +73,22 @@ interface GameState {
   weeklyProof: { week: string; xs: string[]; ys: string[] } | null;
   /** Gift links with money behind them, newest first, until they are opened or taken back. */
   sentTips: SentTip[];
+  /**
+   * The last drawing this player made of each creature, by creature id.
+   *
+   * Kept so that putting a creature on the board sends the shape they actually drew. The
+   * contract would take any untangled drawing, including the creature's true one straight
+   * out of the repository — so this is not about passing the check. It is about the record
+   * being theirs.
+   */
+  proofs: Record<string, Drawing>;
   theme: ThemeId;
   sound: boolean;
   /** When today's Daily Snarl was freed, for "you freed it at 08:14". */
   lastDailyAt: number | null;
 
   openDay: (today?: string) => void;
-  recordFreed: (creature: Creature, moves: number) => void;
+  recordFreed: (creature: Creature, moves: number, drawing?: Drawing) => void;
   /** A creature someone else freed and sent on. No shell: it was not this player's solve. */
   receiveGift: (creature: Creature, from?: string) => void;
   completeTutorialStep: () => void;
@@ -130,6 +145,7 @@ export const useGame = create<GameState>()(
       weeklyEarnedWeek: null,
       weeklyProof: null,
       sentTips: [],
+      proofs: {},
       theme: "night",
       sound: true,
 
@@ -141,8 +157,9 @@ export const useGame = create<GameState>()(
           moon: moonAfterGap(s.moon, s.lastDailyDay, today),
         })),
 
-      recordFreed: (creature, moves) =>
+      recordFreed: (creature, moves, drawing) =>
         setState((s) => ({
+          ...(drawing ? { proofs: { ...s.proofs, [creature.id]: drawing } } : {}),
           freed: s.freed.concat({
             id: creature.id,
             key: `${creature.id}-${s.freed.length}-${Date.now()}`,
@@ -226,6 +243,7 @@ export const useGame = create<GameState>()(
           weeklyWeek: null,
           weeklyEarnedWeek: null,
           weeklyProof: null,
+          proofs: {},
           // `sentTips` survives on purpose. It is the only key to money somebody put up
           // and nobody has taken yet, and that is not progress to be cleared.
         });
