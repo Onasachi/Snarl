@@ -38,16 +38,10 @@ const config: HardhatUserConfig = {
   },
   // A forked test reaches out over the network for every slot it touches.
   mocha: { timeout: process.env.FORK ? 300_000 : 20_000 },
-  etherscan: {
-    apiKey: { celo: process.env.CELOSCAN_API_KEY ?? "" },
-    customChains: [
-      {
-        network: "celo",
-        chainId: 42220,
-        urls: { apiURL: "https://api.celoscan.io/api", browserURL: "https://celoscan.io" },
-      },
-    ],
-  },
+  // Etherscan's V2 API, one key for every chain it covers, Celo included. The old
+  // per-chain V1 endpoints are retired and answer with a deprecation notice rather than
+  // a verification.
+  etherscan: { apiKey: process.env.ETHERSCAN_API_KEY ?? process.env.CELOSCAN_API_KEY ?? "" },
 };
 
 export default config;

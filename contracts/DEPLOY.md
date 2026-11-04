@@ -12,6 +12,34 @@ with each one being absent.
   can only add creatures to the roster: never change one, never remove one, never touch
   a score.
 
+## Deployed
+
+| contract | address | owner |
+|---|---|---|
+| `SnarlGifts` | [`0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B`](https://celoscan.io/address/0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B) | none, ever |
+| `SnarlNames` | — | none, ever |
+| `SnarlBoard` | — | |
+| `SnarlWeekly` | — | |
+
+Check any of them back against this repository at any time — read-only, no key:
+
+```
+GIFTS=0x… NAMES=0x… BOARD=0x… WEEKLY=0x… pnpm hardhat run scripts/check-live.ts --network celo
+```
+
+It compares the deployed runtime bytecode against what this source compiles to, with the
+constructor's immutables written into their slots, so a match means the code on chain is
+this code — regardless of whether a block explorer has caught up. It also re-derives the
+gift digest from the live contract and checks it against the client's, which is the one
+disagreement that would make every gift ever sent unclaimable.
+
+Verifying the source on Celoscan is separate and needs an Etherscan API key — one key
+covers every chain through their V2 API, Celo included:
+
+```
+ETHERSCAN_API_KEY=… pnpm hardhat verify --network celo 0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B 0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A
+```
+
 ## You do not need the multisig first
 
 The two contracts that hold an owner are `Ownable2Step`, so ownership moves later without

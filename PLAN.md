@@ -555,8 +555,24 @@ is capped at `balance − locked`, `sweep` only ever moves G$ between weeks, and
 by an entrant is the single path out toward a person — but it can grief, by pausing
 entries so a week splits among fewer people, or opening junk weeks.
 
-Not done: the deploys themselves, which need a funded key that is not mine to supply. And
-nothing here has ever been signed by a wallet a person actually controls.
+**`SnarlGifts` is live on Celo**, at `0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B`, with no
+owner and nothing to hand over. Checked back against this repository rather than taken on
+trust: `scripts/check-live.ts` rebuilds the runtime bytecode from this source, writes the
+constructor's immutable into the slot the compiler left for it, and compares — byte for
+byte, metadata hash included. It also asks the live contract for a gift digest and checks
+it against the client's own, since that is the one disagreement nobody would discover
+until the money was already escrowed. Then the browser made the same read the game makes:
+link, to key, to address, to the contract, which answered "nothing behind this one".
+
+Two things that needed fixing along the way. The bytecode check first reported a mismatch
+that was its own fault — Hardhat's artifacts do not carry `immutableReferences`, so the
+immutable slots were compared against zeros; they come from the build info instead. And
+`hardhat verify` was pointed at Celoscan's V1 endpoint, which is retired and answers with
+a deprecation notice rather than a verification; one Etherscan V2 key covers every chain.
+
+Not done: the other three deploys, which need a funded key that is not mine to supply, and
+Celoscan verification, which needs an API key that is not either. Nothing here has ever
+been signed by a wallet a person actually controls.
 
 ## 4. Decisions worth making now
 
