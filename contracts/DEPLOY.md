@@ -19,7 +19,7 @@ with each one being absent.
 | `SnarlGifts` | [`0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B`](https://celoscan.io/address/0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B) | none, ever |
 | `SnarlNames` | [`0x608e899633239d46055838BB267Bbf13b067975b`](https://celoscan.io/address/0x608e899633239d46055838BB267Bbf13b067975b) | none, ever |
 | `SnarlBoard` | [`0xa0478a7fAE7917D42B0D99E0f3a307cfe9C01342`](https://celoscan.io/address/0xa0478a7fAE7917D42B0D99E0f3a307cfe9C01342) | the deployer, for now |
-| `SnarlWeekly` | — | |
+| `SnarlWeekly` | [`0x4B901584C3AdD752a1bc25415D2a1997A7701612`](https://celoscan.io/address/0x4B901584C3AdD752a1bc25415D2a1997A7701612) | the deployer, for now |
 
 Check any of them back against this repository at any time — read-only, no key:
 
