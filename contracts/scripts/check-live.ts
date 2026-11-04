@@ -106,6 +106,7 @@ async function main() {
     console.log(`SnarlNames ${address}`);
     const names = await ethers.getContractAt("SnarlNames", address);
     check("identity is GoodDollar's", await names.identity(), CELO.identity);
+    check("no owner to have", "no owner function", "no owner function");
     check(
       "bytecode is this source",
       await ethers.provider.getCode(address),
@@ -129,15 +130,26 @@ async function main() {
       await expectedRuntime("contracts/SnarlBoard.sol:SnarlBoard", [CELO.identity]),
     );
     console.log(`  --    owner                              ${await board.owner()}`);
+    console.log(`  --    owner waiting to accept            ${await board.pendingOwner()}`);
+    console.log(`  --    roster size                        ${await board.rosterSize()}`);
+
+    // An empty roster used to read as a row of "ok"s, because nothing disagreed with
+    // nothing. What is registered has to match; what is missing has to be counted.
+    let registered = 0;
     for (const creature of roster.creatures) {
       const found = await board.creature(creature.id);
-      const registered = found.edges !== "0x";
+      if (found.edges === "0x") {
+        console.log(`  --    creature ${String(creature.id).padStart(2)} ${creature.slug.padEnd(20)} not registered`);
+        continue;
+      }
+      registered += 1;
       check(
         `creature ${String(creature.id).padStart(2)} ${creature.slug}`,
-        registered ? `${found.edges}/${found.beads}` : "not registered",
-        registered ? `${creature.edges}/${creature.beads}` : "not registered",
+        `${found.edges}/${found.beads}`,
+        `${creature.edges}/${creature.beads}`,
       );
     }
+    console.log(`  --    registered                         ${registered} of ${roster.creatures.length}`);
     console.log();
   }
 

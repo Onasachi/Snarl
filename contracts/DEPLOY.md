@@ -17,8 +17,8 @@ with each one being absent.
 | contract | address | owner |
 |---|---|---|
 | `SnarlGifts` | [`0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B`](https://celoscan.io/address/0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B) | none, ever |
-| `SnarlNames` | — | none, ever |
-| `SnarlBoard` | — | |
+| `SnarlNames` | [`0x608e899633239d46055838BB267Bbf13b067975b`](https://celoscan.io/address/0x608e899633239d46055838BB267Bbf13b067975b) | none, ever |
+| `SnarlBoard` | [`0xa0478a7fAE7917D42B0D99E0f3a307cfe9C01342`](https://celoscan.io/address/0xa0478a7fAE7917D42B0D99E0f3a307cfe9C01342) | the deployer, for now |
 | `SnarlWeekly` | — | |
 
 Check any of them back against this repository at any time — read-only, no key:
