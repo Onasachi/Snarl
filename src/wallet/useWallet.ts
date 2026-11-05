@@ -22,12 +22,36 @@ const RESUME_KEY = "snarl.wallet.resume";
 /** Set while the player is away at the face check, so they come back where they left. */
 const RETURNING_KEY = "snarl.wallet.returning";
 
-const remember = (value: boolean) => {
+/**
+ * Which door was used, so a reload comes back through the same one.
+ *
+ * It matters more than it looks now that the game is gated: somebody who logged in with
+ * an email and then reloaded would be taken for a wallet user, found not to have one,
+ * and left outside a door they had already come through.
+ */
+const remember = (walletId?: string) => {
   try {
-    if (value) sessionStorage.setItem(RESUME_KEY, "1");
-    else sessionStorage.removeItem(RESUME_KEY);
+    sessionStorage.setItem(RESUME_KEY, walletId ?? "1");
   } catch {
     // Storage blocked: the player connects again, which is a small cost.
+  }
+};
+
+const forget = () => {
+  try {
+    sessionStorage.removeItem(RESUME_KEY);
+  } catch {
+    // Nothing to forget if nothing could be stored.
+  }
+};
+
+/** The door to come back through, or undefined for "whatever the browser has". */
+const rememberedWallet = (): string | undefined => {
+  try {
+    const stored = sessionStorage.getItem(RESUME_KEY);
+    return stored && stored !== "1" ? stored : undefined;
+  } catch {
+    return undefined;
   }
 };
 
@@ -119,14 +143,14 @@ export function useWallet() {
         setBoardSupported(wallet.boardSupported);
         const connected = await wallet.connect(walletId);
         setAccount(connected);
-        remember(true);
+        remember(walletId);
         setStatus(await wallet.getClaimStatus());
       } catch (cause) {
         // Resuming is something this session decided to try, not something the player
         // just asked for. Failing at it quietly is better than greeting them with an
         // error about a wallet they never opened.
         if (!silent) setError(asError(cause));
-        else remember(false);
+        else forget();
       } finally {
         setBusy(false);
       }
@@ -367,7 +391,7 @@ export function useWallet() {
     setError(null);
     try {
       const link = await port.current.verificationLink(window.location.href);
-      remember(true);
+      remember(rememberedWallet());
       try {
         sessionStorage.setItem(RETURNING_KEY, "1");
       } catch {
@@ -404,7 +428,7 @@ export function useWallet() {
         url.searchParams.delete("demo-verified");
         window.history.replaceState({}, "", url);
       }
-      await connect({ silent: true });
+      await connect({ silent: true, walletId: rememberedWallet() });
     })();
   }, [account, connect]);
 
