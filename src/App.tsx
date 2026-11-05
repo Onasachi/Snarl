@@ -22,6 +22,7 @@ import { GiftReceived } from "~/game/screens/GiftReceived";
 import { GiftScreen } from "~/game/screens/GiftScreen";
 import { GreatUntangle } from "~/game/screens/GreatUntangle";
 import { PondScreen } from "~/game/screens/PondScreen";
+import { ProfileScreen } from "~/game/screens/ProfileScreen";
 import { PuzzleScreen } from "~/game/screens/PuzzleScreen";
 import { SplashScreen } from "~/game/screens/SplashScreen";
 import { useGame } from "~/game/store";
@@ -33,7 +34,7 @@ import { WEEKLY_CREATURE, weekId, weekKey, weeklySeed } from "~/game/weekly";
 import { claimCardState, formatAmount, type TipStatus } from "~/wallet";
 import { returningFromVerification, useWallet } from "~/wallet/useWallet";
 
-type Screen = "splash" | "puzzle" | "pond" | "gift" | "untangle" | "board" | "weeks";
+type Screen = "splash" | "puzzle" | "pond" | "gift" | "untangle" | "board" | "weeks" | "you";
 /** Ordinary progress through World 1, today's rare knot, or a pass at the week's. */
 type Mode = "progress" | "daily" | "weekly";
 
@@ -390,6 +391,10 @@ export function App() {
     if (screen === "weeks") void wallet.loadAdmin();
   }, [screen, wallet.loadAdmin]);
 
+  useEffect(() => {
+    if (screen === "you") void wallet.loadBoard();
+  }, [screen, wallet.loadBoard]);
+
   const putOnBoard = useCallback(
     async (slug: string) => {
       const id = chainIdOf(slug);
@@ -496,7 +501,7 @@ export function App() {
           onOpenDaily={openDaily}
           onGift={() => setScreen("gift")}
           onUntangle={() => setScreen("untangle")}
-          onMore={() => setMoreSheet(true)}
+          onMore={() => setScreen(wallet.account ? "you" : "pond")}
           {...(wallet.account ? { accountLabel: shortAddress(wallet.account.address) } : {})}
           claim={{
             state: claimState,
@@ -575,6 +580,32 @@ export function App() {
           busy={wallet.busy}
           onStart={() => void wallet.verify()}
           onClose={() => setVerifySheet(false)}
+        />
+      )}
+
+      {screen === "you" && wallet.account && (
+        <ProfileScreen
+          account={wallet.account}
+          status={wallet.status}
+          standing={wallet.standing}
+          busy={wallet.busy}
+          onBack={() => setScreen("pond")}
+          onCopy={() => {
+            void navigator.clipboard
+              ?.writeText(wallet.account?.address ?? "")
+              .then(() => toast.show("Address copied."))
+              .catch(() => toast.show("Could not copy. It is on screen."));
+          }}
+          onSignOut={() => {
+            void wallet.disconnect().then(() => {
+              setScreen("splash");
+              toast.show("Signed out.");
+            });
+          }}
+          onBoard={() => setScreen("board")}
+          onSettings={() => setMoreSheet(true)}
+          onClaimName={wallet.claimName}
+          onToast={toast.show}
         />
       )}
 

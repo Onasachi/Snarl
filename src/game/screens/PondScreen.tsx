@@ -11,6 +11,7 @@ import { type FreedCreature, useGame } from "~/game/store";
 import { endsLabel } from "~/game/weekly";
 import { useReducedMotion } from "~/hooks/useReducedMotion";
 import { CreatureSvg } from "~/render/CreatureSvg";
+import { Icon } from "~/render/Icon";
 import type { ClaimCardState, ClaimStatus } from "~/wallet";
 
 /** Ten places to be, spread so nothing important overlaps. Beyond ten, creatures share. */
@@ -105,12 +106,16 @@ export function PondScreen({
         <Moon moon={moon} onTap={moonTap} />
         <div style={{ display: "flex", gap: 6 }}>
           <HeaderButton onClick={onGift} muted={false}>
+            <Icon name="gift" size={16} />
             Gift
           </HeaderButton>
           {/* Who you are, where you can see it. The game asks for a login before it
               will start, so "which account am I in?" should not be a question answered
               three taps deep under a theme picker. */}
-          <HeaderButton onClick={onMore}>{accountLabel ?? "More"}</HeaderButton>
+          <HeaderButton onClick={onMore}>
+            <Icon name="person" size={16} />
+            {accountLabel ?? "More"}
+          </HeaderButton>
         </div>
       </header>
 
@@ -259,7 +264,7 @@ function HeaderButton({
   onClick,
   muted = true,
 }: {
-  children: string;
+  children: ReactNode;
   onClick: () => void;
   muted?: boolean;
 }) {
@@ -268,6 +273,9 @@ function HeaderButton({
       type="button"
       onClick={onClick}
       style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
         minHeight: 44,
         padding: "0 14px",
         border: "1px solid var(--card-line)",

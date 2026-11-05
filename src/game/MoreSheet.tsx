@@ -1,11 +1,17 @@
 import { audio } from "~/audio";
 import type { ThemeId } from "~/data";
 import { useGame } from "~/game/store";
+import { Icon } from "~/render/Icon";
 
 /**
- * The settings the design's prototype exposed as developer props — theme and sound — plus
- * honest rows for the two screens that do not exist yet. Reduce motion is not here: it
- * follows the system setting, which is where people have already said what they want.
+ * Theme and sound, which the design's prototype exposed as developer props.
+ *
+ * It used to carry rows for a Journal and a Shop marked "Not built yet". Honest, and
+ * still a dead end every time somebody tapped them — a menu should not advertise what it
+ * cannot do. They are gone; when either exists it can have a row back.
+ *
+ * Reduce motion is not here: it follows the system setting, which is where people have
+ * already said what they want.
  */
 /** Who is signed in, and the way back out. */
 export interface MoreAccount {
@@ -222,10 +228,11 @@ export function MoreSheet({
               cursor: "pointer",
             }}
           >
-            <span>The Board</span>
-            <span aria-hidden="true" style={{ color: "var(--ink2)" }}>
-              ›
+            <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Icon name="board" />
+              The Board
             </span>
+            <Icon name="chevron" size={16} style={{ color: "var(--ink2)" }} />
           </button>
         )}
 
@@ -247,32 +254,13 @@ export function MoreSheet({
               cursor: "pointer",
             }}
           >
-            <span>Weeks</span>
-            <span aria-hidden="true" style={{ color: "var(--ink2)" }}>
-              ›
+            <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Icon name="knot" />
+              Weeks
             </span>
+            <Icon name="chevron" size={16} style={{ color: "var(--ink2)" }} />
           </button>
         )}
-
-        <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0 }}>
-          {["Journal", "Shop"].map((item) => (
-            <li
-              key={item}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                minHeight: 52,
-                color: "var(--ink2)",
-                fontSize: 17,
-                padding: "0 4px",
-              }}
-            >
-              <span>{item}</span>
-              <span style={{ fontSize: 13 }}>Not built yet</span>
-            </li>
-          ))}
-        </ul>
 
         <button
           type="button"
