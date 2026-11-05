@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { audio, buzz, HAPTIC } from "~/audio";
-import { creatureById } from "~/data";
+import { CREATURES, creatureById } from "~/data";
 import type { Creature, MoveKind } from "~/engine";
+import { ActivityTile } from "~/game/ActivityTile";
 import { ClaimCard } from "~/game/ClaimCard";
-import { DailyCard } from "~/game/DailyCard";
 import { Moon } from "~/game/Moon";
 import { MOON_PHASES } from "~/game/progress";
 import { type FreedCreature, useGame } from "~/game/store";
@@ -14,19 +14,36 @@ import { CreatureSvg } from "~/render/CreatureSvg";
 import { Icon } from "~/render/Icon";
 import type { ClaimCardState, ClaimStatus } from "~/wallet";
 
-/** Ten places to be, spread so nothing important overlaps. Beyond ten, creatures share. */
+/**
+ * Ten places to be, in the order they fill.
+ *
+ * Ordered, not just spread: the first creature takes the middle of the pond and the next
+ * few balance around it, so a pond with one creature in it looks like a pond with a
+ * creature in it rather than a blank panel with something parked in the corner. Beyond
+ * ten, creatures share.
+ */
 const SLOTS: readonly (readonly [number, number])[] = [
-  [26, 22],
-  [70, 16],
-  [50, 46],
-  [22, 66],
-  [76, 60],
-  [48, 82],
-  [84, 38],
-  [14, 42],
-  [62, 72],
-  [36, 30],
+  [50, 44],
+  [28, 28],
+  [72, 58],
+  [70, 20],
+  [24, 64],
+  [50, 76],
+  [84, 40],
+  [14, 44],
+  [62, 70],
+  [36, 32],
 ];
+
+/**
+ * How much bigger everything is when the pond is nearly empty.
+ *
+ * The creatures are the best thing here and the reward for everything else, so they
+ * should not be small just because there are not many yet. They shrink back as the pond
+ * fills and the space is genuinely needed.
+ */
+const roominessFor = (count: number): number =>
+  count <= 2 ? 1.55 : count <= 4 ? 1.3 : count <= 6 ? 1.15 : 1;
 
 /** Each creature idles the way its own body would. */
 const IDLE: Record<MoveKind, readonly [string, number]> = {
@@ -75,6 +92,12 @@ export function PondScreen({
 }) {
   const reduce = useReducedMotion();
   const freed = useGame((s) => s.freed);
+
+  /** How much of World 1 is in the pond, counting each creature once. */
+  const worldFreed = useMemo(() => {
+    const kinds = new Set(freed.map((entry) => entry.id));
+    return CREATURES.filter((creature) => kinds.has(creature.id)).length;
+  }, [freed]);
   const moon = useGame((s) => s.moon);
   const [reacted, setReacted] = useState<Record<string, number>>({});
 
@@ -119,7 +142,7 @@ export function PondScreen({
         </div>
       </header>
 
-      <main style={{ flex: 1, position: "relative", background: "var(--water)", minHeight: 0 }}>
+      <main className="sn-water" style={{ flex: 1, minHeight: 0 }}>
         {freed.length === 0 ? (
           <EmptyPond onPlay={onPlay} />
         ) : (
@@ -127,7 +150,9 @@ export function PondScreen({
             const creature = creatureById(entry.id);
             if (!creature) return null;
             const slot = SLOTS[k % SLOTS.length]!;
-            const size = Math.round(62 + creature.nodes.length * 1.6);
+            const size = Math.round(
+              (62 + creature.nodes.length * 1.6) * roominessFor(freed.length),
+            );
             const [idleName, idleSeconds] = IDLE[creature.move];
             const reactedAt = reacted[entry.key];
 
@@ -201,29 +226,22 @@ export function PondScreen({
       >
         {toast}
 
-        <button
-          type="button"
-          onClick={onUntangle}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            width: "100%",
-            minHeight: 44,
-            padding: "0 16px",
-            border: "1px solid var(--card-line)",
-            borderRadius: 999,
-            background: "transparent",
-            color: "var(--ink)",
-            fontSize: 15,
-            cursor: "pointer",
-          }}
-        >
-          <span>The Great Untangle</span>
-          <span style={{ color: "var(--ink2)", fontSize: 13 }}>{endsLabel()} ›</span>
-        </button>
-        <DailyCard solved={dailySolved} subtitle={dailySubtitle} onOpen={onOpenDaily} />
+        {/* Two places to go, side by side, rather than two more bars across the screen. */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <ActivityTile
+            icon="knot"
+            label="Great Untangle"
+            status={endsLabel()}
+            onClick={onUntangle}
+          />
+          <ActivityTile
+            icon="moon"
+            label="Daily Snarl"
+            status={dailySolved ? (dailySubtitle ?? "Freed today") : "A rare Snarl, once a day"}
+            tone={dailySolved ? "done" : "plain"}
+            onClick={onOpenDaily}
+          />
+        </div>
 
         <ClaimCard
           state={claim.state}
@@ -236,23 +254,60 @@ export function PondScreen({
         {/* An empty pond already offers "Free your first Snarl"; two buttons for one
             action is one too many. */}
         {freed.length > 0 && (
-          <button
-            type="button"
-            onClick={onPlay}
-            style={{
-              width: "100%",
-              minHeight: 52,
-              border: "none",
-              borderRadius: 16,
-              background: "var(--ink)",
-              color: "var(--bg)",
-              fontSize: 18,
-              fontWeight: 500,
-              cursor: "pointer",
-            }}
-          >
-            Play · World 1
-          </button>
+          <>
+            {/* Somewhere to be going. A pond fills, and until now nothing said how full. */}
+            <div style={{ display: "grid", gap: 5 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 12,
+                  color: "var(--ink2)",
+                }}
+              >
+                <span style={{ letterSpacing: "0.08em", textTransform: "uppercase" }}>World 1</span>
+                <span className="tnum">
+                  {worldFreed} of {CREATURES.length}
+                </span>
+              </div>
+              <div
+                style={{
+                  height: 4,
+                  borderRadius: 999,
+                  background: "var(--card-line)",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    width: `${Math.round((worldFreed / CREATURES.length) * 100)}%`,
+                    height: "100%",
+                    borderRadius: 999,
+                    background: "var(--ink)",
+                    transition: "width .6s cubic-bezier(.2,.8,.2,1)",
+                  }}
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onPlay}
+              style={{
+                width: "100%",
+                minHeight: 52,
+                border: "none",
+                borderRadius: 16,
+                background: "var(--ink)",
+                color: "var(--bg)",
+                fontSize: 18,
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              Play · World 1
+            </button>
+          </>
         )}
       </footer>
     </>

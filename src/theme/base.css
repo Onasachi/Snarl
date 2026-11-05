@@ -314,3 +314,71 @@ button {
     animation: none !important;
   }
 }
+
+/**
+ * The pond.
+ *
+ * A flat fill read as a blank panel with creatures parked on it. Two layers fix that
+ * without drawing anything: light coming in from the surface above, and the faintest
+ * banding drifting across, so the water has a top and a direction. Both are very low
+ * contrast on purpose — this is behind the creatures, not beside them.
+ */
+.sn-water {
+  position: relative;
+  overflow: hidden;
+  background: var(--water);
+}
+
+.sn-water::before,
+.sn-water::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Light from the surface, falling off with depth. */
+.sn-water::before {
+  background: radial-gradient(120% 70% at 50% -10%, rgb(255 255 255 / 7%), transparent 70%);
+}
+
+/* Banding, drifting. Wide and weak enough to read as movement rather than stripes. */
+.sn-water::after {
+  /* Soft stops, not hard ones: a hard edge reads as a stripe, a gradual one as water. */
+  background: repeating-linear-gradient(
+    102deg,
+    transparent 0,
+    rgb(255 255 255 / 1.8%) 46px,
+    transparent 92px
+  );
+  animation: sn-drift 38s linear infinite;
+}
+
+[data-theme="paper"] .sn-water::before {
+  background: radial-gradient(120% 70% at 50% -10%, rgb(255 255 255 / 55%), transparent 70%);
+}
+
+[data-theme="paper"] .sn-water::after {
+  background: repeating-linear-gradient(
+    102deg,
+    transparent 0,
+    rgb(120 100 70 / 3%) 46px,
+    transparent 92px
+  );
+}
+
+@keyframes sn-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    /* One full band, so the loop has no seam. */
+    transform: translate3d(92px, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sn-water::after {
+    animation: none;
+  }
+}
