@@ -56,16 +56,16 @@ export async function connectSocially(): Promise<Eip1193Provider> {
     // and several hundred wallets of its own, which is a second, longer answer to a
     // question snarl has already asked with its own button — and a list of 414 wallets
     // is not a choice anybody wants to make. Wallets are the other button's business.
-    modalConfig: {
-      hideWalletDiscovery: true,
-      connectors: {
-        // Named explicitly and kept: switching the other two off without saying what to
-        // keep left a window with nothing in it but a close button.
-        auth: { label: "auth", showOnModal: true },
-        metamask: { label: "metamask", showOnModal: false },
-        "wallet-connect-v2": { label: "wallet-connect-v2", showOnModal: false },
-      },
-    },
+    //
+    // No `modalConfig`. Trimming the window from here is not supported in any form that
+    // works: naming some connectors makes the SDK dereference the ones left out, and
+    // `hideWalletDiscovery` on its own makes it dereference the connector map that is
+    // not there. Both throw inside an event handler during `init`, so the window still
+    // opens and the login still succeeds and then there is no provider at the end of it
+    // — a green tick followed by being put straight back outside the door.
+    //
+    // Which login methods and wallets the window offers belongs in Web3Auth's own
+    // dashboard, where it is a setting rather than a guess at an undocumented shape.
     chains: [
       {
         chainNamespace: CHAIN_NAMESPACES.EIP155,

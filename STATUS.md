@@ -116,6 +116,14 @@ Celo is pinned in `src/wallet/social.ts`, not left to the dashboard: the SDK use
 chains it is given, so the wallet is on Celo whatever the dashboard says. The window draws
 in the game's own theme rather than arriving white over a dark pond.
 
+**Do not try to trim the Web3Auth window from code.** `modalConfig` is a trap: naming
+some connectors makes the SDK dereference the ones left out, and `hideWalletDiscovery`
+on its own makes it dereference a connector map that is not there. Both throw *inside an
+event handler* during `init`, so nothing looks wrong — the window opens, the login
+succeeds, and then there is no provider at the end of it. A green tick, and then straight
+back to the door. Which login methods and wallets the window offers is a setting in
+Web3Auth's dashboard; set it there.
+
 **On localhost the console says `[hCaptcha] Warning: localhost detected`.** The window
 still opens, but a sign-in may not complete there — test that part on a real host. Note
 too that Web3Auth's own window offers MetaMask and several hundred other wallets, so with
