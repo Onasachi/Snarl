@@ -83,10 +83,19 @@ export async function connectSocially(): Promise<Eip1193Provider> {
     defaultChainId: "0xa4ec",
   });
   await web3auth.init();
-  await web3auth.connect();
 
-  const provider = web3auth.provider as Eip1193Provider | null;
-  if (!provider) throw new Error("rejected");
+  // The provider comes back on the connection, not off the instance.
+  //
+  // `Web3Auth.provider` exists in v11 as a *setter with no getter*, so reading it is
+  // always `undefined` — which is a login that visibly succeeds, a green tick, and then
+  // nothing to connect with. The type says `set provider(_: IProvider | null)` and
+  // nothing else; the returned `Connection` is what carries `ethereumProvider`.
+  const connection = await web3auth.connect();
+  if (!connection) throw new Error("rejected");
+
+  const provider = connection.ethereumProvider as Eip1193Provider | null;
+  if (!provider) throw new Error("no EVM provider came back from the login");
+
   opened = provider;
   return provider;
 }

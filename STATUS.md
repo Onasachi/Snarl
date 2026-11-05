@@ -116,6 +116,10 @@ Celo is pinned in `src/wallet/social.ts`, not left to the dashboard: the SDK use
 chains it is given, so the wallet is on Celo whatever the dashboard says. The window draws
 in the game's own theme rather than arriving white over a dark pond.
 
+**`web3auth.provider` is a setter with no getter in v11.** Reading it gives `undefined`
+forever, which looks exactly like a login that worked and then produced nothing. The
+provider is on the `Connection` that `connect()` returns, as `ethereumProvider`.
+
 **Do not try to trim the Web3Auth window from code.** `modalConfig` is a trap: naming
 some connectors makes the SDK dereference the ones left out, and `hideWalletDiscovery`
 on its own makes it dereference a connector map that is not there. Both throw *inside an
