@@ -7,12 +7,25 @@ import { useGame } from "~/game/store";
  * honest rows for the two screens that do not exist yet. Reduce motion is not here: it
  * follows the system setting, which is where people have already said what they want.
  */
+/** Who is signed in, and the way back out. */
+export interface MoreAccount {
+  address: string;
+  /** "MiniPay", "your wallet" — whatever we can honestly call it. */
+  label: string;
+  busy: boolean;
+  onCopy: () => void;
+  onSignOut: () => void;
+}
+
 export function MoreSheet({
   onClose,
   onBoard,
   onWeeks,
+  account,
 }: {
   onClose: () => void;
+  /** Absent only when nothing is connected, which the gate makes rare. */
+  account?: MoreAccount;
   /** Absent when no board is deployed, and then there is no row for it. */
   onBoard?: () => void;
   /** Only present for somebody who asked for it with `?weeks`. */
@@ -86,6 +99,65 @@ export function MoreSheet({
             ))}
           </div>
         </fieldset>
+
+        {account && (
+          <div
+            style={{
+              display: "grid",
+              gap: 8,
+              padding: "12px 14px",
+              marginBottom: 4,
+              border: "1px solid var(--card-line)",
+              borderRadius: 16,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 12,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--ink2)",
+              }}
+            >
+              Signed in with {account.label}
+            </span>
+            <button
+              type="button"
+              onClick={account.onCopy}
+              title="Copy your address"
+              style={{
+                padding: 0,
+                border: "none",
+                background: "transparent",
+                color: "var(--ink)",
+                fontSize: 14,
+                textAlign: "left",
+                wordBreak: "break-all",
+                cursor: "pointer",
+              }}
+            >
+              {account.address}
+            </button>
+            <button
+              type="button"
+              onClick={account.onSignOut}
+              disabled={account.busy}
+              style={{
+                justifySelf: "start",
+                minHeight: 40,
+                padding: "0 14px",
+                border: "1px solid var(--card-line)",
+                borderRadius: 999,
+                background: "transparent",
+                color: "var(--ink2)",
+                fontSize: 14,
+                cursor: account.busy ? "default" : "pointer",
+              }}
+            >
+              Sign out
+            </button>
+          </div>
+        )}
 
         <button
           type="button"

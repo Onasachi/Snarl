@@ -128,6 +128,13 @@ succeeds, and then there is no provider at the end of it. A green tick, and then
 back to the door. Which login methods and wallets the window offers is a setting in
 Web3Auth's dashboard; set it there.
 
+**`429 Too Many Requests` from `api-wallet.web3auth.io/v2/tokens` is not snarl.** It is
+Web3Auth's own wallet services polling token balances, on a timer we do not start and
+cannot see. It is noisy on the shared devnet project; a Sapphire Mainnet project with its
+own quota is the likely cure. Worth knowing the Chrome stack shows the request passing
+through `injected.js`, which is a wallet extension wrapping `fetch` — the same login has
+worked first time in Firefox, where nothing is in the way.
+
 **On localhost the console says `[hCaptcha] Warning: localhost detected`.** The window
 still opens, but a sign-in may not complete there — test that part on a real host. Note
 too that Web3Auth's own window offers MetaMask and several hundred other wallets, so with

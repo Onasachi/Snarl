@@ -163,6 +163,24 @@ export function useWallet() {
     [load],
   );
 
+  /** Ends the session here and wherever it came from, and forgets the door. */
+  const disconnect = useCallback(async () => {
+    setBusy(true);
+    try {
+      await port.current?.disconnect();
+    } catch {
+      // A session that will not close cleanly is still closed as far as this app goes.
+    } finally {
+      forget();
+      setAccount(null);
+      setStatus(null);
+      setWeek(null);
+      setStanding(null);
+      setAdmin(null);
+      setBusy(false);
+    }
+  }, []);
+
   const claim = useCallback(async (): Promise<bigint | null> => {
     if (!port.current) return null;
     setBusy(true);
@@ -445,6 +463,7 @@ export function useWallet() {
     available,
     week,
     connect,
+    disconnect,
     connectWithEmail,
     emailOffered: emailLoginOffered(),
     listWallets,

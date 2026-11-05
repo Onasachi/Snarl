@@ -130,6 +130,12 @@ export interface WalletPort {
   /** False when no board is deployed. The game then keeps score only for itself. */
   readonly boardSupported: boolean;
   connect(walletId?: string): Promise<WalletAccount>;
+  /**
+   * Ends the session: the game forgets who is here, and so does whatever let them in.
+   * Needed because the game is gated — somebody who came in as the wrong account would
+   * otherwise have no way back out.
+   */
+  disconnect(): Promise<void>;
   getClaimStatus(): Promise<ClaimStatus>;
   /** Claims the daily UBI. Returns what actually arrived. */
   claim(): Promise<{ amount: bigint }>;

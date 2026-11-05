@@ -124,6 +124,10 @@ export function createDemoWallet(): WalletPort {
       return { address: DEMO_ADDRESS, chainId: 42220, label: "the demo wallet", onCelo: true };
     },
 
+    async disconnect() {
+      await sleep(200);
+    },
+
     async getClaimStatus(): Promise<ClaimStatus> {
       await sleep(250);
       const verified = read(VERIFIED_KEY) === "yes";

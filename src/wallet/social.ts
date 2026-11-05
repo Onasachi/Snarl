@@ -29,6 +29,25 @@ export const socialLoginOffered = (): boolean => Boolean(CLIENT_ID);
 export const SOCIAL_ID = "snarl:social";
 
 let opened: Eip1193Provider | null = null;
+/** Kept so the session can be ended, not only begun. */
+let instance: { logout: () => Promise<void> } | null = null;
+
+/** True when the wallet in use came in through this door. */
+export const signedInSocially = (): boolean => opened !== null;
+
+/**
+ * Ends the Web3Auth session. Without this, signing out would clear the game's idea of
+ * who is here while Web3Auth quietly kept the same person logged in, and the next tap
+ * would let them back in without asking — which is not what signing out means.
+ */
+export async function signOutSocially(): Promise<void> {
+  try {
+    await instance?.logout();
+  } finally {
+    instance = null;
+    opened = null;
+  }
+}
 
 export async function connectSocially(): Promise<Eip1193Provider> {
   if (!CLIENT_ID) throw new Error("no-wallet");
@@ -97,5 +116,6 @@ export async function connectSocially(): Promise<Eip1193Provider> {
   if (!provider) throw new Error("no EVM provider came back from the login");
 
   opened = provider;
+  instance = web3auth;
   return provider;
 }

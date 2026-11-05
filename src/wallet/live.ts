@@ -35,7 +35,13 @@ import type {
   WeekStatus,
 } from "./port";
 import type { AnnouncedProvider, Eip1193Provider } from "./provider";
-import { connectSocially, SOCIAL_ID, socialLoginOffered } from "./social";
+import {
+  connectSocially,
+  SOCIAL_ID,
+  signedInSocially,
+  signOutSocially,
+  socialLoginOffered,
+} from "./social";
 
 /**
  * The Great Untangle's pool. Unset until it is deployed, and while it is unset the game
@@ -343,6 +349,16 @@ export function createLiveWallet(): WalletPort {
         label: found.isMiniPay ? "MiniPay" : "your wallet",
         onCelo,
       };
+    },
+
+    async disconnect() {
+      if (signedInSocially()) await signOutSocially();
+      provider = null;
+      address = null;
+      walletClient = null;
+      claimSdk = null;
+      identitySdk = null;
+      onCelo = false;
     },
 
     async getClaimStatus(): Promise<ClaimStatus> {

@@ -524,6 +524,29 @@ export function App() {
       {moreSheet && (
         <MoreSheet
           onClose={() => setMoreSheet(false)}
+          {...(wallet.account
+            ? {
+                account: {
+                  address: wallet.account.address,
+                  label: wallet.account.label,
+                  busy: wallet.busy,
+                  onCopy: () => {
+                    void navigator.clipboard
+                      ?.writeText(wallet.account?.address ?? "")
+                      .then(() => toast.show("Address copied."))
+                      .catch(() => toast.show("Could not copy. It is on screen."));
+                  },
+                  onSignOut: () => {
+                    void wallet.disconnect().then(() => {
+                      setMoreSheet(false);
+                      // The game is behind the door, so signing out means going back to it.
+                      setScreen("splash");
+                      toast.show("Signed out.");
+                    });
+                  },
+                },
+              }
+            : {})}
           {...(wallet.boardSupported
             ? {
                 onBoard: () => {
