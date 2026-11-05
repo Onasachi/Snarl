@@ -426,7 +426,19 @@ export function App() {
 
   return (
     <PhoneFrame>
-      {screen === "splash" && <SplashScreen onBegin={begin} enabled={hydrated} />}
+      {screen === "splash" && (
+        <SplashScreen
+          onBegin={begin}
+          enabled={hydrated}
+          gate={{
+            connected: wallet.account !== null,
+            busy: wallet.busy,
+            emailOffered: wallet.emailOffered,
+            onConnectWallet: () => void startConnect(),
+            onEmail: () => void wallet.connectWithEmail(),
+          }}
+        />
+      )}
 
       {screen === "puzzle" && (
         <PuzzleScreen
@@ -608,8 +620,18 @@ export function App() {
             const creature = giftedCreature(gift);
             if (creature) receiveGift(creature, gift.from);
             setGift(null);
-            setScreen("pond");
-            toast.show(creature ? `${creature.name} joined your pond.` : "Added to your pond.");
+            // The creature is kept either way — it is theirs from the moment they accept
+            // it, and it will be in the pond when they get there. But the pond is behind
+            // the door, and a gift link is not a way through it.
+            const connected = wallet.account !== null;
+            setScreen(connected ? "pond" : "splash");
+            toast.show(
+              connected
+                ? creature
+                  ? `${creature.name} joined your pond.`
+                  : "Added to your pond."
+                : `${creature?.name ?? "It"} is waiting in your pond. Come in and see.`,
+            );
           }}
           onDecline={() => setGift(null)}
           tip={{

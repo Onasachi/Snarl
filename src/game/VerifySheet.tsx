@@ -35,8 +35,9 @@ export function VerifySheet({
       >
         <h2 style={{ fontSize: 30, fontWeight: 600, margin: 0 }}>Claim free G$ every day</h2>
         <p style={{ fontSize: 17, lineHeight: 1.4, color: "var(--ink2)", margin: "12px 0 0" }}>
-          Snarl is free to play, with or without a wallet. Verify once that you are a real, unique
-          person and you can claim GoodDollar UBI here each day.
+          Verifying is not needed to play — your wallet is already enough for that. It is needed to
+          claim: once GoodDollar has seen that you are a real, unique person, the daily UBI is yours
+          here.
         </p>
 
         <ul style={{ margin: "18px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 10 }}>

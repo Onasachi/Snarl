@@ -14,12 +14,30 @@ const PAD = 12;
  * It is also where the audio context gets its first user gesture: nothing can make a
  * sound until Begin is pressed.
  */
+export interface SplashGate {
+  /** True once a wallet is open. Until then the game does not start. */
+  connected: boolean;
+  /** A connection is being made, or one is being resumed from a previous visit. */
+  busy: boolean;
+  /** False when no Web3Auth client id is configured, and then there is no email door. */
+  emailOffered: boolean;
+  onConnectWallet: () => void;
+  onEmail: () => void;
+}
+
 export function SplashScreen({
   onBegin,
   enabled = true,
+  gate,
 }: {
   onBegin: () => void;
   enabled?: boolean;
+  /**
+   * Who may come in. The splash is the door rather than a screen in front of a door:
+   * it is already the first thing, already says what snarl is, and a second screen
+   * saying the same thing with buttons on it would only be a wall.
+   */
+  gate: SplashGate;
 }) {
   const reduce = useReducedMotion();
   const [pos, setPos] = useState<Pt[]>(() => scramble(BUB, 0, PAD) ?? solvedLayout(BUB.nodes, PAD));
@@ -152,26 +170,61 @@ export function SplashScreen({
         Untangle a knot. Free a creature.
       </p>
 
-      <button
-        type="button"
-        onClick={begin}
+      <div
         style={{
+          display: "grid",
+          gap: 10,
+          width: "100%",
+          maxWidth: 300,
           marginTop: 28,
-          minWidth: 180,
-          minHeight: 52,
-          border: "none",
-          borderRadius: 16,
-          background: "var(--ink)",
-          color: "var(--bg)",
-          fontSize: 18,
-          fontWeight: 500,
-          cursor: "pointer",
           opacity: ready && enabled ? 1 : 0,
           transition: "opacity .6s ease",
         }}
       >
-        Begin
-      </button>
+        {gate.connected ? (
+          <button type="button" onClick={begin} style={filled}>
+            Begin
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={gate.onConnectWallet}
+              disabled={gate.busy}
+              style={{ ...filled, opacity: gate.busy ? 0.6 : 1 }}
+            >
+              {gate.busy ? "…" : "Connect wallet"}
+            </button>
+            {gate.emailOffered && (
+              <button type="button" onClick={gate.onEmail} disabled={gate.busy} style={outline}>
+                Log in with email
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
+
+const filled = {
+  minHeight: 52,
+  border: "none",
+  borderRadius: 16,
+  background: "var(--ink)",
+  color: "var(--bg)",
+  fontSize: 18,
+  fontWeight: 500,
+  cursor: "pointer",
+} as const;
+
+const outline = {
+  minHeight: 52,
+  border: "1px solid var(--card-line)",
+  borderRadius: 16,
+  background: "transparent",
+  color: "var(--ink)",
+  fontSize: 17,
+  fontWeight: 500,
+  cursor: "pointer",
+} as const;

@@ -7,9 +7,17 @@ Last updated: 2026-11-04.
 
 ## What snarl is
 
-A mobile web puzzle game. Untangle a knot, free a creature, grow a pond. It is a complete
-game with no wallet, no account and no chain — that is a deliberate constraint, not an
-oversight, and it should stay true. Everything below is optional on top.
+A mobile web puzzle game. Untangle a knot, free a creature, grow a pond.
+
+**It is gated: nobody plays without connecting.** The splash is the door, with two ways
+through — "Connect wallet" for whatever EVM wallet the browser has, and "Log in with
+email" for Web3Auth. This reverses an earlier decision that play should be free with or
+without a wallet, and it is worth knowing it was a decision rather than an accident: the
+cost is first-time players who bounce at the door, which is the usual cost of a gate.
+
+What is still *not* required is GoodDollar verification. A wallet is enough to play; the
+face check is only for claiming UBI, entering the weekly pool, taking a name, or putting
+a creature on the board.
 
 ## Live on Celo mainnet
 

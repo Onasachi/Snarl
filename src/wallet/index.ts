@@ -15,6 +15,10 @@ export type {
 } from "./port";
 export { claimCardState, formatAmount, formatG$ } from "./port";
 
+/** Whether the email door exists at all, answerable before the wallet module loads. */
+export const emailLoginOffered = (): boolean =>
+  wantsDemoWallet() || import.meta.env.VITE_WEB3AUTH_CLIENT_ID !== undefined;
+
 /** Development only, and only when asked for: ?wallet=demo. */
 export const wantsDemoWallet = (): boolean =>
   import.meta.env.DEV && new URLSearchParams(window.location.search).get("wallet") === "demo";

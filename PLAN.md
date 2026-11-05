@@ -739,6 +739,32 @@ Escape, because an intro nobody can escape is worse than none.
 letters of "snarl" settle into line behind it, each a beat after the last, and the mark
 takes one breath as the knot comes free. Off entirely under reduced motion.
 
+### Phase 17 — The door
+
+**The game is gated now.** Nobody plays without connecting, which reverses the decision
+taken two phases ago that play should be free with or without a wallet. Recorded as a
+reversal rather than quietly done: the cost is the first-time players who bounce at the
+door, and on the phones this audience has that is not a small number. GoodDollar
+verification is still *not* required — a wallet is enough to play, and the face check
+remains only for claiming, the pool, a name and the board.
+
+The splash is the door rather than a screen in front of one. It is already the first
+thing, already says what snarl is, and a second screen repeating that with buttons would
+only be a wall. Two buttons: **Connect wallet**, which takes whatever EVM wallet the
+browser has and only asks which when more than one answers; and **Log in with email**,
+which is Web3Auth under a plainer name.
+
+**Web3Auth's own window was the horrible list.** It offered Google and email, then
+MetaMask, then "Other wallets (414)" — a second and much longer answer to a question
+snarl had already asked with its own button. `hideWalletDiscovery` and switching off the
+`metamask` and `wallet-connect-v2` connectors left it showing nothing but a close button;
+it needed `auth` named explicitly as the one to keep. Now it is Google, X, Facebook, more,
+and Continue with Email/Phone, and nothing else.
+
+**A gift link is not a way through the door.** Accepting a gift while disconnected still
+keeps the creature — it is theirs from that moment and will be in the pond when they
+arrive — but it returns to the splash rather than the pond.
+
 Not done: opening the first week, which is what makes the pot reachable at all and is now
 two taps rather than a command; Celoscan verification, which needs an API key that is not
 mine; moving both owners to a multisig; and a dashboard over what the chain now records.

@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { boardAvailable, createWallet, walletAvailable, wantsDemoWallet } from "./index";
+import {
+  boardAvailable,
+  createWallet,
+  emailLoginOffered,
+  walletAvailable,
+  wantsDemoWallet,
+} from "./index";
 import type {
   AdminState,
   ClaimStatus,
@@ -9,6 +15,7 @@ import type {
   WalletPort,
   WeekStatus,
 } from "./port";
+import { SOCIAL_ID } from "./social";
 
 /** Set once the player has connected, so a reload or a verification trip can resume. */
 const RESUME_KEY = "snarl.wallet.resume";
@@ -216,6 +223,13 @@ export function useWallet() {
     [],
   );
 
+  /** The email door, which is Web3Auth under a plainer name. */
+  const connectWithEmail = useCallback(
+    () => connect({ walletId: SOCIAL_ID }),
+    // `connect` is stable; naming it here keeps the dependency honest.
+    [connect],
+  );
+
   const openWeek = useCallback((week: number) => runAdmin("openWeek", week), [runAdmin]);
   const settleWeek = useCallback((week: number) => runAdmin("settleWeek", week), [runAdmin]);
 
@@ -402,6 +416,8 @@ export function useWallet() {
     available,
     week,
     connect,
+    connectWithEmail,
+    emailOffered: emailLoginOffered(),
     listWallets,
     claim,
     verify,

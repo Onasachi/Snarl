@@ -52,6 +52,20 @@ export async function connectSocially(): Promise<Eip1193Provider> {
     clientId: CLIENT_ID,
     web3AuthNetwork: network,
     uiConfig: { mode: paper ? "light" : "dark" },
+    // Email and the social logins, and nothing else. Web3Auth's window offers MetaMask
+    // and several hundred wallets of its own, which is a second, longer answer to a
+    // question snarl has already asked with its own button — and a list of 414 wallets
+    // is not a choice anybody wants to make. Wallets are the other button's business.
+    modalConfig: {
+      hideWalletDiscovery: true,
+      connectors: {
+        // Named explicitly and kept: switching the other two off without saying what to
+        // keep left a window with nothing in it but a close button.
+        auth: { label: "auth", showOnModal: true },
+        metamask: { label: "metamask", showOnModal: false },
+        "wallet-connect-v2": { label: "wallet-connect-v2", showOnModal: false },
+      },
+    },
     chains: [
       {
         chainNamespace: CHAIN_NAMESPACES.EIP155,
