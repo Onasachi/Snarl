@@ -84,6 +84,11 @@ export const returningFromVerification = (): boolean => {
 export type WalletError = "no-wallet" | "wrong-chain" | "rejected" | "failed";
 
 const asError = (cause: unknown): WalletError => {
+  // The screen can only ever say one of four things, and "that did not go through" is a
+  // poor sentence to debug from — as a login that succeeded and then dropped its own
+  // provider proved. The real cause goes to the console, where it can be read.
+  console.error("[snarl wallet]", cause);
+
   const message = String((cause as { message?: string })?.message ?? cause);
   if (message.includes("no-wallet")) return "no-wallet";
   if (message.includes("wrong-chain")) return "wrong-chain";
