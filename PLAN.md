@@ -765,6 +765,39 @@ and Continue with Email/Phone, and nothing else.
 keeps the creature — it is theirs from that moment and will be in the pond when they
 arrive — but it returns to the splash rather than the pond.
 
+### Phase 18 — The pond, and a promise the game was not keeping
+
+**The full moon paid nothing.** Seven Daily Snarls filled it, tapping it said "a visitor
+is on the way", and no visitor was ever coming — there was no code anywhere that did
+anything at full moon. A week of turning up for a promise the game had no way of keeping,
+sitting in the middle of the only daily loop it has.
+
+It pays seven nudges now, and turns rather than sticking at full, so there is always a
+next one to work towards. Which also completes the economy: nudges are earned by turning
+up or bought by backing the week, and the streak is the way to get for free what G$
+otherwise buys. The test that asserted the moon never passes full now asserts that it
+turns — a deliberate change, written down as one.
+
+**The pond was a panel.** Four full-width bars stacked under a flat fill, with the
+creatures small and pushed into the corners. They take the middle now: slots fill from the
+centre out, and everything scales up by half again when there are only one or two,
+shrinking back as the pond fills. The water has light from the surface and the faintest
+banding drifting across — soft stops, because hard ones read as stripes rather than water.
+The week and the day are two tiles side by side instead of a pill and a wide card, and a
+thin bar above Play says how much of World 1 is in the pond.
+
+**The door said nothing about what was behind it.** It asks for a wallet before showing a
+single knot, so it now says what is being asked for: ten creatures and a pond, a rare one
+daily and a shared knot weekly, and the UBI if wanted and never needed. Three facts, not a
+pitch.
+
+**Icons, and no dead rows.** An icon set in the creatures' own hand — 24-unit box, 1.8
+strokes, round caps, `currentColor`, nothing filled. And the Journal and Shop rows marked
+"Not built yet" are gone: honest, and still a dead end every time somebody tapped them.
+
+**A profile**, reached from the header where the address now lives instead of the word
+"More". Who am I here and what have I done, which was scattered across three screens.
+
 Not done: opening the first week, which is what makes the pot reachable at all and is now
 two taps rather than a command; Celoscan verification, which needs an API key that is not
 mine; moving both owners to a multisig; and a dashboard over what the chain now records.

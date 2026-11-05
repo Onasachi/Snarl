@@ -27,6 +27,17 @@ export const nudgesForPot = (g$: number): number =>
 export const MOON_PHASES = 7;
 
 /**
+ * What a full moon is for.
+ *
+ * It used to be for nothing. The moon filled over seven Daily Snarls, said "a visitor is
+ * on the way", and no visitor ever came — a week of turning up for a promise the game
+ * had no way of keeping. Seven nudges is a real thing to be given: the same thing G$
+ * buys, so the streak is the way to earn what money otherwise gets you, and the one
+ * reason to come back tomorrow that pays out.
+ */
+export const MOON_REWARD_NUDGES = 7;
+
+/**
  * The tutorial is three knots, not two: Bub and Nib teach the drag, and the third is a
  * real World 1 creature so the first pond has something that was properly earned.
  */
@@ -62,7 +73,11 @@ export const moonAfterGap = (moon: number, lastDailyDay: string | null, today: s
   return Math.max(0, moon - 1);
 };
 
-export const grownMoon = (moon: number): number => Math.min(MOON_PHASES, moon + 1);
+/**
+ * The moon after another Daily Snarl. A full moon turns rather than sticking: the next
+ * solve starts the cycle again, so there is always a next one to work towards.
+ */
+export const grownMoon = (moon: number): number => (moon >= MOON_PHASES ? 1 : moon + 1);
 
 export const moonLabel = (moon: number): string => {
   if (moon >= MOON_PHASES) return "Full moon";

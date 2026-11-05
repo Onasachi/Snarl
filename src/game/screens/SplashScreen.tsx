@@ -1,10 +1,11 @@
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { audio } from "~/audio";
-import { TUTORIAL } from "~/data";
+import { CREATURES, TUTORIAL } from "~/data";
 import { crossings, type Pt, scramble, solvedLayout } from "~/engine";
 import { useReducedMotion } from "~/hooks/useReducedMotion";
 import { CreatureSvg } from "~/render/CreatureSvg";
+import { Icon } from "~/render/Icon";
 
 const BUB = TUTORIAL[0]!;
 const PAD = 12;
@@ -170,13 +171,50 @@ export function SplashScreen({
         Untangle a knot. Free a creature.
       </p>
 
+      {/* What is behind the door. It asks for a wallet before showing a single knot, so
+          it had better say what is being asked for — three plain facts, not a pitch. */}
+      {!gate.connected && (
+        <ul
+          style={{
+            display: "grid",
+            gap: 7,
+            margin: "18px 0 0",
+            padding: 0,
+            listStyle: "none",
+            ...(reduce ? {} : { animation: "sn-fade .8s ease-out 1.5s both" }),
+          }}
+        >
+          {[
+            ["knot", `${CREATURES.length} creatures to free, and a pond to keep them in`],
+            ["moon", "A rare one every day, and a knot the whole pond shares each week"],
+            ["coin", "GoodDollar's daily UBI, if you want it. Never needed to play"],
+          ].map(([icon, text]) => (
+            <li
+              key={text}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                fontSize: 14,
+                lineHeight: 1.35,
+                color: "var(--ink2)",
+                textAlign: "left",
+              }}
+            >
+              <Icon name={icon as "knot" | "moon" | "coin"} size={17} />
+              <span>{text}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
       <div
         style={{
           display: "grid",
           gap: 10,
           width: "100%",
           maxWidth: 300,
-          marginTop: 28,
+          marginTop: 22,
           opacity: ready && enabled ? 1 : 0,
           transition: "opacity .6s ease",
         }}

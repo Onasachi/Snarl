@@ -50,11 +50,18 @@ describe("the streak moon", () => {
     expect(moonAfterGap(4, "2026-09-01", "2026-11-02")).toBe(3);
   });
 
-  it("never goes below new moon, and never above full", () => {
+  it("never goes below new moon", () => {
     expect(moonAfterGap(0, "2026-09-01", "2026-11-02")).toBe(0);
     expect(moonAfterGap(1, "2026-09-01", "2026-11-02")).toBe(0);
-    expect(grownMoon(MOON_PHASES)).toBe(MOON_PHASES);
     expect(grownMoon(0)).toBe(1);
+  });
+
+  it("turns at full rather than sticking there", () => {
+    // A full moon pays out seven nudges, and then there has to be a next one to work
+    // towards. Sticking at full would mean a week of Dailies for nothing, which is what
+    // it used to do.
+    expect(grownMoon(MOON_PHASES - 1)).toBe(MOON_PHASES);
+    expect(grownMoon(MOON_PHASES)).toBe(1);
   });
 
   it("reads as a phase, not a number", () => {

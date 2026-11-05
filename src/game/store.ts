@@ -7,6 +7,8 @@ import type { Creature } from "~/engine";
 import {
   dayKey,
   grownMoon,
+  MOON_PHASES,
+  MOON_REWARD_NUDGES,
   moonAfterGap,
   NUDGES_PER_DAY,
   nudgesForDay,
@@ -209,11 +211,17 @@ export const useGame = create<GameState>()(
       addExtraNudges: (count) => setState((s) => ({ extraNudges: s.extraNudges + count })),
 
       recordDailySolved: (today = dayKey()) =>
-        setState((s) => ({
-          moon: grownMoon(s.moon),
-          lastDailyDay: today,
-          lastDailyAt: Date.now(),
-        })),
+        setState((s) => {
+          const moon = grownMoon(s.moon);
+          return {
+            moon,
+            lastDailyDay: today,
+            lastDailyAt: Date.now(),
+            // The payoff for seven days of turning up. Kept with the bought ones, which
+            // is where nudges that outlast a day live.
+            extraNudges: moon >= MOON_PHASES ? s.extraNudges + MOON_REWARD_NUDGES : s.extraNudges,
+          };
+        }),
 
       recordWeeklySolve: (week, creature, proof) =>
         setState((s) => {

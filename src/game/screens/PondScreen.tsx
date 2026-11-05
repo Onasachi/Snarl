@@ -6,7 +6,7 @@ import type { Creature, MoveKind } from "~/engine";
 import { ActivityTile } from "~/game/ActivityTile";
 import { ClaimCard } from "~/game/ClaimCard";
 import { Moon } from "~/game/Moon";
-import { MOON_PHASES } from "~/game/progress";
+import { MOON_PHASES, MOON_REWARD_NUDGES } from "~/game/progress";
 import { type FreedCreature, useGame } from "~/game/store";
 import { endsLabel } from "~/game/weekly";
 import { useReducedMotion } from "~/hooks/useReducedMotion";
@@ -111,8 +111,8 @@ export function PondScreen({
   const moonTap = () =>
     onToast(
       moon >= MOON_PHASES
-        ? "Full moon. A visitor is on the way."
-        : "Solve the Daily Snarl to grow the moon. Missing a day only dims it one phase.",
+        ? `Full moon — ${MOON_REWARD_NUDGES} nudges were yours. The next Daily starts it again.`
+        : `${MOON_PHASES - moon} more Daily Snarls for a full moon and ${MOON_REWARD_NUDGES} nudges. Missing a day only dims it one phase.`,
     );
 
   return (

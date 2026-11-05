@@ -22,7 +22,7 @@ const STEPS: readonly IntroStep[] = [
   },
   {
     title: "A knot a day",
-    body: "The Daily Snarl is one rare creature, the same one for everybody, and it grows your streak moon when you free it.",
+    body: "One rare creature a day, the same one for everybody. Each solve grows your streak moon, and a full moon is seven nudges.",
   },
   {
     title: "The Great Untangle",

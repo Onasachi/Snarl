@@ -11,6 +11,9 @@ import { PhoneFrame } from "~/game/PhoneFrame";
 import {
   creatureForPlay,
   dayKey,
+  grownMoon,
+  MOON_PHASES,
+  MOON_REWARD_NUDGES,
   nudgesForPot,
   playCaption,
   TUTORIAL_KNOTS,
@@ -102,6 +105,7 @@ export function App() {
   const lastDailyAt = useGame((s) => s.lastDailyAt);
   const recordFreed = useGame((s) => s.recordFreed);
   const proofs = useGame((s) => s.proofs);
+  const moon = useGame((s) => s.moon);
   const introSeen = useGame((s) => s.introSeen);
   const markIntroSeen = useGame((s) => s.markIntroSeen);
   const extraNudges = useGame((s) => s.extraNudges);
@@ -162,7 +166,17 @@ export function App() {
         recordDailySolved(today);
         void report(moves);
         toPond(false);
-        window.setTimeout(() => toast.show("Your moon grew a phase."), 900);
+        // Read before the solve is recorded, so it says what just happened.
+        const full = grownMoon(moon) >= MOON_PHASES;
+        window.setTimeout(
+          () =>
+            toast.show(
+              full
+                ? `Full moon. ${MOON_REWARD_NUDGES} nudges are yours.`
+                : "Your moon grew a phase.",
+            ),
+          900,
+        );
         return;
       }
 
