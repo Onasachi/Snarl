@@ -1,3 +1,4 @@
+import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { audio } from "~/audio";
 import { TUTORIAL } from "~/data";
@@ -86,7 +87,14 @@ export function SplashScreen({
         gap: 8,
       }}
     >
-      <div style={{ width: 150, height: 150 }}>
+      <div
+        className={freed && !reduce ? "sn-freed" : undefined}
+        style={{
+          width: 150,
+          height: 150,
+          animation: freed && !reduce ? "sn-freed .7s cubic-bezier(.3,.7,.3,1)" : undefined,
+        }}
+      >
         <CreatureSvg
           creature={BUB}
           pos={pos}
@@ -98,10 +106,49 @@ export function SplashScreen({
         />
       </div>
 
-      <h1 style={{ fontSize: 68, fontWeight: 600, letterSpacing: "-0.03em", margin: "8px 0 0" }}>
-        snarl
+      {/* The name comes undone with the knot: each letter starts loose and low and
+          settles into line, a beat after the one before it. */}
+      <h1
+        style={{
+          display: "flex",
+          fontSize: 68,
+          fontWeight: 600,
+          letterSpacing: "-0.03em",
+          margin: "8px 0 0",
+        }}
+      >
+        <span className="sr-only">snarl</span>
+        {"snarl".split("").map((letter, i) => (
+          <span
+            // The letters of a five-letter word, in a fixed order: the index is the
+            // identity here, and two of them are the same character.
+            key={`${letter}-${i}`}
+            aria-hidden="true"
+            style={
+              {
+                display: "inline-block",
+                ...(reduce
+                  ? {}
+                  : {
+                      "--sn-tilt": `${(i % 2 ? 1 : -1) * (4 + i)}deg`,
+                      animation: `sn-settle .5s cubic-bezier(.2,.9,.3,1) ${0.75 + i * 0.09}s both`,
+                    }),
+              } as React.CSSProperties
+            }
+          >
+            {letter}
+          </span>
+        ))}
       </h1>
-      <p style={{ fontSize: 19, color: "var(--ink2)", margin: 0, textAlign: "center" }}>
+      <p
+        style={{
+          fontSize: 19,
+          color: "var(--ink2)",
+          margin: 0,
+          textAlign: "center",
+          ...(reduce ? {} : { animation: "sn-fade .8s ease-out 1.3s both" }),
+        }}
+      >
         Untangle a knot. Free a creature.
       </p>
 

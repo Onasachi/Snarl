@@ -87,6 +87,18 @@ Useful URLs in development:
   flag just stops showing players buttons that would revert.
 - `#gift=…` — opening a gift link.
 
+## Social login
+
+Wired, off by default. `VITE_WEB3AUTH_CLIENT_ID` turns it on and it appears in the wallet
+sheet beside the detected wallets. Unset, none of it ships — the bundler proves the code
+unreachable and drops the SDK. Set, it is about **900 KB gzipped** against 173 KB for the
+whole game, loaded only when somebody chooses it. Celo must be enabled for the project in
+Web3Auth's dashboard.
+
+Signing in this way does not make somebody a verified person: GoodDollar's face check is
+tied to an address, and an address made by logging in with Google starts unverified like
+any other. It can go through that check — it is just an address.
+
 ## Diagnosing "it does not see my wallet"
 
 ```

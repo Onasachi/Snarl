@@ -5,6 +5,7 @@ import type { Pt } from "~/engine";
 import { solvedLayout, toChainPositions } from "~/engine";
 import { DAILY_CREATURE, dailySeed, isDailySolved } from "~/game/daily";
 import { giftedCreature, giftFromHash } from "~/game/gift";
+import { Intro } from "~/game/Intro";
 import { MoreSheet } from "~/game/MoreSheet";
 import { PhoneFrame } from "~/game/PhoneFrame";
 import {
@@ -97,6 +98,8 @@ export function App() {
   const lastDailyAt = useGame((s) => s.lastDailyAt);
   const recordFreed = useGame((s) => s.recordFreed);
   const proofs = useGame((s) => s.proofs);
+  const introSeen = useGame((s) => s.introSeen);
+  const markIntroSeen = useGame((s) => s.markIntroSeen);
   const extraNudges = useGame((s) => s.extraNudges);
   const addExtraNudges = useGame((s) => s.addExtraNudges);
   const completeTutorialStep = useGame((s) => s.completeTutorialStep);
@@ -499,6 +502,11 @@ export function App() {
           }}
           onClose={() => setWallets([])}
         />
+      )}
+
+      {/* Once, on the first pond, and never while a gift or another sheet is up. */}
+      {screen === "pond" && hydrated && !introSeen && !gift && !moreSheet && !verifySheet && (
+        <Intro onDone={markIntroSeen} />
       )}
 
       {moreSheet && (

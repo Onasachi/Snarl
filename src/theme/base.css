@@ -276,3 +276,41 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+/**
+ * The title settling, one letter at a time, as the knot comes undone. Each letter starts
+ * loose and low — tangled, in the same sense the creature is — and drops into line.
+ *
+ * `both` so a letter holds its starting state during its delay rather than appearing and
+ * then jumping, which is what makes it read as settling rather than flickering.
+ */
+@keyframes sn-settle {
+  from {
+    opacity: 0;
+    transform: translateY(0.22em) rotate(var(--sn-tilt, -6deg));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+/** One soft breath outward the moment a creature comes free. */
+@keyframes sn-freed {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sn-settle,
+  .sn-freed {
+    animation: none !important;
+  }
+}

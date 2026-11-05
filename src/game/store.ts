@@ -77,6 +77,8 @@ interface GameState {
    * bigints by the time they reach the chain.
    */
   weeklyProof: { week: string; xs: string[]; ys: string[] } | null;
+  /** False until the first look at the pond has been explained. Shown once, ever. */
+  introSeen: boolean;
   /** Gift links with money behind them, newest first, until they are opened or taken back. */
   sentTips: SentTip[];
   /**
@@ -112,6 +114,7 @@ interface GameState {
     creature: Creature,
     proof: { xs: string[]; ys: string[] },
   ) => void;
+  markIntroSeen: () => void;
   recordSentTip: (tip: SentTip) => void;
   /** Once a gift is opened or taken back, there is nothing left to remember. */
   forgetSentTip: (key: string) => void;
@@ -153,6 +156,7 @@ export const useGame = create<GameState>()(
       weeklyWeek: null,
       weeklyEarnedWeek: null,
       weeklyProof: null,
+      introSeen: false,
       sentTips: [],
       proofs: {},
       theme: "night",
@@ -231,6 +235,8 @@ export const useGame = create<GameState>()(
           };
         }),
 
+      markIntroSeen: () => setState({ introSeen: true }),
+
       recordSentTip: (tip) => setState((s) => ({ sentTips: [tip, ...s.sentTips] })),
 
       forgetSentTip: (key) =>
@@ -260,6 +266,7 @@ export const useGame = create<GameState>()(
           weeklyEarnedWeek: null,
           weeklyProof: null,
           proofs: {},
+          introSeen: false,
           // `sentTips` survives on purpose. It is the only key to money somebody put up
           // and nobody has taken yet, and that is not progress to be cleared.
         });

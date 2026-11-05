@@ -53,6 +53,8 @@ export async function createWallet(): Promise<WalletPort> {
 export async function walletAvailable(): Promise<boolean> {
   if (wantsDemoWallet()) return true;
   const { findProvider, announcedProviders } = await import("./live");
+  const { socialLoginOffered } = await import("./social");
+  if (socialLoginOffered()) return true;
   if (findProvider() !== null) return true;
   return (await announcedProviders()).length > 0;
 }

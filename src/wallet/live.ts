@@ -34,6 +34,8 @@ import type {
   WalletPort,
   WeekStatus,
 } from "./port";
+import type { AnnouncedProvider, Eip1193Provider } from "./provider";
+import { connectSocially, SOCIAL_ID, socialLoginOffered } from "./social";
 
 /**
  * The Great Untangle's pool. Unset until it is deployed, and while it is unset the game
@@ -94,17 +96,6 @@ const CELO_PARAMS = {
 
 /** What the identity registry returns for someone it has no record of. */
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-
-interface Eip1193Provider {
-  request(args: { method: string; params?: unknown[] }): Promise<unknown>;
-  isMiniPay?: boolean;
-}
-
-/** What a wallet announces about itself under EIP-6963. */
-interface AnnouncedProvider {
-  info: { uuid: string; name: string; rdns: string };
-  provider: Eip1193Provider;
-}
 
 /** EIP-1193 says 4001 is the user declining and 4902 is a chain the wallet has never heard of. */
 const errorCode = (cause: unknown): number | undefined => {
@@ -211,13 +202,18 @@ const announced = new Map<string, Eip1193Provider>();
  * let in first, which is how Connect ended up opening a Solana wallet.
  */
 export async function listWallets(): Promise<{ id: string; name: string }[]> {
+  // Inside MiniPay there is nothing to choose and no door worth offering.
   if (findProvider()?.isMiniPay) return [];
 
   const found = await announcedProviders();
   announced.clear();
   for (const entry of found) announced.set(entry.info.uuid, entry.provider);
 
-  return found.length > 1 ? found.map((e) => ({ id: e.info.uuid, name: e.info.name })) : [];
+  const wallets = found.map((e) => ({ id: e.info.uuid, name: e.info.name }));
+  if (socialLoginOffered()) wallets.push({ id: SOCIAL_ID, name: "Sign in with Google or email" });
+
+  // One wallet and no other way in is not a choice; connecting just connects.
+  return wallets.length > 1 ? wallets : [];
 }
 
 /**
@@ -229,10 +225,13 @@ export async function listWallets(): Promise<{ id: string; name: string }[]> {
 export async function chooseProvider(id?: string): Promise<Eip1193Provider | null> {
   const injected = findProvider();
   if (injected?.isMiniPay) return injected;
+  if (id === SOCIAL_ID) return connectSocially();
   if (id) return announced.get(id) ?? null;
 
   const found = await announcedProviders();
   if (found.length === 1) return found[0]?.provider ?? injected;
+  // Nothing injected and nothing announced, but a way in that needs no wallet at all.
+  if (!injected && found.length === 0 && socialLoginOffered()) return connectSocially();
   return injected;
 }
 

@@ -697,6 +697,48 @@ the order of the remaining work, the traps that are not guessable from the code,
 commands. `PLAN.md` is the reasoning and `DEPLOY.md` the runbook; STATUS is what somebody
 arriving cold should read first.
 
+### Phase 16 — The way in
+
+**Connect was opening Phantom**, and that was a rule I wrote rather than a quirk: with
+several wallets announced I picked "whichever has already authorised an account for this
+site", which in practice is whichever extension the browser let in first, and it can be a
+wallet for another chain entirely. There is no rule that gets this right. The choice is
+the player's — a sheet, shown only when more than one wallet answers, never inside MiniPay
+where there is nothing to choose.
+
+Two more of the same family came out with it. `walletAvailable` only looked at
+`window.ethereum`, so a browser whose wallets announce under EIP-6963 without injecting
+was told it had none. And that check runs once at page load, so a wallet installed or
+announced afterwards could never be found: the claim card now always offers Connect and
+lets the attempt be the answer, rather than deciding in advance that somebody has no
+wallet. Three different ways to tell a person with a wallet that they have none.
+
+**Social login is wired and off.** Web3Auth, behind `VITE_WEB3AUTH_CLIENT_ID`, appearing
+in the same sheet beside the detected wallets. Unset, not one byte of it ships — the code
+after the "no client id" check is unreachable and the bundler drops the whole SDK, which
+is worth knowing because set it costs **about 900 KB gzipped against 173 KB for the entire
+game**. All of it lazy, none of it on the first load, but it is five times the game for
+anyone who takes that door, and this audience is on cheap phones. The decision belongs to
+whoever turns the variable on, with that number in front of them.
+
+It is an entrance, not a second system: Web3Auth hands back an ordinary EIP-1193 wallet
+and everything downstream carries on not knowing where it came from. What it does not do
+is make somebody verified — GoodDollar's face check is tied to an address, and one made by
+logging in with Google starts unverified like any other.
+
+**Play stays free.** Asked whether a login should come before the game, the answer was no,
+which is the same answer every screen here already assumed.
+
+**A first look at the pond, once.** Four cards: what the pond is, the Daily Snarl, the
+Great Untangle, and that the UBI is there if wanted and never needed. Not tooltips pinned
+to elements — a pond is a different shape on every phone and the creatures drift, so an
+arrow would be pointing somewhere else a second later. Skippable on the first tap and on
+Escape, because an intro nobody can escape is worse than none.
+
+**The splash says its own name.** Bub already untied itself while you watched; now the
+letters of "snarl" settle into line behind it, each a beat after the last, and the mark
+takes one breath as the knot comes free. Off entirely under reduced motion.
+
 Not done: opening the first week, which is what makes the pot reachable at all and is now
 two taps rather than a command; Celoscan verification, which needs an API key that is not
 mine; moving both owners to a multisig; and a dashboard over what the chain now records.
