@@ -1,0 +1,84 @@
+name: Mirror to GitLab
+
+"on":
+  push:
+  create:
+  delete:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Each run reads the current GitHub refs, so queued runs cannot restore stale refs.
+concurrency:
+  group: mirror-to-gitlab
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    if: github.repository == 'Onasachi/Snarl'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Sync GitHub branches and tags to GitLab
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+          GITHUB_REPOSITORY_URL: https://github.com/Onasachi/Snarl.git
+          GITLAB_REPOSITORY_URL: https://gitlab.com/Otaiki1/snarl.git
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GITLAB_TOKEN:-}" ]]; then
+            echo "::error::Add the GITLAB_TOKEN repository secret with GitLab write_repository access."
+            exit 1
+          fi
+
+          mirror_dir=$(mktemp -d "$RUNNER_TEMP/gitlab-mirror.XXXXXX")
+          trap 'rm -rf "$mirror_dir"' EXIT
+          credentials="$mirror_dir/credentials.sh"
+
+          # Git reads tokens from the environment through this temporary helper.
+          # Credentials are returned only for the two expected HTTPS hosts.
+          cat > "$credentials" <<'HELPER'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          [[ "${1:-}" == get ]] || exit 0
+          protocol=""
+          host=""
+          while IFS= read -r field && [[ -n "$field" ]]; do
+            case "$field" in
+              protocol=*) protocol="${field#protocol=}" ;;
+              host=*) host="${field#host=}" ;;
+            esac
+          done
+          [[ "$protocol" == https ]] || exit 0
+          case "$host" in
+            github.com)
+              printf 'username=x-access-token\npassword=%s\n' "$GITHUB_TOKEN"
+              ;;
+            gitlab.com)
+              printf 'username=Otaiki1\npassword=%s\n' "$GITLAB_TOKEN"
+              ;;
+          esac
+          HELPER
+          chmod 700 "$credentials"
+
+          git_with_auth() {
+            git -c credential.helper= -c "credential.helper=$credentials" "$@"
+          }
+
+          git init --quiet --bare "$mirror_dir/repository.git"
+          git_with_auth -C "$mirror_dir/repository.git" fetch --no-tags \
+            "$GITHUB_REPOSITORY_URL" \
+            '+refs/heads/*:refs/heads/*' \
+            '+refs/tags/*:refs/tags/*'
+
+          # GitHub is authoritative, including rewritten or deleted branches/tags.
+          # Explicit refspecs exclude GitHub pull-request and other internal refs.
+          git_with_auth -C "$mirror_dir/repository.git" push --atomic --prune \
+            "$GITLAB_REPOSITORY_URL" \
+            '+refs/heads/*:refs/heads/*' \
+            '+refs/tags/*:refs/tags/*'
