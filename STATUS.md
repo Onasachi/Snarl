@@ -92,8 +92,20 @@ Useful URLs in development:
 Wired, off by default. `VITE_WEB3AUTH_CLIENT_ID` turns it on and it appears in the wallet
 sheet beside the detected wallets. Unset, none of it ships — the bundler proves the code
 unreachable and drops the SDK. Set, it is about **900 KB gzipped** against 173 KB for the
-whole game, loaded only when somebody chooses it. Celo must be enabled for the project in
-Web3Auth's dashboard.
+whole game, loaded only when somebody chooses it.
+
+Setting it up:
+
+1. Make a project at `dashboard.web3auth.io`. Pick **Sapphire Mainnet** unless you are
+   testing, and set `VITE_WEB3AUTH_NETWORK=sapphire_devnet` if you pick Devnet — a client
+   id from one network does not work against the other, and that is the usual cause of a
+   login window that opens and then fails.
+2. **Whitelist every origin the app is served from**, `http://localhost:5273` included.
+   Web3Auth refuses origins it has not been told about.
+3. Put the id in `.env` as `VITE_WEB3AUTH_CLIENT_ID`.
+
+Celo is pinned in `src/wallet/social.ts`, not left to the dashboard: the SDK uses only the
+chains it is given, so the wallet is on Celo whatever the dashboard says.
 
 Signing in this way does not make somebody a verified person: GoodDollar's face check is
 tied to an address, and an address made by logging in with Google starts unverified like

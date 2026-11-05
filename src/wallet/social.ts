@@ -13,8 +13,12 @@ import type { Eip1193Provider } from "./provider";
  * is the easy half.
  *
  * Unset `VITE_WEB3AUTH_CLIENT_ID` and the option is simply not offered, the same way an
- * undeployed contract leaves its screen alone. The chains a project allows are configured
- * in Web3Auth's own dashboard rather than here, so that dashboard has to have Celo on it.
+ * undeployed contract leaves its screen alone.
+ *
+ * Celo is pinned here rather than left to the Web3Auth dashboard. The SDK takes the chains
+ * it is given and uses only those, so saying it in code means the wallet this makes is on
+ * the right chain whatever a dashboard somewhere does or does not have switched on — one
+ * fewer setting to get wrong in a place this repository cannot see.
  */
 const CLIENT_ID = import.meta.env.VITE_WEB3AUTH_CLIENT_ID as string | undefined;
 const NETWORK = (import.meta.env.VITE_WEB3AUTH_NETWORK as string | undefined) ?? "sapphire_mainnet";
@@ -32,11 +36,31 @@ export async function connectSocially(): Promise<Eip1193Provider> {
 
   // Imported here and nowhere else: it is a large dependency and most people will never
   // take this door, so they should not pay for it in the bundle they download to play.
-  const { Web3Auth } = await import("@web3auth/modal");
+  const { Web3Auth, CHAIN_NAMESPACES, WEB3AUTH_NETWORK } = await import("@web3auth/modal");
+
+  const network =
+    NETWORK === "sapphire_devnet"
+      ? WEB3AUTH_NETWORK.SAPPHIRE_DEVNET
+      : WEB3AUTH_NETWORK.SAPPHIRE_MAINNET;
 
   const web3auth = new Web3Auth({
     clientId: CLIENT_ID,
-    web3AuthNetwork: NETWORK as never,
+    web3AuthNetwork: network,
+    chains: [
+      {
+        chainNamespace: CHAIN_NAMESPACES.EIP155,
+        chainId: "0xa4ec",
+        rpcTarget: "https://forno.celo.org",
+        displayName: "Celo",
+        blockExplorerUrl: "https://celoscan.io",
+        ticker: "CELO",
+        tickerName: "Celo",
+        // Required, and served from this app rather than from somebody else's CDN: the
+        // login window should not have to reach a third party to draw an icon.
+        logo: new URL("icons/icon-192.png", window.location.origin + import.meta.env.BASE_URL).href,
+      },
+    ],
+    defaultChainId: "0xa4ec",
   });
   await web3auth.init();
   await web3auth.connect();
