@@ -12,11 +12,13 @@ export function NameCard({
   chips,
   actionLabel,
   onAction,
+  onPond,
 }: {
   creature: Creature;
   chips: readonly string[];
   actionLabel: string;
   onAction: () => void;
+  onPond?: (() => void) | undefined;
 }) {
   const themeId = useThemeId();
   return (
@@ -95,8 +97,8 @@ export function NameCard({
           marginTop: 20,
           border: "none",
           borderRadius: 16,
-          background: "var(--ink)",
-          color: "var(--bg)",
+          background: "var(--accent)",
+          color: "var(--on-accent)",
           fontSize: 18,
           fontWeight: 500,
           cursor: "pointer",
@@ -104,6 +106,16 @@ export function NameCard({
       >
         {actionLabel}
       </button>
+      {onPond && (
+        <button
+          type="button"
+          className="sn-link"
+          style={{ width: "100%", marginTop: 8 }}
+          onClick={onPond}
+        >
+          Keep it & visit the pond
+        </button>
+      )}
     </div>
   );
 }

@@ -53,6 +53,11 @@ export interface Drawing {
 interface GameState {
   /** False until IndexedDB has been read. The pond must not flash empty before then. */
   hydrated: boolean;
+  pondPalette: number;
+  unlockedPalettes: number[];
+  completedTrails: string[];
+  setPondPalette: (palette: number) => void;
+  completeTrail: (key: string, palette: number) => void;
   freed: FreedCreature[];
   /** How far through the three-knot tutorial. 3 means done. */
   tutorialStep: number;
@@ -61,13 +66,14 @@ interface GameState {
   nudges: number;
   nudgeDay: string | null;
   /**
-   * Nudges bought by putting G$ in a week's pot. Kept apart from the daily three because
-   * they are not a daily allowance: they do not expire at midnight, and the free three
-   * come back tomorrow whether or not these are spent.
+   * Nudges earned from the moon or bought by putting G$ in a week's pot. These do not
+   * expire at midnight; the free three return whether or not these are spent.
    */
   extraNudges: number;
   moon: number;
   lastDailyDay: string | null;
+  /** The last solve whose subsequent gap has already dimmed the moon. */
+  moonDimmedFor: string | null;
   /** Passes contributed to this week's Great Untangle, and the week they belong to. */
   weeklySolves: number;
   weeklyWeek: string | null;
@@ -102,11 +108,12 @@ interface GameState {
   /** A creature someone else freed and sent on. No shell: it was not this player's solve. */
   receiveGift: (creature: Creature, from?: string) => void;
   completeTutorialStep: () => void;
-  advancePlay: () => void;
+  advancePlay: (nextIndex?: number) => void;
   spendNudge: () => void;
   /** Credited after G$ has actually reached the pool, never before. */
   addExtraNudges: (count: number) => void;
-  recordDailySolved: (today?: string) => void;
+  /** Returns bonus nudges earned, or null when this day was already recorded. */
+  recordDailySolved: (today?: string) => number | null;
   /**
    * Adds a pass at the week's knot, and the first pass of a week puts its creature in the
    * pond. Further passes still count; they just do not hand out a second one.
@@ -145,6 +152,17 @@ export const useGame = create<GameState>()(
   persist(
     (setState, getState) => ({
       hydrated: false,
+      pondPalette: 0,
+      unlockedPalettes: [0],
+      completedTrails: [],
+      setPondPalette: (palette) =>
+        setState((s) => (s.unlockedPalettes.includes(palette) ? { pondPalette: palette } : {})),
+      completeTrail: (key, palette) =>
+        setState((s) => ({
+          completedTrails: [...new Set([...s.completedTrails, key])],
+          unlockedPalettes: [...new Set([...s.unlockedPalettes, palette])],
+          pondPalette: palette,
+        })),
       freed: [],
       tutorialStep: 0,
       playIndex: 1,
@@ -153,6 +171,7 @@ export const useGame = create<GameState>()(
       extraNudges: 0,
       moon: 0,
       lastDailyDay: null,
+      moonDimmedFor: null,
       lastDailyAt: null,
       weeklySolves: 0,
       weeklyWeek: null,
@@ -166,11 +185,18 @@ export const useGame = create<GameState>()(
 
       /** Run once on load, and whenever the app comes back to a new day. */
       openDay: (today = dayKey()) =>
-        setState((s) => ({
-          nudges: nudgesForDay(s.nudgeDay, today, s.nudges),
-          nudgeDay: today,
-          moon: moonAfterGap(s.moon, s.lastDailyDay, today),
-        })),
+        setState((s) => {
+          const moon =
+            s.moonDimmedFor === s.lastDailyDay
+              ? s.moon
+              : moonAfterGap(s.moon, s.lastDailyDay, today);
+          return {
+            nudges: nudgesForDay(s.nudgeDay, today, s.nudges),
+            nudgeDay: today,
+            moon,
+            moonDimmedFor: moon < s.moon ? s.lastDailyDay : s.moonDimmedFor,
+          };
+        }),
 
       recordFreed: (creature, moves, drawing) =>
         setState((s) => ({
@@ -200,7 +226,7 @@ export const useGame = create<GameState>()(
       completeTutorialStep: () =>
         setState((s) => ({ tutorialStep: Math.min(TUTORIAL_KNOTS.length, s.tutorialStep + 1) })),
 
-      advancePlay: () => setState((s) => ({ playIndex: s.playIndex + 1 })),
+      advancePlay: (nextIndex) => setState((s) => ({ playIndex: nextIndex ?? s.playIndex + 1 })),
 
       // The day's free ones first. Something bought should still be there tomorrow.
       spendNudge: () =>
@@ -210,18 +236,25 @@ export const useGame = create<GameState>()(
 
       addExtraNudges: (count) => setState((s) => ({ extraNudges: s.extraNudges + count })),
 
-      recordDailySolved: (today = dayKey()) =>
+      recordDailySolved: (today = dayKey()) => {
+        const { lastDailyDay } = getState();
+        if (lastDailyDay !== null && lastDailyDay >= today) return null;
+        getState().openDay(today);
+        let earned = 0;
         setState((s) => {
           const moon = grownMoon(s.moon);
+          earned = moon >= MOON_PHASES ? MOON_REWARD_NUDGES : 0;
           return {
             moon,
             lastDailyDay: today,
             lastDailyAt: Date.now(),
             // The payoff for seven days of turning up. Kept with the bought ones, which
             // is where nudges that outlast a day live.
-            extraNudges: moon >= MOON_PHASES ? s.extraNudges + MOON_REWARD_NUDGES : s.extraNudges,
+            extraNudges: s.extraNudges + earned,
           };
-        }),
+        });
+        return earned;
+      },
 
       recordWeeklySolve: (week, creature, proof) =>
         setState((s) => {
@@ -260,6 +293,9 @@ export const useGame = create<GameState>()(
       clearProgress: async () => {
         await del(KEY);
         setState({
+          pondPalette: 0,
+          unlockedPalettes: [0],
+          completedTrails: [],
           freed: [],
           tutorialStep: 0,
           playIndex: 1,
@@ -268,6 +304,7 @@ export const useGame = create<GameState>()(
           extraNudges: 0,
           moon: 0,
           lastDailyDay: null,
+          moonDimmedFor: null,
           lastDailyAt: null,
           weeklySolves: 0,
           weeklyWeek: null,

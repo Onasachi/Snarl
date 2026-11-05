@@ -1,5 +1,10 @@
 # Deploying snarl's contracts
 
+For the new **SnarlTrails marketplace**, follow
+[the mainnet deployment guide](../docs/MAINNET_DEPLOY.md). It uses a separate
+deployment script and the owner's selected 10% treasury. The instructions below
+cover the four existing game contracts.
+
 Four of them, independent of each other, all on Celo. Deploy any subset; the game copes
 with each one being absent.
 
@@ -16,12 +21,21 @@ with each one being absent.
 
 | contract | address | owner |
 |---|---|---|
+| `SnarlTrails` | [`0xF55E8f7330B89659c7B835eA1043657A45393bdA`](https://celoscan.io/address/0xF55E8f7330B89659c7B835eA1043657A45393bdA) | none, ever; immutable treasury `0xf6928F774B993588D76c30c380058Aa0A6c26684` |
 | `SnarlGifts` | [`0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B`](https://celoscan.io/address/0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B) | none, ever |
 | `SnarlNames` | [`0x608e899633239d46055838BB267Bbf13b067975b`](https://celoscan.io/address/0x608e899633239d46055838BB267Bbf13b067975b) | none, ever |
 | `SnarlBoard` | [`0xa0478a7fAE7917D42B0D99E0f3a307cfe9C01342`](https://celoscan.io/address/0xa0478a7fAE7917D42B0D99E0f3a307cfe9C01342) | the deployer, for now |
 | `SnarlWeekly` | [`0x4B901584C3AdD752a1bc25415D2a1997A7701612`](https://celoscan.io/address/0x4B901584C3AdD752a1bc25415D2a1997A7701612) | the deployer, for now |
 
 Check any of them back against this repository at any time — read-only, no key:
+
+For the newly deployed trail market:
+
+```sh
+env -u PRIVATE_KEY TRAILS=0xF55E8f7330B89659c7B835eA1043657A45393bdA TRAIL_TREASURY=0xf6928F774B993588D76c30c380058Aa0A6c26684 pnpm hardhat run scripts/check-live.ts --network celo
+```
+
+For the four earlier contracts:
 
 ```
 GIFTS=0x… NAMES=0x… BOARD=0x… WEEKLY=0x… pnpm hardhat run scripts/check-live.ts --network celo

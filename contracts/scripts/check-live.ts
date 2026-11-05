@@ -6,7 +6,7 @@ import roster from "../test/fixtures/roster.json";
 /**
  * Reads a deployed contract back and checks it is what we think it is.
  *
- *   GIFTS=0x… BOARD=0x… NAMES=0x… WEEKLY=0x… \
+ *   GIFTS=0x… BOARD=0x… NAMES=0x… WEEKLY=0x… TRAILS=0x… TRAIL_TREASURY=0x… \
  *     pnpm hardhat run scripts/check-live.ts --network celo
  *
  * Read-only: no key, no transactions. Every address is optional; it checks what it is
@@ -70,6 +70,32 @@ async function expectedRuntime(fullyQualified: string, values: string[]) {
 
 async function main() {
   console.log(`network ${network.name}\n`);
+
+  if (process.env.TRAILS) {
+    const address = process.env.TRAILS;
+    const treasury = process.env.TRAIL_TREASURY;
+    if (!treasury || !ethers.isAddress(treasury) || treasury === ethers.ZeroAddress) {
+      throw new Error("Set TRAIL_TREASURY to the intended recipient when checking TRAILS");
+    }
+    console.log(`SnarlTrails ${address}`);
+    check("chain is Celo", (await ethers.provider.getNetwork()).chainId, 42220);
+    const trails = await ethers.getContractAt("SnarlTrails", address);
+    const code = await ethers.provider.getCode(address);
+    check("has code", code !== "0x", true);
+    check("token is G$", await trails.token(), CELO.g$);
+    check("identity is GoodDollar's", await trails.identity(), CELO.identity);
+    check("treasury is intended recipient", await trails.treasury(), treasury);
+    check("fee is 10%", await trails.FEE_BPS(), 1000);
+    check(
+      "bytecode is this source",
+      code,
+      await expectedRuntime("contracts/SnarlTrails.sol:SnarlTrails", [CELO.g$, CELO.identity, treasury]),
+    );
+    console.log(`  --    trails published                   ${await trails.count()}`);
+    console.log(`  --    sales                              ${await trails.sales()}`);
+    console.log(`  --    volume                             ${ethers.formatEther(await trails.volume())} G$`);
+    console.log();
+  }
 
   if (process.env.GIFTS) {
     const address = process.env.GIFTS;

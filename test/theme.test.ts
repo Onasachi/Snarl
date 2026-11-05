@@ -57,15 +57,27 @@ const themes: ThemeId[] = ["night", "paper"];
 describe.each(themes)("the %s theme", (id) => {
   const t = THEMES[id];
 
-  it.each(["bg", "bg2", "water", "card"] as const)("reads body text on %s", (surface) => {
-    // `card` is translucent over the background, so the background is the honest test.
-    const behind = surface === "card" ? t.bg : t[surface];
-    expect(contrast(t.ink, behind)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(t.ink2, behind)).toBeGreaterThanOrEqual(4.5);
-  });
+  it.each(["bg", "bg2", "water", "card", "growthSurface", "discoverySurface"] as const)(
+    "reads body text on %s",
+    (surface) => {
+      // `card` is translucent over the background, so the background is the honest test.
+      const behind = surface === "card" ? t.bg : t[surface];
+      expect(contrast(t.ink, behind)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(t.ink2, behind)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
 
   it("reads the filled button's own text", () => {
     expect(contrast(t.bg, t.ink)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t.accent, t.onAccent)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t.accent, t.bg)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("reads coloured activity labels and progress", () => {
+    expect(contrast(t.accent, t.growthSurface)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t.accent2, t.discoverySurface)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t.accent, t.bg)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t.accent2, t.bg)).toBeGreaterThanOrEqual(4.5);
   });
 
   // The crossing counter is drawn in the warm accent at 44px/600 — large text, 3:1.

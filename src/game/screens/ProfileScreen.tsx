@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { nameIsValid } from "~/chain/snarlNames";
 import { MOON_PHASES, moonLabel } from "~/game/progress";
 import { useGame } from "~/game/store";
@@ -20,6 +20,8 @@ import { formatAmount } from "~/wallet";
 export interface ProfileProps {
   account: WalletAccount;
   status: ClaimStatus | null;
+  statusError: boolean;
+  onRefresh: () => void;
   standing: Standing | null;
   busy: boolean;
   onBack: () => void;
@@ -29,6 +31,7 @@ export interface ProfileProps {
   onSettings: () => void;
   onClaimName: (name: string) => Promise<boolean>;
   onToast: (message: string) => void;
+  toast?: ReactNode;
 }
 
 const short = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`;
@@ -36,6 +39,8 @@ const short = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)
 export function ProfileScreen({
   account,
   status,
+  statusError,
+  onRefresh,
   standing,
   busy,
   onBack,
@@ -45,6 +50,7 @@ export function ProfileScreen({
   onSettings,
   onClaimName,
   onToast,
+  toast,
 }: ProfileProps) {
   const freed = useGame((s) => s.freed);
   const moon = useGame((s) => s.moon);
@@ -121,6 +127,53 @@ export function ProfileScreen({
           </span>
         </div>
 
+        <section aria-label="Wallet address" style={{ marginBottom: 18 }}>
+          <span style={label}>Wallet address · Celo</span>
+          <p
+            style={{
+              fontSize: 14,
+              lineHeight: 1.5,
+              overflowWrap: "anywhere",
+              userSelect: "all",
+              margin: "5px 0 0",
+            }}
+          >
+            {account.address}
+          </p>
+        </section>
+
+        <section className="sn-notice" aria-label="Wallet connection status">
+          <strong>
+            {account.onCelo ? "Connected on Celo" : "Switch your wallet to Celo before signing"}
+          </strong>
+          <p>
+            {statusError
+              ? "Could not refresh GoodDollar verification. This is a connection error, not an unverified wallet."
+              : !status
+                ? "Checking GoodDollar verification…"
+                : status.verified
+                  ? "GoodDollar recognises this wallet as verified."
+                  : status.everVerified
+                    ? "GoodDollar verification has expired. Re-verify to publish or claim."
+                    : "This wallet is not currently verified in this GoodDollar registry."}
+          </p>
+          {status?.identityRoot && (
+            <p style={{ overflowWrap: "anywhere" }}>Identity root: {status.identityRoot}</p>
+          )}
+          {status?.identityRegistry && (
+            <a
+              className="sn-link"
+              href={`https://celoscan.io/address/${status.identityRegistry}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {status.environment} identity registry ↗
+            </a>
+          )}
+          <button type="button" className="sn-link" disabled={busy} onClick={onRefresh}>
+            Refresh verification & balance
+          </button>
+        </section>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <Stat
             label="Creatures"
@@ -132,7 +185,13 @@ export function ProfileScreen({
             label="G$"
             value={status ? formatAmount(status.balance, status.decimals) : "—"}
             note={
-              status?.verified ? "verified" : status?.everVerified ? "needs a look" : "not verified"
+              !status
+                ? "status unavailable"
+                : status.verified
+                  ? "verified"
+                  : status.everVerified
+                    ? "needs a look"
+                    : "not verified"
             }
           />
           <Stat
@@ -200,6 +259,7 @@ export function ProfileScreen({
           <Row icon="leave" label="Sign out" onClick={onSignOut} muted />
         </div>
       </main>
+      <div style={{ position: "absolute", bottom: 20, left: 20, right: 20 }}>{toast}</div>
     </>
   );
 }

@@ -4,6 +4,7 @@ import { NameCard } from "~/game/NameCard";
 import { ToolButton } from "~/game/Tools";
 import { type UsePuzzleOptions, usePuzzle } from "~/game/usePuzzle";
 import { CreatureSvg } from "~/render/CreatureSvg";
+import { Icon } from "~/render/Icon";
 
 export interface PuzzleScreenProps extends UsePuzzleOptions {
   /** "World 1 · 3", or "Tutorial · 1 of 2". */
@@ -21,6 +22,9 @@ export interface PuzzleScreenProps extends UsePuzzleOptions {
    * supplied for them.
    */
   onNext: (moves: number, pos: readonly Pt[]) => void;
+  /** Leave an unfinished knot; its starting layout can be tried again later. */
+  onBack?: () => void;
+  onPond?: ((moves: number, pos: readonly Pt[]) => void) | undefined;
   /** Draws attention to Nudge the first time it is available. */
   highlightNudge?: boolean;
   showNudge?: boolean;
@@ -41,6 +45,8 @@ export function PuzzleScreen({
   chips,
   nextLabel,
   onNext,
+  onPond,
+  onBack,
   highlightNudge = false,
   showNudge = true,
   almostFree = true,
@@ -64,9 +70,35 @@ export function PuzzleScreen({
   return (
     <>
       <header style={{ padding: "calc(16px + env(safe-area-inset-top)) 20px 0" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <div
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}
+        >
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={p.phase !== "play"}
+              aria-label="Leave puzzle"
+              title="Leave puzzle. This knot restarts when you return."
+              style={{
+                display: "grid",
+                placeItems: "center",
+                minWidth: 44,
+                minHeight: 44,
+                border: "1px solid var(--card-line)",
+                borderRadius: "50%",
+                background: "transparent",
+                color: "var(--ink2)",
+                cursor: "pointer",
+                opacity: p.phase === "play" ? 1 : 0.4,
+              }}
+            >
+              <Icon name="chevron" size={16} style={{ transform: "rotate(180deg)" }} />
+            </button>
+          )}
           <span
             style={{
+              flex: 1,
               fontSize: 12,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
@@ -208,6 +240,7 @@ export function PuzzleScreen({
           chips={shownChips}
           actionLabel={nextLabel}
           onAction={() => onNext(p.moves, p.pos)}
+          onPond={onPond ? () => onPond(p.moves, p.pos) : undefined}
         />
       )}
     </>

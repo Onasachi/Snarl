@@ -5,13 +5,17 @@ import { CREATURES, creatureById } from "~/data";
 import type { Creature, MoveKind } from "~/engine";
 import { ActivityTile } from "~/game/ActivityTile";
 import { ClaimCard } from "~/game/ClaimCard";
+import { collection } from "~/game/collection";
+import { Intro } from "~/game/Intro";
 import { Moon } from "~/game/Moon";
 import { MOON_PHASES, MOON_REWARD_NUDGES } from "~/game/progress";
 import { type FreedCreature, useGame } from "~/game/store";
 import { endsLabel } from "~/game/weekly";
 import { useReducedMotion } from "~/hooks/useReducedMotion";
+import { PALETTES } from "~/market/types";
 import { CreatureSvg } from "~/render/CreatureSvg";
 import { Icon } from "~/render/Icon";
+import { useThemeId } from "~/theme/ThemeProvider";
 import type { ClaimCardState, ClaimStatus } from "~/wallet";
 
 /**
@@ -63,7 +67,13 @@ export function PondScreen({
   onGift,
   onUntangle,
   onMore,
+  onJournal,
+  onTrails,
   accountLabel,
+  showWelcome = false,
+  onDismissWelcome = () => {},
+  onWelcomeDaily = onOpenDaily,
+  playLabel = "Play · World 1",
   claim,
   toast,
 }: {
@@ -77,8 +87,14 @@ export function PondScreen({
   onGift: () => void;
   onUntangle: () => void;
   onMore: () => void;
+  onJournal: () => void;
+  onTrails: () => void;
   /** A name or a short address, shown in place of "More" once somebody is signed in. */
   accountLabel?: string;
+  showWelcome?: boolean;
+  onDismissWelcome?: () => void;
+  onWelcomeDaily?: () => void;
+  playLabel?: string;
   /** Rendered above the bottom stack. */
   toast: ReactNode;
   /** The G$ layer. Entirely optional: with no wallet the pond is exactly as it was. */
@@ -91,7 +107,10 @@ export function PondScreen({
   };
 }) {
   const reduce = useReducedMotion();
+  const themeId = useThemeId();
   const freed = useGame((s) => s.freed);
+  const palette = useGame((s) => s.pondPalette);
+  const { residents, next: milestone } = collection(freed);
 
   /** How much of World 1 is in the pond, counting each creature once. */
   const worldFreed = useMemo(() => {
@@ -111,47 +130,104 @@ export function PondScreen({
   const moonTap = () =>
     onToast(
       moon >= MOON_PHASES
-        ? `Full moon — ${MOON_REWARD_NUDGES} nudges were yours. The next Daily starts it again.`
+        ? "Full moon. Your next Daily starts a new cycle."
         : `${MOON_PHASES - moon} more Daily Snarls for a full moon and ${MOON_REWARD_NUDGES} nudges. Missing a day only dims it one phase.`,
     );
 
   return (
-    <>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
+      }}
+    >
       <header
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: 8,
-          padding: "calc(12px + env(safe-area-inset-top)) 16px 12px",
+          padding: "calc(12px + env(safe-area-inset-top)) 12px 12px",
         }}
       >
         <Moon moon={moon} onTap={moonTap} />
         <div style={{ display: "flex", gap: 6 }}>
-          <HeaderButton onClick={onGift} muted={false}>
+          <HeaderButton onClick={onGift} muted={false} label="Gift a creature">
             <Icon name="gift" size={16} />
-            Gift
           </HeaderButton>
           {/* Who you are, where you can see it. The game asks for a login before it
               will start, so "which account am I in?" should not be a question answered
               three taps deep under a theme picker. */}
           <HeaderButton onClick={onMore}>
             <Icon name="person" size={16} />
-            {accountLabel ?? "More"}
+            {accountLabel ?? "Connect"}
           </HeaderButton>
         </div>
       </header>
 
-      <main className="sn-water" style={{ flex: 1, minHeight: 0 }}>
+      {showWelcome && (
+        <Intro onDone={onDismissWelcome} onDaily={onWelcomeDaily} dailySolved={dailySolved} />
+      )}
+
+      <main
+        className="sn-water"
+        style={{
+          flex: "1 0 200px",
+          minHeight: 200,
+          ...(palette > 0
+            ? {
+                background:
+                  themeId === "paper" ? PALETTES[palette]?.lightWater : PALETTES[palette]?.water,
+              }
+            : {}),
+        }}
+      >
+        <svg
+          className="sn-habitat"
+          viewBox="0 0 390 250"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <g fill="none" stroke="var(--leaf)" strokeWidth=".7" opacity=".24">
+            <ellipse cx="48" cy="202" rx="35" ry="14" />
+            <ellipse cx="318" cy="48" rx="29" ry="12" />
+          </g>
+          <g fill="var(--moon)" className="sn-pond-motes">
+            <circle cx="56" cy="48" r="1.5" />
+            <circle cx="345" cy="117" r="1.2" />
+            <circle cx="184" cy="216" r="1.4" />
+          </g>
+          {worldFreed >= 3 && (
+            <g fill="var(--leaf)" opacity=".65">
+              <path d="M28 200a24 10 0 1 0 3-2l-3 2 10 3Z" />
+              <path d="M300 46a20 8 0 1 0 3-2l-3 2 10 3Z" />
+              <ellipse cx="340" cy="214" rx="28" ry="10" />
+            </g>
+          )}
+          {worldFreed >= 6 && (
+            <g fill="none" stroke="var(--leaf)" strokeWidth="2" opacity=".65">
+              <path d="M0 245Q25 190 16 153M8 250Q36 215 31 177M390 245Q365 180 377 143M382 250Q355 218 359 175" />
+            </g>
+          )}
+          {worldFreed >= 10 && (
+            <g fill="var(--lotus)" opacity=".9">
+              <path d="M333 210Q309 193 323 189Q335 190 333 210Q339 183 349 193Q354 202 333 210Q326 182 335 179Q345 187 333 210Z" />
+            </g>
+          )}
+        </svg>
         {freed.length === 0 ? (
           <EmptyPond onPlay={onPlay} />
         ) : (
-          freed.map((entry, k) => {
+          residents.map((entry, k) => {
             const creature = creatureById(entry.id);
             if (!creature) return null;
             const slot = SLOTS[k % SLOTS.length]!;
             const size = Math.round(
-              (62 + creature.nodes.length * 1.6) * roominessFor(freed.length),
+              (62 + creature.nodes.length * 1.6) * roominessFor(residents.length),
             );
             const [idleName, idleSeconds] = IDLE[creature.move];
             const reactedAt = reacted[entry.key];
@@ -236,11 +312,28 @@ export function PondScreen({
           />
           <ActivityTile
             icon="moon"
+            accent="discovery"
             label="Daily Snarl"
-            status={dailySolved ? (dailySubtitle ?? "Freed today") : "A rare Snarl, once a day"}
+            status={
+              dailySolved
+                ? "Freed · back tomorrow"
+                : (dailySubtitle ??
+                  `Rare knot · ${moon >= MOON_PHASES ? 0 : moon}/${MOON_PHASES} to bonus`)
+            }
             tone={dailySolved ? "done" : "plain"}
             onClick={onOpenDaily}
           />
+        </div>
+
+        <div className="sn-pond-nav">
+          <button className="sn-link" type="button" onClick={onJournal}>
+            <Icon name="journal" size={16} />
+            Journal · {worldFreed}/{CREATURES.length}
+          </button>
+          <button className="sn-link" type="button" onClick={onTrails}>
+            <Icon name="shop" size={16} />
+            Trail market · G$
+          </button>
         </div>
 
         <ClaimCard
@@ -265,7 +358,11 @@ export function PondScreen({
                   color: "var(--ink2)",
                 }}
               >
-                <span style={{ letterSpacing: "0.08em", textTransform: "uppercase" }}>World 1</span>
+                <span>
+                  {milestone
+                    ? `${milestone.name} at ${milestone.count} creatures`
+                    : "Lotus pond restored"}
+                </span>
                 <span className="tnum">
                   {worldFreed} of {CREATURES.length}
                 </span>
@@ -283,7 +380,7 @@ export function PondScreen({
                     width: `${Math.round((worldFreed / CREATURES.length) * 100)}%`,
                     height: "100%",
                     borderRadius: 999,
-                    background: "var(--ink)",
+                    background: "var(--accent)",
                     transition: "width .6s cubic-bezier(.2,.8,.2,1)",
                   }}
                 />
@@ -292,25 +389,24 @@ export function PondScreen({
 
             <button
               type="button"
+              className="sn-primary"
               onClick={onPlay}
               style={{
                 width: "100%",
                 minHeight: 52,
                 border: "none",
                 borderRadius: 16,
-                background: "var(--ink)",
-                color: "var(--bg)",
                 fontSize: 18,
                 fontWeight: 500,
                 cursor: "pointer",
               }}
             >
-              Play · World 1
+              {playLabel}
             </button>
           </>
         )}
       </footer>
-    </>
+    </div>
   );
 }
 
@@ -318,26 +414,33 @@ function HeaderButton({
   children,
   onClick,
   muted = true,
+  label,
 }: {
   children: ReactNode;
   onClick: () => void;
   muted?: boolean;
+  label?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
+      title={label}
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 6,
+        gap: 5,
+        minWidth: 44,
+        justifyContent: "center",
         minHeight: 44,
-        padding: "0 14px",
+        padding: "0 10px",
         border: "1px solid var(--card-line)",
         borderRadius: 999,
         background: "transparent",
-        color: muted ? "var(--ink2)" : "var(--ink)",
-        fontSize: 14,
+        color: muted ? "var(--ink2)" : "var(--accent2)",
+        fontSize: 13,
+        whiteSpace: "nowrap",
         cursor: "pointer",
       }}
     >
@@ -367,6 +470,7 @@ function EmptyPond({ onPlay }: { onPlay: () => void }) {
       </p>
       <button
         type="button"
+        className="sn-primary"
         onClick={onPlay}
         style={{
           marginTop: 16,
@@ -374,8 +478,6 @@ function EmptyPond({ onPlay }: { onPlay: () => void }) {
           padding: "0 22px",
           border: "1px solid var(--card-line)",
           borderRadius: 16,
-          background: "transparent",
-          color: "var(--ink)",
           fontSize: 17,
           fontWeight: 500,
           cursor: "pointer",

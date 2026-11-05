@@ -16,7 +16,7 @@ const PAD = 12;
  * sound until Begin is pressed.
  */
 export interface SplashGate {
-  /** True once a wallet is open. Until then the game does not start. */
+  /** True once a wallet is open. Optional; the first rescue needs no wallet. */
   connected: boolean;
   /** A connection is being made, or one is being resumed from a previous visit. */
   busy: boolean;
@@ -29,10 +29,12 @@ export interface SplashGate {
 export function SplashScreen({
   onBegin,
   enabled = true,
+  returning = false,
   gate,
 }: {
   onBegin: () => void;
   enabled?: boolean;
+  returning?: boolean;
   /**
    * Who may come in. The splash is the door rather than a screen in front of a door:
    * it is already the first thing, already says what snarl is, and a second screen
@@ -96,13 +98,16 @@ export function SplashScreen({
 
   return (
     <div
+      className="sn-splash"
       style={{
         flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        padding: "0 20px calc(28px + env(safe-area-inset-bottom))",
+        justifyContent: "safe center",
+        padding: "24px 20px calc(28px + env(safe-area-inset-bottom))",
         gap: 8,
       }}
     >
@@ -139,9 +144,7 @@ export function SplashScreen({
         <span className="sr-only">snarl</span>
         {"snarl".split("").map((letter, i) => (
           <span
-            // The letters of a five-letter word, in a fixed order: the index is the
-            // identity here, and two of them are the same character.
-            key={`${letter}-${i}`}
+            key={letter}
             aria-hidden="true"
             style={
               {
@@ -187,7 +190,7 @@ export function SplashScreen({
           {[
             ["knot", `${CREATURES.length} creatures to free, and a pond to keep them in`],
             ["moon", "A rare one every day, and a knot the whole pond shares each week"],
-            ["coin", "GoodDollar's daily UBI, if you want it. Never needed to play"],
+            ["coin", "Discover player-made trails. Buy and sell your favourites with G$"],
           ].map(([icon, text]) => (
             <li
               key={text}
@@ -219,17 +222,16 @@ export function SplashScreen({
           transition: "opacity .6s ease",
         }}
       >
-        {gate.connected ? (
-          <button type="button" onClick={begin} style={filled}>
-            Begin
-          </button>
-        ) : (
+        <button type="button" onClick={begin} disabled={!enabled} style={filled}>
+          {returning ? "Back to your pond" : "Free your first creature"}
+        </button>
+        {!gate.connected && (
           <>
             <button
               type="button"
               onClick={gate.onConnectWallet}
               disabled={gate.busy}
-              style={{ ...filled, opacity: gate.busy ? 0.6 : 1 }}
+              style={{ ...outline, opacity: gate.busy ? 0.6 : 1 }}
             >
               {gate.busy ? "…" : "Connect wallet"}
             </button>
@@ -249,8 +251,8 @@ const filled = {
   minHeight: 52,
   border: "none",
   borderRadius: 16,
-  background: "var(--ink)",
-  color: "var(--bg)",
+  background: "var(--accent)",
+  color: "var(--on-accent)",
   fontSize: 18,
   fontWeight: 500,
   cursor: "pointer",

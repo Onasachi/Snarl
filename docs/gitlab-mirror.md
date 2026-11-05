@@ -55,6 +55,13 @@ The mirror becomes active only after the workflow is pushed to GitHub and the
 GitLab secret is added. Repository settings, issues, and pull requests are managed
 separately on each service.
 
+## Frontend deployment
+
+Connect Cloudflare Pages to the GitLab mirror to deploy after each mirrored push
+to `master`. Follow [the Cloudflare Pages setup](cloudflare-pages.md) for the
+exact build settings and frontend environment. Continue committing source changes
+and pushing to GitHub; GitLab supplies Cloudflare's deployment source.
+
 ## References
 
 - [GitLab personal access tokens](https://docs.gitlab.com/user/profile/personal_access_tokens/)

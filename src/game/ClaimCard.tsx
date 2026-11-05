@@ -15,6 +15,13 @@ interface Copy {
  */
 function copyFor(state: ClaimCardState, status: ClaimStatus | null, hasWallet: boolean): Copy {
   switch (state) {
+    case "checking":
+      return {
+        title: "Status unavailable",
+        subtitle: "Retry the GoodDollar check",
+        action: "Retry",
+        filled: false,
+      };
     case "ready":
       return {
         title: status ? formatAmount(status.entitlement, status.decimals) : "Ready",
@@ -101,7 +108,8 @@ export function ClaimCard({
           flex: "0 0 auto",
           borderRadius: "50%",
           border: "1px solid var(--card-line)",
-          color: "var(--ink2)",
+          color: "var(--accent)",
+          background: "var(--growth-surface)",
           fontSize: 17,
           fontWeight: 500,
         }}
@@ -147,8 +155,8 @@ export function ClaimCard({
             fontWeight: 500,
             border: copy.filled ? "none" : "1px solid var(--card-line)",
             borderRadius: 999,
-            background: copy.filled ? "var(--ink)" : "transparent",
-            color: copy.filled ? "var(--bg)" : "var(--ink)",
+            background: copy.filled ? "var(--accent)" : "transparent",
+            color: copy.filled ? "var(--on-accent)" : "var(--ink)",
             opacity: busy ? 0.5 : 1,
             cursor: busy ? "default" : "pointer",
           }}

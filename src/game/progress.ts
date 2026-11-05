@@ -68,6 +68,9 @@ export const nudgesForDay = (storedDay: string | null, today: string, stored: nu
  */
 export const moonAfterGap = (moon: number, lastDailyDay: string | null, today: string): number => {
   if (moon <= 0) return 0;
+  // A completed cycle stays completed. Dimming it to six would pay its reward again
+  // after just one solve; the next solve must start a fresh cycle instead.
+  if (moon >= MOON_PHASES) return MOON_PHASES;
   if (lastDailyDay === null) return moon;
   if (lastDailyDay === today || lastDailyDay === previousDay(today)) return moon;
   return Math.max(0, moon - 1);
@@ -94,4 +97,6 @@ export const creatureForPlay = (playIndex: number): Creature =>
 
 /** "World 1 · 4" — counts every knot the player has met, tutorial included. */
 export const playCaption = (playIndex: number): string =>
-  `World 1 · ${((playIndex % CREATURES.length) + 1).toString()}`;
+  playIndex < CREATURES.length
+    ? `World 1 · ${playIndex + 1}`
+    : `Mastery ${Math.floor(playIndex / CREATURES.length)} · ${(playIndex % CREATURES.length) + 1}`;

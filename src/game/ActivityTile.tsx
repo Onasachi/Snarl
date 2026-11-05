@@ -13,6 +13,7 @@ export function ActivityTile({
   label,
   status,
   tone = "plain",
+  accent = "growth",
   onClick,
 }: {
   icon: IconName;
@@ -21,6 +22,7 @@ export function ActivityTile({
   status: string;
   /** "done" for something already finished today, which should rest. */
   tone?: "plain" | "done";
+  accent?: "growth" | "discovery";
   onClick: () => void;
 }) {
   const done = tone === "done";
@@ -28,6 +30,9 @@ export function ActivityTile({
   return (
     <button
       type="button"
+      className="sn-activity"
+      data-accent={accent}
+      data-done={done}
       onClick={onClick}
       style={{
         display: "grid",
@@ -35,9 +40,7 @@ export function ActivityTile({
         justifyItems: "start",
         minHeight: 76,
         padding: "12px 14px",
-        border: "1px solid var(--card-line)",
         borderRadius: 18,
-        background: "var(--card)",
         color: "var(--ink)",
         textAlign: "left",
         cursor: "pointer",
@@ -48,7 +51,7 @@ export function ActivityTile({
           display: "flex",
           alignItems: "center",
           gap: 8,
-          color: done ? "var(--ink2)" : "var(--ink)",
+          color: "var(--tile-ink)",
         }}
       >
         <Icon name={done ? "check" : icon} size={18} />

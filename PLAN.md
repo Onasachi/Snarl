@@ -801,6 +801,31 @@ strokes, round caps, `currentColor`, nothing filled. And the Journal and Shop ro
 Not done: opening the first week, which is what makes the pot reachable at all and is now
 two taps rather than a command; Celoscan verification, which needs an API key that is not
 mine; moving both owners to a multisig; and a dashboard over what the chain now records.
+
+### Phase 18 follow-through — first visit and returning tomorrow
+
+The saved flow commit passed its existing tests but failed lint. The remaining work
+was verified and completed on 2026-11-05:
+
+- Replaced the four-step pond overlay with a compact welcome that leaves the creatures
+  and controls available, with a direct Daily Snarl action and remembered dismissal.
+- Added a back control to unfinished puzzles. The weekly knot returns to its weekly
+  screen; other knots return to the pond. Leaving restarts that knot on the next attempt.
+- Put the complete, selectable wallet address on the profile and made copy feedback
+  visible. Corrected the no-wallet guidance to match the existing sign-in requirement.
+- Fixed repeated daily completion, repeated dimming on reload, and a full moon paying
+  again after a missed day. The completed moon now stays complete until the next solve
+  starts a new cycle. Saved rewards survive the daily nudge refill.
+- Added a local-midnight/return-to-tab calendar refresh. Active puzzles retain their
+  date and seed until exit, so a midnight refresh cannot erase an in-progress knot.
+- Fixed the header and claim-card overflow found at phone widths. Short ponds scroll
+  vertically while retaining a minimum amount of water for the creatures. The sign-in
+  screen also scrolls so email login cannot be clipped below a short phone's viewport.
+
+Validation: 251 app tests, `pnpm check`, and `pnpm build`; the browser play-through used
+a separate local origin with `?wallet=demo` and covered tutorial completion, daily solve
+and recap, welcome dismissal, full address/copy feedback, and weekly/daily back paths.
+No live wallet transactions or deployments were part of this continuation.
 Nothing here has ever been signed by a wallet a person actually controls.
 
 ## 4. Decisions worth making now
@@ -817,3 +842,15 @@ Nothing here has ever been signed by a wallet a person actually controls.
 
 Phase 0 + Phase 1 together: scaffold the repo and land the typed engine with its test
 suite. That is self-contained, and it de-risks everything after it.
+
+## 2026-11-05 update · Season 5 direction
+
+This update supersedes earlier plans to make UBI-after-a-win the principal G$ loop.
+The loop is now rescue → collection/restored pond → discover a creator trail → spend G$
+for a replayable route and finishing palette → creator withdraws actual revenue.
+The collection and free Daily/weekly games remain available without paying.
+
+Implementation and release checklist: `docs/GOODBUILDERS.md`. New marketplace contract,
+UI, demo adapter and local Celo fork rehearsal are implemented. Pending production work:
+mainnet deployment and source verification, production env/frontend rollout, real wallet
+acceptance and independent-user evidence. Do not describe local/demo activity as traction.

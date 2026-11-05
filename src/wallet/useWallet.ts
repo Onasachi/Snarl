@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Trail, TrailDraft } from "~/market/types";
 import {
   boardAvailable,
   createWallet,
@@ -57,7 +58,7 @@ const rememberedWallet = (): string | undefined => {
 
 const shouldResume = (): boolean => {
   try {
-    return sessionStorage.getItem(RESUME_KEY) === "1";
+    return sessionStorage.getItem(RESUME_KEY) !== null;
   } catch {
     return false;
   }
@@ -81,7 +82,7 @@ export const returningFromVerification = (): boolean => {
   }
 };
 
-export type WalletError = "no-wallet" | "wrong-chain" | "rejected" | "failed";
+export type WalletError = "wallet-changed" | "no-wallet" | "wrong-chain" | "rejected" | "failed";
 
 const asError = (cause: unknown): WalletError => {
   // The screen can only ever say one of four things, and "that did not go through" is a
@@ -90,6 +91,7 @@ const asError = (cause: unknown): WalletError => {
   console.error("[snarl wallet]", cause);
 
   const message = String((cause as { message?: string })?.message ?? cause);
+  if (message.includes("wallet-changed")) return "wallet-changed";
   if (message.includes("no-wallet")) return "no-wallet";
   if (message.includes("wrong-chain")) return "wrong-chain";
   // EIP-1193: 4001 is the user saying no, which is not a failure.
@@ -104,6 +106,7 @@ const asError = (cause: unknown): WalletError => {
  */
 export function useWallet() {
   const [account, setAccount] = useState<WalletAccount | null>(null);
+  const [statusError, setStatusError] = useState(false);
   const [status, setStatus] = useState<ClaimStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<WalletError | null>(null);
@@ -113,6 +116,7 @@ export function useWallet() {
   const [boardSupported, setBoardSupported] = useState(boardAvailable);
   const [standing, setStanding] = useState<Standing | null>(null);
   const [admin, setAdmin] = useState<AdminState | null>(null);
+  const generation = useRef(0);
   const port = useRef<WalletPort | null>(null);
 
   const load = useCallback(async (): Promise<WalletPort> => {
@@ -122,10 +126,14 @@ export function useWallet() {
 
   const refresh = useCallback(async () => {
     if (!port.current || !account) return;
+    const version = generation.current;
     try {
-      setStatus(await port.current.getClaimStatus());
+      const result = await port.current.getClaimStatus();
+      if (version !== generation.current) return;
+      setStatus(result);
+      setStatusError(false);
     } catch {
-      // A failed read leaves the last known state rather than blanking the card.
+      if (version === generation.current) setStatusError(true);
     }
   }, [account]);
 
@@ -140,6 +148,7 @@ export function useWallet() {
 
   const connect = useCallback(
     async ({ silent = false, walletId }: { silent?: boolean; walletId?: string } = {}) => {
+      const version = ++generation.current;
       setBusy(true);
       setError(null);
       try {
@@ -147,9 +156,17 @@ export function useWallet() {
         setTipsSupported(wallet.tipsSupported);
         setBoardSupported(wallet.boardSupported);
         const connected = await wallet.connect(walletId);
+        if (version !== generation.current) return;
         setAccount(connected);
         remember(walletId);
-        setStatus(await wallet.getClaimStatus());
+        setStatus(null);
+        setStatusError(false);
+        try {
+          const result = await wallet.getClaimStatus();
+          if (version === generation.current) setStatus(result);
+        } catch {
+          if (version === generation.current) setStatusError(true);
+        }
       } catch (cause) {
         // Resuming is something this session decided to try, not something the player
         // just asked for. Failing at it quietly is better than greeting them with an
@@ -165,6 +182,7 @@ export function useWallet() {
 
   /** Ends the session here and wherever it came from, and forgets the door. */
   const disconnect = useCallback(async () => {
+    ++generation.current;
     setBusy(true);
     try {
       await port.current?.disconnect();
@@ -455,7 +473,44 @@ export function useWallet() {
     })();
   }, [account, connect]);
 
+  useEffect(() => {
+    if (!account) return;
+    return port.current?.watchAccount?.(() => {
+      ++generation.current;
+      forget();
+      setAccount(null);
+      setStatus(null);
+      setWeek(null);
+      setStanding(null);
+      setAdmin(null);
+      setBusy(false);
+      setError("wallet-changed");
+    });
+  }, [account]);
+
+  const readMarket = useCallback(async (offset = 0) => (await load()).market(offset), [load]);
+  const buyTrail = useCallback(
+    async (trail: Trail) => {
+      await (await load()).buyTrail(trail);
+      await refresh();
+    },
+    [load, refresh],
+  );
+  const publishTrail = useCallback(
+    async (draft: TrailDraft) => (await load()).publishTrail(draft),
+    [load],
+  );
+  const withdrawTrailEarnings = useCallback(async () => {
+    await (await load()).withdrawTrailEarnings();
+    await refresh();
+  }, [load, refresh]);
+
   return {
+    readMarket,
+    buyTrail,
+    publishTrail,
+    withdrawTrailEarnings,
+    statusError,
     account,
     status,
     busy,

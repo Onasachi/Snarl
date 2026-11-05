@@ -1,4 +1,4 @@
-import { MOON_PHASES, moonLabel } from "./progress";
+import { MOON_PHASES, MOON_REWARD_NUDGES, moonLabel } from "./progress";
 
 const R = 9;
 
@@ -16,9 +16,9 @@ export function Moon({ moon, onTap }: { moon: number; onTap: () => void }) {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 10,
+        gap: 6,
         minHeight: 44,
-        padding: "0 14px 0 10px",
+        padding: "0 8px",
         border: "1px solid var(--card-line)",
         borderRadius: 999,
         background: "transparent",
@@ -52,14 +52,14 @@ export function Moon({ moon, onTap }: { moon: number; onTap: () => void }) {
         <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.2 }}>{moonLabel(moon)}</span>
         <span
           style={{
-            fontSize: 10,
-            letterSpacing: "0.08em",
+            fontSize: 9,
+            letterSpacing: "0.03em",
             textTransform: "uppercase",
             color: "var(--ink2)",
             whiteSpace: "nowrap",
           }}
         >
-          streak moon
+          {MOON_REWARD_NUDGES} bonus nudges
         </span>
       </span>
     </button>

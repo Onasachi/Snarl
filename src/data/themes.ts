@@ -12,6 +12,12 @@ export interface Theme {
   cardLine: string;
   ink: string;
   ink2: string;
+  /** Growth and primary actions; discovery and daily challenges. */
+  accent: string;
+  onAccent: string;
+  accent2: string;
+  growthSurface: string;
+  discoverySurface: string;
   /** Beads and strings before the creature is freed. */
   tangled: string;
   string: string;
@@ -31,18 +37,23 @@ export const THEMES: Record<ThemeId, Theme> = {
   night: {
     id: "night",
     name: "Night pond",
-    bg: "#0d1527",
-    bg2: "#152039",
-    water: "#0f1d38",
-    card: "rgba(232,237,246,0.07)",
-    cardLine: "rgba(232,237,246,0.12)",
-    ink: "#e8edf6",
-    ink2: "#97a5c3",
-    tangled: "#58678b",
-    string: "#7290bd",
+    bg: "#111e29",
+    bg2: "#1a2b36",
+    water: "#15373c",
+    card: "rgba(172,210,193,0.07)",
+    cardLine: "rgba(172,210,193,0.18)",
+    ink: "#edf4eb",
+    ink2: "#acc0c4",
+    accent: "#9bdfba",
+    onAccent: "#153e30",
+    accent2: "#d2b6ea",
+    growthSurface: "#1b3435",
+    discoverySurface: "#2a2b40",
+    tangled: "#667b94",
+    string: "#8da8b9",
     warm: "oklch(0.80 0.15 65)",
-    eye: "#0d1527",
-    moon: "#f3ecd0",
+    eye: "#111e29",
+    moon: "#f1dfac",
     l: 0.8,
     c: 0.13,
     tintL: 0.91,
@@ -51,20 +62,25 @@ export const THEMES: Record<ThemeId, Theme> = {
   paper: {
     id: "paper",
     name: "Paper",
-    bg: "#f3efe6",
-    bg2: "#fbf8f2",
-    water: "#e8e1d2",
-    card: "rgba(28,35,51,0.05)",
-    cardLine: "rgba(28,35,51,0.12)",
-    ink: "#1c2333",
-    ink2: "#5b6476",
-    tangled: "#9ea6b8",
-    string: "#8291b0",
+    bg: "#f6f1e7",
+    bg2: "#fffaf1",
+    water: "#e2eee5",
+    card: "rgba(46,104,82,0.05)",
+    cardLine: "rgba(46,104,82,0.20)",
+    ink: "#253c39",
+    ink2: "#526964",
+    accent: "#2e6852",
+    onAccent: "#fffaf1",
+    accent2: "#795590",
+    growthSurface: "#e6edde",
+    discoverySurface: "#eee5f1",
+    tangled: "#80928c",
+    string: "#73877f",
     // Darker than the brand doc's 0.68: on cream that only reached 2.6:1, which fails
     // even the large-text threshold, and the crossing counter is drawn in it.
     warm: "oklch(0.55 0.16 55)",
-    eye: "#1c2333",
-    moon: "#cdb978",
+    eye: "#253c39",
+    moon: "#a18a49",
     // Likewise 0.68 left a freed creature at 2.3:1 against paper. 0.55 clears 3:1 on
     // every hue in the roster against both the page and the pond's water, which is the
     // darker of the two and so the one that decides it. test/theme.test.ts holds the line.

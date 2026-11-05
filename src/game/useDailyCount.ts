@@ -12,6 +12,7 @@ export function useDailyCount(day: string) {
   const [freed, setFreed] = useState<number | null>(null);
 
   useEffect(() => {
+    setFreed(null);
     if (!online) return;
     let live = true;
     void fetchDailyCount(day).then((result) => {

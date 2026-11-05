@@ -52,7 +52,8 @@ describe("the claim card", () => {
   it("asks for a wallet before anything else", () => {
     expect(claimCardState(null, null)).toBe("disconnected");
     expect(claimCardState(null, status())).toBe("disconnected");
-    expect(claimCardState(account, null)).toBe("disconnected");
+    expect(claimCardState(account, null)).toBe("checking");
+    expect(claimCardState(account, status({ claimUnavailable: true }))).toBe("checking");
   });
 
   it("asks for the face check only once there is a wallet", () => {

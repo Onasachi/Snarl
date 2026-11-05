@@ -3,7 +3,7 @@
 Read this first. `PLAN.md` is the long history and the reasoning; `contracts/DEPLOY.md` is
 the runbook. This file is the short answer to "what is true today and what is next".
 
-Last updated: 2026-11-04.
+Last updated: 2026-11-05.
 
 ## What snarl is
 
@@ -18,6 +18,26 @@ cost is first-time players who bounce at the door, which is the usual cost of a 
 What is still *not* required is GoodDollar verification. A wallet is enough to play; the
 face check is only for claiming UBI, entering the weekly pool, taking a name, or putting
 a creature on the board.
+
+## Flow work completed
+
+- The tutorial leads into a visible pond with a short, dismissible welcome and a direct
+  Daily Snarl action. It replaces the four-screen introduction; dismissal is remembered.
+- The address is visible in the pond header. The profile shows the complete address,
+  supports copying it, and displays confirmation. The header fits a 320px phone.
+- Unfinished puzzles have a back control; returning starts that knot again. World 1 and
+  Daily return to the pond, while the weekly puzzle returns to the Great Untangle.
+- Seven Daily solves fill the moon and award seven saved nudges. A day can only count
+  once. Missing days dims an unfinished moon once per gap, including across reloads; a
+  completed moon stays complete until the next solve starts a fresh cycle.
+- Daily and weekly dates refresh at local midnight and when a suspended tab returns.
+  An open puzzle keeps its date and layout until the player leaves it.
+- Short phones can scroll the pond controls and sign-in screen, with space reserved
+  for the creatures and both sign-in actions reachable.
+
+Verified with 251 app tests, lint, and the production build. Browser play-through covered
+all three tutorial knots, the daily solve and recap, profile copying, welcome dismissal,
+and daily/weekly back navigation, using the simulated wallet on an isolated local origin.
 
 ## Live on Celo mainnet
 
@@ -82,7 +102,7 @@ cd contracts && GIFTS=0x… NAMES=0x… BOARD=0x… WEEKLY=0x… pnpm hardhat ru
 
 ```
 pnpm dev                 # the game
-pnpm test                # 240 app tests
+pnpm test                # 251 app tests
 pnpm build
 cd contracts && pnpm test        # 80 contract tests
 cd contracts && pnpm test:fork   # 18 more, against real Celo state
@@ -152,3 +172,66 @@ cd contracts && ADDRESS=0x… pnpm hardhat run scripts/check-identity.ts --netwo
 
 Tells apart: verified, verified through a linked wallet, lapsed, verified against a
 different registry, and never verified.
+
+## 2026-11-05 · Creature collection and G$ trail market
+
+Rebuilt the repeat-play path, removed the mandatory login gate, added the field journal,
+unique pond residents, restoration milestones and finishing palettes. New Trail Market
+supports previews, creator playtesting, immutable three-knot routes, one-time G$ buying,
+90/10 creator/Snarl credits and public financial metrics. Added ownerless `SnarlTrails`
+with adversarial payment tests and a passing local Celo fork purchase/withdrawal test.
+Existing mainnet contracts have not changed. Market still requires its new deployment
+and `VITE_SNARL_TRAILS` configuration; demo activity is simulated only.
+
+Fixed named-wallet/email resumption, stable wallet discovery, account/network invalidation,
+and unavailable verification being mistaken for disconnection. Profile exposes the identity
+registry, environment and root with a refresh control. Real MiniPay/email/linked-wallet
+acceptance remains a launch check, not something a localhost demo can establish.
+
+Owner selected treasury `0xf6928F774B993588D76c30c380058Aa0A6c26684`.
+See `docs/GOODBUILDERS.md` for exact scope, release commands, metric definitions and pilot plan.
+
+Validation for this update: 256 app tests, 89 offline contract tests, the new local Celo
+fork payment test, typecheck, lint and production build pass. Browser exercised guest
+rescue → next unknown creature, a complete simulated purchased trail → palette reward,
+creator publication, reload persistence and 320px layout. Read-only deployment preflight
+estimated 1,689,470 gas (~0.680011675 CELO at its quoted maximum execution gas fee).
+No deployment signer is configured and no mainnet transaction has been sent.
+
+## 2026-11-05 · Pond colour and deployment handoff
+
+Night now uses deeper green water and jade actions; paper uses cream, sage water and
+forest-green actions. Lilac marks discovery, daily challenges and gifting. Added soft
+creature tints to the journal, themed pond plants, subtle ripples and drifting specks
+that stop for reduced motion. Updated primary actions across the existing screens.
+
+Validation: 262 app tests pass, including both palettes' text, activity, action and
+creature contrast. Lint, typecheck and production build pass; existing wallet bundle
+warnings remain. Browser checked night/paper, journal and market, including a 320px
+viewport with no horizontal overflow; no browser errors observed.
+
+Exact deployment commands are in `docs/MAINNET_DEPLOY.md`, linked from the older
+contract guide. Read-only preflight passed again with the selected treasury and the
+same ~0.680011675 CELO execution estimate. No contract was deployed.
+
+## 2026-11-05 · Trail market deployed by the owner
+
+`SnarlTrails` is now live at `0xF55E8f7330B89659c7B835eA1043657A45393bdA` on Celo.
+The owner deployed from `0xe1a0F916e859624D4edbadA23E4382D327EAf626`. Read-only checks
+confirmed the entire runtime bytecode matches this repository, with the correct
+production G$, identity registry, 10% fee and selected treasury. The check observed
+zero trails, zero sales and zero volume. Added TRAILS support to `check-live.ts` for
+repeatable verification. No additional transaction was sent by the agent.
+
+Local `.env` now points at the deployed market and production GoodDollar. Publishing
+the rebuilt frontend to the host and real-wallet acceptance remain to be completed.
+Start at step 4 of `docs/MAINNET_DEPLOY.md`.
+
+Verification follow-up: the installed `hardhat-verify` 2.1.3 omitted Celo from its
+built-in chain list. Added `etherscan.customChains` for 42220 with the Etherscan V2
+endpoint and CeloScan URL, retaining a string API key for V2 routing. Explicitly
+disabled unused Sourcify to suppress its informational skip message. Validated the
+network listing and the installed plugin's chain resolution / endpoint selection.
+The owner retried and received successful CeloScan source verification for
+`contracts/SnarlTrails.sol:SnarlTrails` at the deployed address. Explorer verification
+is complete: https://celoscan.io/address/0xF55E8f7330B89659c7B835eA1043657A45393bdA#code.

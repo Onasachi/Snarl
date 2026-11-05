@@ -1,3 +1,4 @@
+import type { MarketPort } from "~/market/types";
 export type Address = `0x${string}`;
 
 export interface WalletAccount {
@@ -14,6 +15,10 @@ export interface WalletAccount {
 }
 
 export interface ClaimStatus {
+  identityRoot?: Address;
+  identityRegistry?: Address;
+  environment?: string;
+  claimUnavailable?: boolean;
   /** Verified as a unique person with GoodDollar. Nothing in the game requires this. */
   verified: boolean;
   /**
@@ -119,11 +124,12 @@ export interface AdminState {
   weeks: AdminWeek[];
 }
 
-export interface WalletPort {
+export interface WalletPort extends MarketPort {
   /**
    * The wallets this device offers, when there is more than one and a choice to make.
    * Empty inside MiniPay, or where only one answered: a list of one is not a choice.
    */
+  watchAccount?(onChange: () => void): () => void;
   listWallets(): Promise<{ id: string; name: string }[]>;
   /** False when no escrow contract is configured. A gift is then a creature and no more. */
   readonly tipsSupported: boolean;
@@ -198,13 +204,20 @@ export interface WalletPort {
   settleWeek(week: number): Promise<void>;
 }
 
-export type ClaimCardState = "disconnected" | "unverified" | "expired" | "ready" | "claimed";
+export type ClaimCardState =
+  | "checking"
+  | "disconnected"
+  | "unverified"
+  | "expired"
+  | "ready"
+  | "claimed";
 
 export const claimCardState = (
   account: WalletAccount | null,
   status: ClaimStatus | null,
 ): ClaimCardState => {
-  if (!account || !status) return "disconnected";
+  if (!account) return "disconnected";
+  if (!status || status.claimUnavailable) return "checking";
   // Verified before and not today is a different sentence from never verified, and
   // GoodDollar produces the first one constantly: its re-verification ladder starts at
   // three days. Told "you are not verified", somebody who verified last week reasonably

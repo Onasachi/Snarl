@@ -444,3 +444,29 @@ const glintId = (): number => {
   if (!entry) throw new Error("Glint is not on the roster");
   return entry.id;
 };
+
+(forked ? describe : describe.skip)("SnarlTrails on a Celo fork", () => {
+  it("sells a trail using real G$, recognises a production identity and pays both recipients", async () => {
+    await network.provider.send("evm_mine", []);
+    // A fresh local recipient has no pre-existing G$ streams that accrue between reads.
+    const treasury = await human(ethers.Wallet.createRandom().address);
+    const creator = await human(VERIFIED[0]);
+    const buyer = await human(VERIFIED[1]);
+    const g$ = new ethers.Contract(CELO.g$, erc20Abi, treasury);
+    const market = await (await ethers.getContractFactory("SnarlTrails")).deploy(CELO.g$, CELO.identity, treasury.address);
+    const price = ethers.parseEther("60");
+    await market.connect(creator).publish("Lilies on Celo", price, 2741, [1,3,6], 1);
+    const faucet = await human(CELO.ubi);
+    await (g$.connect(faucet) as any).transfer(buyer.address, price);
+    await (g$.connect(buyer) as any).approve(await market.getAddress(), price);
+    await market.connect(buyer).buy(0,price);
+    expect(await market.purchased(buyer.address,0)).to.equal(true);
+    expect(await market.verifiedBuyers()).to.equal(1);
+    const beforeCreator = await g$.balanceOf(creator.address);
+    const beforeTreasury = await g$.balanceOf(treasury.address);
+    await market.connect(creator).withdraw(); await market.connect(treasury).withdraw();
+    expect(await g$.balanceOf(creator.address)-beforeCreator).to.equal(price*9n/10n);
+    expect(await g$.balanceOf(treasury.address)-beforeTreasury).to.equal(price/10n);
+    expect(await market.liability()).to.equal(0);
+  });
+});

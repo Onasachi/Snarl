@@ -22,6 +22,7 @@ import { giftDigest, snarlGiftsAbi } from "~/chain/snarlGifts";
 import { snarlNamesAbi } from "~/chain/snarlNames";
 import { snarlWeeklyAbi } from "~/chain/snarlWeekly";
 import { planFor, WEEK_PLANS, WEEKLY_KNOT } from "~/chain/weeks";
+import { liveMarket } from "~/market/live";
 import type {
   Address,
   AdminState,
@@ -213,9 +214,12 @@ export async function listWallets(): Promise<{ id: string; name: string }[]> {
 
   const found = await announcedProviders();
   announced.clear();
-  for (const entry of found) announced.set(entry.info.uuid, entry.provider);
+  for (const entry of found) {
+    announced.set(entry.info.rdns || entry.info.uuid, entry.provider);
+    announced.set(entry.info.uuid, entry.provider);
+  }
 
-  const wallets = found.map((e) => ({ id: e.info.uuid, name: e.info.name }));
+  const wallets = found.map((e) => ({ id: e.info.rdns || e.info.uuid, name: e.info.name }));
   if (socialLoginOffered()) wallets.push({ id: SOCIAL_ID, name: "Sign in with Google or email" });
 
   // One wallet and no other way in is not a choice; connecting just connects.
@@ -232,7 +236,14 @@ export async function chooseProvider(id?: string): Promise<Eip1193Provider | nul
   const injected = findProvider();
   if (injected?.isMiniPay) return injected;
   if (id === SOCIAL_ID) return connectSocially();
-  if (id) return announced.get(id) ?? null;
+  if (id) {
+    const cached = announced.get(id);
+    if (cached) return cached;
+    const restored = (await announcedProviders()).find(
+      (e) => e.info.uuid === id || e.info.rdns === id,
+    );
+    return restored?.provider ?? null;
+  }
 
   const found = await announcedProviders();
   if (found.length === 1) return found[0]?.provider ?? injected;
@@ -275,10 +286,43 @@ export function createLiveWallet(): WalletPort {
 
   async function ready() {
     if (!provider || !address || !claimSdk || !identitySdk) throw new Error("wallet not connected");
+    const actual = (await provider.request({ method: "eth_accounts" })) as string[];
+    if (actual[0]?.toLowerCase() !== address.toLowerCase()) throw new Error("wallet-changed");
     return { provider, address, claimSdk, identitySdk };
   }
 
   return {
+    ...liveMarket(
+      publicClient as unknown as PublicClient,
+      contracts!.g$Contract,
+      () => address,
+      async () => {
+        if (!provider || !walletClient || !address) throw new Error("Connect your wallet first.");
+        const accounts = (await provider.request({ method: "eth_accounts" })) as string[];
+        if (accounts[0]?.toLowerCase() !== address.toLowerCase())
+          throw new Error("Wallet changed. Reconnect before signing.");
+        if (Number(await provider.request({ method: "eth_chainId" })) !== CELO_ID)
+          throw new Error("wrong-chain");
+        return walletClient as unknown as WalletClient;
+      },
+    ),
+    watchAccount(onChange) {
+      const watched = provider;
+      const invalidate = () => {
+        address = null;
+        walletClient = null;
+        identitySdk = null;
+        claimSdk = null;
+        onCelo = false;
+        onChange();
+      };
+      watched?.on?.("accountsChanged", invalidate);
+      watched?.on?.("chainChanged", invalidate);
+      return () => {
+        watched?.removeListener?.("accountsChanged", invalidate);
+        watched?.removeListener?.("chainChanged", invalidate);
+      };
+    },
     listWallets,
     tipsSupported: GIFTS_ADDRESS !== undefined,
     boardSupported: BOARD_ADDRESS !== undefined,
@@ -319,6 +363,7 @@ export function createLiveWallet(): WalletPort {
         }
       }
 
+      onCelo = Number(await found.request({ method: "eth_chainId" })) === CELO_ID;
       walletClient = createWalletClient({
         account: address,
         chain: celo,
@@ -364,9 +409,9 @@ export function createLiveWallet(): WalletPort {
     async getClaimStatus(): Promise<ClaimStatus> {
       const { address: account, claimSdk: claim, identitySdk: identity } = await ready();
 
-      const [{ isWhitelisted }, entitlement, balance, lastAuthenticated] = await Promise.all([
+      const [{ isWhitelisted, root }, entitlement, balance, lastAuthenticated] = await Promise.all([
         identity.getWhitelistedRoot(account),
-        claim.checkEntitlement(),
+        claim.checkEntitlement().catch(() => null),
         publicClient.readContract({
           address: contracts!.g$Contract,
           abi: erc20Abi,
@@ -383,12 +428,19 @@ export function createLiveWallet(): WalletPort {
 
       // nextClaimTime costs another round trip and only matters once there is nothing
       // left to claim today.
-      const nextClaimAt = entitlement.amount > 0n ? null : await claim.nextClaimTime();
+      const nextClaimAt =
+        !entitlement || entitlement.amount > 0n
+          ? null
+          : await claim.nextClaimTime().catch(() => null);
 
       return {
+        identityRoot: root as Address,
+        identityRegistry: contracts!.identityContract,
+        environment: ENV,
         verified: isWhitelisted,
         everVerified: isWhitelisted || lastAuthenticated > 0n,
-        entitlement: entitlement.amount,
+        claimUnavailable: entitlement === null,
+        entitlement: entitlement?.amount ?? 0n,
         nextClaimAt,
         balance: balance as bigint,
         decimals,

@@ -41,7 +41,20 @@ const config: HardhatUserConfig = {
   // Etherscan's V2 API, one key for every chain it covers, Celo included. The old
   // per-chain V1 endpoints are retired and answer with a deprecation notice rather than
   // a verification.
-  etherscan: { apiKey: process.env.ETHERSCAN_API_KEY ?? process.env.CELOSCAN_API_KEY ?? "" },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY ?? process.env.CELOSCAN_API_KEY ?? "",
+    // hardhat-verify 2.1.x supports V2 but its bundled chain list omits Celo.
+    // Keep apiKey a string: the plugin then adds chainid=42220 to V2 requests.
+    customChains: [{
+      network: "celo",
+      chainId: 42220,
+      urls: {
+        apiURL: "https://api.etherscan.io/v2/api",
+        browserURL: "https://celoscan.io",
+      },
+    }],
+  },
+  sourcify: { enabled: false },
 };
 
 export default config;

@@ -50,3 +50,24 @@ contract PlanarityHarness {
         return Planarity.isUntangled(edges, xs, ys);
     }
 }
+
+/** Adversarial payment token: callbacks during transfer and fee-on-transfer behavior. */
+contract CallbackG is ERC20 {
+    address public target;
+    bytes public attack;
+    bool public blocked;
+    bool public takeFee;
+    constructor() ERC20("Callback G", "G$") {}
+    function mint(address to, uint256 amount) external { _mint(to, amount); }
+    function configure(address target_, bytes calldata attack_, bool fee_) external { target=target_; attack=attack_; takeFee=fee_; }
+    function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
+        if (target != address(0)) { (bool ok,) = target.call(attack); blocked = !ok; }
+        bool result = super.transferFrom(from, to, amount);
+        if (takeFee) _burn(to, 1);
+        return result;
+    }
+    function transfer(address to, uint256 amount) public override returns (bool) {
+        if (target != address(0)) { (bool ok,) = target.call(attack); blocked = !ok; }
+        return super.transfer(to, amount);
+    }
+}

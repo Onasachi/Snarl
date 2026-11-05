@@ -1,45 +1,50 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { chainIdOf } from "~/chain/roster";
-import { creatureById } from "~/data";
+import { CREATURES, creatureById } from "~/data";
 import type { Pt } from "~/engine";
 import { solvedLayout, toChainPositions } from "~/engine";
+import { nextExplorationIndex } from "~/game/collection";
 import { DAILY_CREATURE, dailySeed, isDailySolved } from "~/game/daily";
 import { giftedCreature, giftFromHash } from "~/game/gift";
-import { Intro } from "~/game/Intro";
 import { MoreSheet } from "~/game/MoreSheet";
 import { PhoneFrame } from "~/game/PhoneFrame";
-import {
-  creatureForPlay,
-  dayKey,
-  grownMoon,
-  MOON_PHASES,
-  MOON_REWARD_NUDGES,
-  nudgesForPot,
-  playCaption,
-  TUTORIAL_KNOTS,
-} from "~/game/progress";
+import { creatureForPlay, nudgesForPot, playCaption, TUTORIAL_KNOTS } from "~/game/progress";
 import { AdminScreen } from "~/game/screens/AdminScreen";
 import { BoardScreen } from "~/game/screens/BoardScreen";
 import { DailySolved } from "~/game/screens/DailySolved";
 import { GiftReceived } from "~/game/screens/GiftReceived";
 import { GiftScreen } from "~/game/screens/GiftScreen";
 import { GreatUntangle } from "~/game/screens/GreatUntangle";
+import { JournalScreen } from "~/game/screens/JournalScreen";
 import { PondScreen } from "~/game/screens/PondScreen";
 import { ProfileScreen } from "~/game/screens/ProfileScreen";
 import { PuzzleScreen } from "~/game/screens/PuzzleScreen";
 import { SplashScreen } from "~/game/screens/SplashScreen";
+import { TrailsScreen } from "~/game/screens/TrailsScreen";
 import { useGame } from "~/game/store";
 import { Toast, useToast } from "~/game/Toast";
 import { freedByLabel, useDailyCount } from "~/game/useDailyCount";
 import { VerifySheet } from "~/game/VerifySheet";
 import { WalletSheet } from "~/game/WalletSheet";
-import { WEEKLY_CREATURE, weekId, weekKey, weeklySeed } from "~/game/weekly";
+import { WEEKLY_CREATURE, weekId, weeklySeed } from "~/game/weekly";
+import { useCalendar } from "~/hooks/useCalendar";
+import { type Trail, trailSeed } from "~/market/types";
 import { claimCardState, formatAmount, type TipStatus } from "~/wallet";
 import { returningFromVerification, useWallet } from "~/wallet/useWallet";
 
-type Screen = "splash" | "puzzle" | "pond" | "gift" | "untangle" | "board" | "weeks" | "you";
+type Screen =
+  | "splash"
+  | "puzzle"
+  | "pond"
+  | "gift"
+  | "untangle"
+  | "board"
+  | "weeks"
+  | "you"
+  | "journal"
+  | "trails";
 /** Ordinary progress through World 1, today's rare knot, or a pass at the week's. */
-type Mode = "progress" | "daily" | "weekly";
+type Mode = "progress" | "daily" | "weekly" | "trail";
 
 /** How long the creatures take to rise into the pond the first time. */
 const INTRO_MS = 3500;
@@ -79,8 +84,16 @@ export function App() {
   // creature is going into that pond, so that is what should be behind it. For someone
   // whose first ever sight of snarl is a gift, that pond is empty and says so.
   const [screen, setScreen] = useState<Screen>(
-    RETURNED_FROM_VERIFICATION || ARRIVED_WITH_GIFT ? "pond" : "splash",
+    new URLSearchParams(window.location.search).has("trail")
+      ? "trails"
+      : RETURNED_FROM_VERIFICATION || ARRIVED_WITH_GIFT
+        ? "pond"
+        : "splash",
   );
+  const [trailRun, setTrailRun] = useState<{ trail: Trail; step: number; preview: boolean } | null>(
+    null,
+  );
+  const completeTrail = useGame((s) => s.completeTrail);
   const [mode, setMode] = useState<Mode>("progress");
   const [intro, setIntro] = useState(false);
   const [dailyRecap, setDailyRecap] = useState(false);
@@ -99,13 +112,18 @@ export function App() {
 
   const hydrated = useGame((s) => s.hydrated);
   const tutorialStep = useGame((s) => s.tutorialStep);
-  const playIndex = useGame((s) => s.playIndex);
+  const storedPlayIndex = useGame((s) => s.playIndex);
+  const freed = useGame((s) => s.freed);
+  const playIndex = useMemo(
+    () => nextExplorationIndex(storedPlayIndex, freed),
+    [storedPlayIndex, freed],
+  );
   const nudges = useGame((s) => s.nudges);
   const lastDailyDay = useGame((s) => s.lastDailyDay);
   const lastDailyAt = useGame((s) => s.lastDailyAt);
   const recordFreed = useGame((s) => s.recordFreed);
   const proofs = useGame((s) => s.proofs);
-  const moon = useGame((s) => s.moon);
+  const openDay = useGame((s) => s.openDay);
   const introSeen = useGame((s) => s.introSeen);
   const markIntroSeen = useGame((s) => s.markIntroSeen);
   const extraNudges = useGame((s) => s.extraNudges);
@@ -118,29 +136,41 @@ export function App() {
   const weeklyEarnedWeek = useGame((s) => s.weeklyEarnedWeek);
   const receiveGift = useGame((s) => s.receiveGift);
 
-  const week = useMemo(() => weekKey(), []);
-
-  const today = useMemo(() => dayKey(), []);
+  const { today, week } = useCalendar(screen === "puzzle");
   const { freed: freedToday, report } = useDailyCount(today);
   const dailySolved = isDailySolved(lastDailyDay, today);
 
-  const inTutorial = tutorialStep < TUTORIAL_KNOTS.length;
+  useEffect(() => {
+    if (hydrated) openDay(today);
+  }, [hydrated, openDay, today]);
+
+  useEffect(() => {
+    if (!dailySolved) setDailyRecap(false);
+  }, [dailySolved]);
+
+  const inTutorial = mode === "progress" && tutorialStep < TUTORIAL_KNOTS.length;
   const isDaily = mode === "daily";
   const isWeekly = mode === "weekly";
-  const creature = isDaily
-    ? DAILY_CREATURE
-    : isWeekly
-      ? WEEKLY_CREATURE
-      : inTutorial
-        ? TUTORIAL_KNOTS[tutorialStep]!
-        : creatureForPlay(playIndex);
-  const seed = isDaily
-    ? dailySeed(today)
-    : isWeekly
-      ? weeklySeed(week)
-      : inTutorial
-        ? tutorialStep
-        : playIndex;
+  const creature =
+    mode === "trail" && trailRun
+      ? CREATURES[trailRun.trail.creatures[trailRun.step]!]!
+      : isDaily
+        ? DAILY_CREATURE
+        : isWeekly
+          ? WEEKLY_CREATURE
+          : inTutorial
+            ? TUTORIAL_KNOTS[tutorialStep]!
+            : creatureForPlay(playIndex);
+  const seed =
+    mode === "trail" && trailRun
+      ? trailSeed(trailRun.trail, trailRun.step)
+      : isDaily
+        ? dailySeed(today)
+        : isWeekly
+          ? weeklySeed(week)
+          : inTutorial
+            ? tutorialStep
+            : playIndex;
   const lastTutorialKnot = tutorialStep === TUTORIAL_KNOTS.length - 1;
 
   const toPond = useCallback((withIntro: boolean) => {
@@ -157,27 +187,57 @@ export function App() {
 
   const next = useCallback(
     (moves: number, pos: readonly Pt[]) => {
-      if (mode !== "weekly") {
+      if (mode === "trail" && trailRun) {
         const { xs, ys } = toChainPositions(pos);
         recordFreed(creature, moves, { xs: xs.map(String), ys: ys.map(String) });
+        if (!trailRun.preview && trailRun.step < 2) {
+          setTrailRun({ ...trailRun, step: trailRun.step + 1 });
+        } else {
+          if (!trailRun.preview && trailRun.trail.id >= 0 && trailRun.trail.owned) {
+            completeTrail(
+              `${trailRun.trail.creator}:${trailRun.trail.id}:${trailRun.trail.seed}`,
+              trailRun.trail.palette,
+            );
+            toast.show("Trail complete. Your new water is waiting in the pond.");
+          } else
+            toast.show(
+              trailRun.preview
+                ? "A little taste. Keep the trail to play all three."
+                : "Playtest complete. Your draft is waiting in Make a trail.",
+            );
+          setMode("progress");
+          setScreen(
+            !trailRun.preview && trailRun.trail.id >= 0 && trailRun.trail.owned ? "pond" : "trails",
+          );
+          setTrailRun(null);
+        }
+        return;
       }
-
       if (isDaily) {
-        recordDailySolved(today);
+        const earned = recordDailySolved(today);
+        if (earned === null) {
+          toPond(false);
+          return;
+        }
+        const { xs, ys } = toChainPositions(pos);
+        recordFreed(creature, moves, { xs: xs.map(String), ys: ys.map(String) });
         void report(moves);
         toPond(false);
-        // Read before the solve is recorded, so it says what just happened.
-        const full = grownMoon(moon) >= MOON_PHASES;
         window.setTimeout(
           () =>
             toast.show(
-              full
-                ? `Full moon. ${MOON_REWARD_NUDGES} nudges are yours.`
-                : "Your moon grew a phase.",
+              earned > 0
+                ? `Full moon. ${earned} nudges are yours.`
+                : "Your moon grew a phase. A new knot arrives tomorrow.",
             ),
           900,
         );
         return;
+      }
+
+      if (mode !== "weekly") {
+        const { xs, ys } = toChainPositions(pos);
+        recordFreed(creature, moves, { xs: xs.map(String), ys: ys.map(String) });
       }
 
       // A pass at the week's knot counts towards the Great Untangle. It does not join the
@@ -208,11 +268,13 @@ export function App() {
         return;
       }
 
-      advancePlay();
-      toPond(false);
+      advancePlay(playIndex + 1);
     },
     [
       advancePlay,
+      playIndex,
+      trailRun,
+      completeTrail,
       completeTutorialStep,
       creature,
       inTutorial,
@@ -284,6 +346,10 @@ export function App() {
   }, [wallet]);
 
   const onClaimAction = useCallback(async () => {
+    if (claimState === "checking") {
+      await wallet.refresh();
+      return;
+    }
     if (claimState === "disconnected") {
       await startConnect();
       return;
@@ -302,16 +368,22 @@ export function App() {
 
   useEffect(() => {
     if (!wallet.error) return;
+    if (wallet.error === "wallet-changed")
+      setScreen((current) => (current === "you" ? "pond" : current));
     toast.show(
-      wallet.error === "no-wallet"
-        ? "No wallet found on this device. Puzzles never need one."
-        : wallet.error === "wrong-chain"
-          ? "Your wallet needs to be on Celo for that."
-          : wallet.error === "rejected"
-            ? "Left as it was."
-            : "That did not go through. Nothing moved.",
+      wallet.error === "wallet-changed"
+        ? "Your wallet account or network changed. Connect again to refresh it."
+        : wallet.error === "no-wallet"
+          ? wallet.emailOffered
+            ? "No wallet found. Choose Log in with email to get started."
+            : "No wallet found. Open snarl in a browser with an EVM wallet."
+          : wallet.error === "wrong-chain"
+            ? "Your wallet needs to be on Celo for that."
+            : wallet.error === "rejected"
+              ? "Left as it was."
+              : "Could not confirm that request. Refresh your wallet status before retrying.",
     );
-  }, [wallet.error, toast]);
+  }, [wallet.emailOffered, wallet.error, toast]);
 
   // The Great Untangle's pool, when there is one. Read on opening the screen, never at
   // startup: a player who never goes there never touches a chain.
@@ -452,6 +524,7 @@ export function App() {
         <SplashScreen
           onBegin={begin}
           enabled={hydrated}
+          returning={tutorialStep >= TUTORIAL_KNOTS.length}
           gate={{
             connected: wallet.account !== null,
             busy: wallet.busy,
@@ -462,45 +535,73 @@ export function App() {
         />
       )}
 
+      {screen === "splash" && (
+        <div style={{ position: "absolute", bottom: 20, left: 20, right: 20 }}>
+          <Toast message={toast.message} />
+        </div>
+      )}
+
       {screen === "puzzle" && (
         <PuzzleScreen
           key={`${creature.id}-${seed}-${tutorialStep}-${mode}`}
           creature={creature}
           seed={seed}
           caption={
-            isWeekly
-              ? "The Great Untangle"
-              : isDaily
-                ? "Daily Snarl · rare"
-                : inTutorial
-                  ? `Tutorial · ${tutorialStep + 1} of ${TUTORIAL_KNOTS.length}`
-                  : playCaption(playIndex)
+            mode === "trail" && trailRun
+              ? `${trailRun.trail.title} · ${trailRun.step + 1} of 3`
+              : isWeekly
+                ? "The Great Untangle"
+                : isDaily
+                  ? "Daily Snarl · rare"
+                  : inTutorial
+                    ? `Tutorial · ${tutorialStep + 1} of ${TUTORIAL_KNOTS.length}`
+                    : playCaption(playIndex)
           }
           hint={
             isDaily
               ? ""
-              : tutorialStep === 0
+              : inTutorial && tutorialStep === 0
                 ? "Drag a bead until no strings cross."
                 : lastTutorialKnot && inTutorial
                   ? "Stuck? Nudge shows one bead to move."
                   : ""
           }
           chips={isDaily ? dailyChips : undefined}
-          withHand={!isDaily && tutorialStep === 0}
-          almostFree={isDaily || tutorialStep > 0}
+          withHand={inTutorial && tutorialStep === 0}
+          almostFree={!inTutorial || tutorialStep > 0}
           showNudge={isDaily || !inTutorial || lastTutorialKnot}
           highlightNudge={!isDaily && inTutorial && lastTutorialKnot}
           nudgesLeft={nudges + extraNudges}
           onSpendNudge={spendNudge}
           onNoNudges={noNudges}
           nextLabel={
-            isWeekly
-              ? `Keep ${WEEKLY_CREATURE.name}`
-              : !isDaily && inTutorial && !lastTutorialKnot
-                ? "Next knot"
-                : "Release to the pond"
+            mode === "trail" && trailRun
+              ? trailRun.preview
+                ? "Back to the trail"
+                : trailRun.step < 2
+                  ? "Next trail knot"
+                  : "Finish trail"
+              : isWeekly
+                ? `Keep ${WEEKLY_CREATURE.name}`
+                : !isDaily && inTutorial && !lastTutorialKnot
+                  ? "Next knot"
+                  : !isDaily && !inTutorial
+                    ? "Keep & free the next one"
+                    : "Release to the pond"
           }
           onNext={next}
+          onPond={
+            mode === "progress" && !inTutorial
+              ? (moves, pos) => {
+                  next(moves, pos);
+                  toPond(false);
+                }
+              : undefined
+          }
+          onBack={() => {
+            setMode("progress");
+            setScreen(mode === "trail" ? "trails" : isWeekly ? "untangle" : "pond");
+          }}
           toast={<Toast message={toast.message} />}
         />
       )}
@@ -515,7 +616,20 @@ export function App() {
           onOpenDaily={openDaily}
           onGift={() => setScreen("gift")}
           onUntangle={() => setScreen("untangle")}
-          onMore={() => setScreen(wallet.account ? "you" : "pond")}
+          onMore={() => (wallet.account ? setScreen("you") : void startConnect())}
+          onJournal={() => setScreen("journal")}
+          onTrails={() => setScreen("trails")}
+          showWelcome={hydrated && !introSeen && !inTutorial && !gift}
+          onDismissWelcome={markIntroSeen}
+          onWelcomeDaily={() => {
+            markIntroSeen();
+            openDaily();
+          }}
+          playLabel={
+            inTutorial
+              ? "Continue learning"
+              : `Free ${creatureForPlay(playIndex).name} · ${playIndex < 10 ? "Explore" : "Mastery"}`
+          }
           {...(wallet.account ? { accountLabel: shortAddress(wallet.account.address) } : {})}
           claim={{
             state: claimState,
@@ -528,6 +642,24 @@ export function App() {
         />
       )}
 
+      {screen === "journal" && (
+        <JournalScreen onBack={() => setScreen("pond")} onTrails={() => setScreen("trails")} />
+      )}
+      {screen === "trails" && (
+        <TrailsScreen
+          wallet={wallet}
+          onBack={() => toPond(false)}
+          onConnect={() => void startConnect()}
+          onVerify={() => setVerifySheet(true)}
+          onClaim={() => void onClaimAction()}
+          onPlay={(trail, preview) => {
+            setTrailRun({ trail, step: 0, preview });
+            setMode("trail");
+            setScreen("puzzle");
+          }}
+        />
+      )}
+
       {wallets.length > 0 && (
         <WalletSheet
           wallets={wallets}
@@ -537,11 +669,6 @@ export function App() {
           }}
           onClose={() => setWallets([])}
         />
-      )}
-
-      {/* Once, on the first pond, and never while a gift or another sheet is up. */}
-      {screen === "pond" && hydrated && !introSeen && !gift && !moreSheet && !verifySheet && (
-        <Intro onDone={markIntroSeen} />
       )}
 
       {moreSheet && (
@@ -601,6 +728,8 @@ export function App() {
         <ProfileScreen
           account={wallet.account}
           status={wallet.status}
+          statusError={wallet.statusError}
+          onRefresh={() => void wallet.refresh()}
           standing={wallet.standing}
           busy={wallet.busy}
           onBack={() => setScreen("pond")}
@@ -620,6 +749,7 @@ export function App() {
           onSettings={() => setMoreSheet(true)}
           onClaimName={wallet.claimName}
           onToast={toast.show}
+          toast={<Toast message={toast.message} />}
         />
       )}
 
@@ -696,7 +826,7 @@ export function App() {
             // it, and it will be in the pond when they get there. But the pond is behind
             // the door, and a gift link is not a way through it.
             const connected = wallet.account !== null;
-            setScreen(connected ? "pond" : "splash");
+            setScreen("pond");
             toast.show(
               connected
                 ? creature

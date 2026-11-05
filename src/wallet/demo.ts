@@ -1,4 +1,5 @@
 import { WEEK_PLANS } from "~/chain/weeks";
+import { demoMarket } from "~/market/demo";
 import type {
   AdminState,
   AdminWeek,
@@ -112,6 +113,12 @@ export const markDemoVerified = (): void => write(VERIFIED_KEY, "yes");
 
 export function createDemoWallet(): WalletPort {
   return {
+    ...demoMarket(
+      DEMO_ADDRESS,
+      () => BigInt(read(BALANCE_KEY) ?? "0"),
+      (amount) => write(BALANCE_KEY, String(BigInt(read(BALANCE_KEY) ?? "0") - amount)),
+      () => read(VERIFIED_KEY) === "yes",
+    ),
     async listWallets() {
       return [];
     },
