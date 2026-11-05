@@ -105,7 +105,13 @@ Setting it up:
 3. Put the id in `.env` as `VITE_WEB3AUTH_CLIENT_ID`.
 
 Celo is pinned in `src/wallet/social.ts`, not left to the dashboard: the SDK uses only the
-chains it is given, so the wallet is on Celo whatever the dashboard says.
+chains it is given, so the wallet is on Celo whatever the dashboard says. The window draws
+in the game's own theme rather than arriving white over a dark pond.
+
+**On localhost the console says `[hCaptcha] Warning: localhost detected`.** The window
+still opens, but a sign-in may not complete there — test that part on a real host. Note
+too that Web3Auth's own window offers MetaMask and several hundred other wallets, so with
+this switched on it is a way in for people who do have a wallet as well.
 
 Signing in this way does not make somebody a verified person: GoodDollar's face check is
 tied to an address, and an address made by logging in with Google starts unverified like

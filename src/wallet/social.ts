@@ -43,9 +43,15 @@ export async function connectSocially(): Promise<Eip1193Provider> {
       ? WEB3AUTH_NETWORK.SAPPHIRE_DEVNET
       : WEB3AUTH_NETWORK.SAPPHIRE_MAINNET;
 
+  // Web3Auth draws its own window, so it is told which way round the game currently is
+  // rather than arriving white over a dark pond. `data-theme` is what the rest of the
+  // app styles itself from, so it is the honest source.
+  const paper = document.querySelector('[data-theme="paper"]') !== null;
+
   const web3auth = new Web3Auth({
     clientId: CLIENT_ID,
     web3AuthNetwork: network,
+    uiConfig: { mode: paper ? "light" : "dark" },
     chains: [
       {
         chainNamespace: CHAIN_NAMESPACES.EIP155,
