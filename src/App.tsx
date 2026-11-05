@@ -66,6 +66,9 @@ const ARRIVED_WITH_GIFT = takeGiftFromUrl();
  */
 const ASKED_FOR_ADMIN = new URLSearchParams(window.location.search).has("weeks");
 
+/** `0x5ab1…0001`: enough to recognise an address by, short enough for a header. */
+const shortAddress = (address: string): string => `${address.slice(0, 6)}…${address.slice(-4)}`;
+
 export function App() {
   // Coming back from the face check lands on the pond, where they left off, rather than
   // on the splash screen as if they had just arrived. A gift link lands there too: the
@@ -494,6 +497,7 @@ export function App() {
           onGift={() => setScreen("gift")}
           onUntangle={() => setScreen("untangle")}
           onMore={() => setMoreSheet(true)}
+          {...(wallet.account ? { accountLabel: shortAddress(wallet.account.address) } : {})}
           claim={{
             state: claimState,
             status: wallet.status,

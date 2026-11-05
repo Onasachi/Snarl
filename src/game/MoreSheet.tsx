@@ -63,43 +63,6 @@ export function MoreSheet({
           animation: "sn-up .35s cubic-bezier(.2,.8,.2,1) both",
         }}
       >
-        <fieldset style={{ border: "none", margin: 0, padding: 0 }}>
-          <legend
-            style={{
-              fontSize: 12,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--ink2)",
-              padding: 0,
-            }}
-          >
-            Pond
-          </legend>
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            {(["night", "paper"] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => chooseTheme(option)}
-                aria-pressed={theme === option}
-                style={{
-                  flex: 1,
-                  minHeight: 48,
-                  border: `1px solid ${theme === option ? "var(--ink)" : "var(--card-line)"}`,
-                  borderRadius: 14,
-                  background: "transparent",
-                  color: "var(--ink)",
-                  fontSize: 16,
-                  textTransform: "capitalize",
-                  cursor: "pointer",
-                }}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
         {account && (
           <div
             style={{
@@ -158,6 +121,43 @@ export function MoreSheet({
             </button>
           </div>
         )}
+
+        <fieldset style={{ border: "none", margin: 0, padding: 0 }}>
+          <legend
+            style={{
+              fontSize: 12,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--ink2)",
+              padding: 0,
+            }}
+          >
+            Pond
+          </legend>
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            {(["night", "paper"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => chooseTheme(option)}
+                aria-pressed={theme === option}
+                style={{
+                  flex: 1,
+                  minHeight: 48,
+                  border: `1px solid ${theme === option ? "var(--ink)" : "var(--card-line)"}`,
+                  borderRadius: 14,
+                  background: "transparent",
+                  color: "var(--ink)",
+                  fontSize: 16,
+                  textTransform: "capitalize",
+                  cursor: "pointer",
+                }}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </fieldset>
 
         <button
           type="button"

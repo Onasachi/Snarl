@@ -45,6 +45,7 @@ export function PondScreen({
   onGift,
   onUntangle,
   onMore,
+  accountLabel,
   claim,
   toast,
 }: {
@@ -58,6 +59,8 @@ export function PondScreen({
   onGift: () => void;
   onUntangle: () => void;
   onMore: () => void;
+  /** A name or a short address, shown in place of "More" once somebody is signed in. */
+  accountLabel?: string;
   /** Rendered above the bottom stack. */
   toast: ReactNode;
   /** The G$ layer. Entirely optional: with no wallet the pond is exactly as it was. */
@@ -104,7 +107,10 @@ export function PondScreen({
           <HeaderButton onClick={onGift} muted={false}>
             Gift
           </HeaderButton>
-          <HeaderButton onClick={onMore}>More</HeaderButton>
+          {/* Who you are, where you can see it. The game asks for a login before it
+              will start, so "which account am I in?" should not be a question answered
+              three taps deep under a theme picker. */}
+          <HeaderButton onClick={onMore}>{accountLabel ?? "More"}</HeaderButton>
         </div>
       </header>
 
