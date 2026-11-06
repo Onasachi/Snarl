@@ -79,6 +79,31 @@ async function setup() {
 
 const forked = Boolean(process.env.FORK);
 
+(forked ? describe : describe.skip)("SnarlGame on a Celo fork", () => {
+  it("records an unverified wallet and sells supplies using Celo's actual G$ token", async () => {
+    await network.provider.send("evm_mine", []);
+    // A fresh recipient isolates purchases from any existing G$ streams at the fork point.
+    const treasury = ethers.Wallet.createRandom();
+    const player = await human(NOT_VERIFIED);
+    const identity = new ethers.Contract(CELO.identity, identityAbi, ethers.provider);
+    expect(await identity.getWhitelistedRoot(player.address)).to.equal(ethers.ZeroAddress);
+    const game = await (await ethers.getContractFactory("SnarlGame")).deploy(CELO.g$, treasury.address);
+    const g$ = new ethers.Contract(CELO.g$, erc20Abi, player);
+    const faucet = await human(CELO.ubi);
+    await (g$.connect(faucet) as any).transfer(player.address, ethers.parseEther("325"));
+    await g$.approve(await game.getAddress(), ethers.parseEther("325"));
+    const before = await g$.balanceOf(treasury.address);
+    for (const item of [0, 1, 2]) await game.connect(player).buy(item);
+    expect((await g$.balanceOf(treasury.address)) - before).to.equal(ethers.parseEther("325"));
+    expect(await game.sales()).to.equal(3);
+    expect(await game.purchasedUnits(player.address, 0)).to.equal(5);
+    expect(await game.purchasedUnits(player.address, 1)).to.equal(3);
+    expect(await game.purchasedUnits(player.address, 2)).to.equal(3);
+    await game.connect(player).recordRun({ id: ethers.id("adventure:1"), level: 1, crossings: 2, moves: 1, par: 3, assisted: false, solutionHash: ethers.id("frontend-checked") });
+    expect((await game.players(player.address)).points).to.equal(45);
+  });
+});
+
 (forked ? describe : describe.skip)("SnarlWeekly on a Celo fork", () => {
   before(async () => {
     // Hardhat treats the fork block itself as history it has no hardfork rules for, so

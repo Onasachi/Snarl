@@ -71,6 +71,40 @@ async function expectedRuntime(fullyQualified: string, values: string[]) {
 async function main() {
   console.log(`network ${network.name}\n`);
 
+  if (process.env.GAME) {
+    const address = process.env.GAME;
+    const treasury = process.env.GAME_TREASURY;
+    if (!treasury || !ethers.isAddress(treasury) || treasury === ethers.ZeroAddress)
+      throw new Error("Set GAME_TREASURY to the intended recipient when checking GAME");
+    console.log(`SnarlGame ${address}`);
+    check("chain is Celo", (await ethers.provider.getNetwork()).chainId, 42220);
+    const game = await ethers.getContractAt("SnarlGame", address);
+    const code = await ethers.provider.getCode(address);
+    check("has code", code !== "0x", true);
+    check("token is G$", await game.token(), CELO.g$);
+    check("treasury is intended recipient", await game.treasury(), treasury);
+    check("bytecode is this source", code, await expectedRuntime("contracts/SnarlGame.sol:SnarlGame", [CELO.g$, treasury]));
+    for (const [item, price, units] of [[0, "100", 5], [1, "150", 3], [2, "75", 3]] as const) {
+      const offer = await game.offer(item);
+      check(`item ${item} price`, offer[0], ethers.parseEther(price));
+      check(`item ${item} units`, offer[1], units);
+    }
+    const account = "0x1111111111111111111111111111111111111111";
+    const identity = new ethers.Contract(CELO.identity, ["function getWhitelistedRoot(address) view returns (address)"], ethers.provider);
+    check("simulation wallet unverified", await identity.getWhitelistedRoot(account), ethers.ZeroAddress);
+    const block = await ethers.provider.getBlockNumber();
+    await game.connect(new ethers.VoidSigner(account, ethers.provider)).recordRun.staticCall({
+      id: ethers.id(`deployment-check:${address}:${block}`), level: 1, crossings: 2, moves: 1,
+      par: 3, assisted: false, solutionHash: ethers.id("read-only-simulation"),
+    });
+    console.log("  ok    unverified wallet record simulation (eth_call only)");
+    console.log(`  --    block                              ${block}`);
+    console.log(`  --    recorded runs                      ${await game.runCount()}`);
+    console.log(`  --    sales                              ${await game.sales()}`);
+    console.log(`  --    volume                             ${ethers.formatEther(await game.volume())} G$`);
+    console.log();
+  }
+
   if (process.env.TRAILS) {
     const address = process.env.TRAILS;
     const treasury = process.env.TRAIL_TREASURY;

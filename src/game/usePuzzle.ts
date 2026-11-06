@@ -56,6 +56,8 @@ export interface UsePuzzleOptions {
   onNoNudges: () => void;
   /** The drifting finger, for the very first knot only. */
   withHand?: boolean;
+  onSpendGuide?: () => boolean;
+  onSpendGlimpse?: () => boolean;
 }
 
 export function usePuzzle({
@@ -65,11 +67,17 @@ export function usePuzzle({
   onSpendNudge,
   onNoNudges,
   withHand = false,
+  onSpendGuide,
+  onSpendGlimpse,
 }: UsePuzzleOptions) {
   const reduce = useReducedMotion();
   const home = useMemo(() => solvedLayout(creature.nodes, BOARD_PAD), [creature]);
 
   const [pos, setPos] = useState<Pt[]>(home);
+  const [solution, setSolution] = useState<Pt[] | null>(null);
+  const [initialCrossings, setInitialCrossings] = useState(0);
+  const [assisted, setAssisted] = useState(false);
+  const [glimpse, setGlimpse] = useState(false);
   const [crossings, setCrossings] = useState<Crossing[]>([]);
   const [phase, setPhase] = useState<PuzzlePhase>("play");
   const [moves, setMoves] = useState(0);
@@ -125,6 +133,10 @@ export function usePuzzle({
     posRef.current = tangled;
 
     setPos(tangled);
+    setSolution(null);
+    setInitialCrossings(cr.length);
+    setAssisted(false);
+    setGlimpse(false);
     setCrossings(cr);
     setPhase("play");
     setMoves(0);
@@ -175,6 +187,9 @@ export function usePuzzle({
   );
 
   const solve = useCallback(() => {
+    // Unfurl animates pos into the creature's illustration. Keep the player's actual
+    // crossing-free drawing before that animation changes it.
+    setSolution(copy(posRef.current));
     setPhase("inhale");
     later(
       () => {
@@ -399,9 +414,36 @@ export function usePuzzle({
     audio.init();
     audio.chime();
     setNudge(findNudge(posRef.current, creature.edges));
+    setAssisted(true);
     onSpendNudge();
     later(() => setNudge(null), NUDGE_MS);
   }, [creature, later, nudgesLeft, onNoNudges, onSpendNudge, phase]);
+
+  const useGuide = useCallback(() => {
+    if (phase !== "play") return;
+    const hint = findNudge(posRef.current, creature.edges);
+    if (hint.gain <= 0 || !onSpendGuide?.()) return;
+    const next = copy(posRef.current);
+    setHistory((h) => h.concat([copy(next)]));
+    next[hint.i] = [...hint.to];
+    const cr = allCrossings(next, creature.edges);
+    commit(next);
+    setCrossings(cr);
+    prevKeys.current = new Set(cr.map(key));
+    setMoves((m) => m + 1);
+    setAssisted(true);
+    setNudge(null);
+    setHand(null);
+    keyboardBead.current = -1;
+    audio.chime();
+    if (cr.length === 0) solve();
+  }, [phase, creature, onSpendGuide, commit, solve]);
+  const useGlimpse = useCallback(() => {
+    if (phase !== "play" || glimpse || !onSpendGlimpse?.()) return;
+    setAssisted(true);
+    setGlimpse(true);
+    later(() => setGlimpse(false), 4000);
+  }, [phase, glimpse, onSpendGlimpse, later]);
 
   const free = phase === "unfurl" || phase === "free";
   const shown = free || phase === "inhale" ? 0 : crossings.length;
@@ -409,6 +451,13 @@ export function usePuzzle({
   return {
     creature,
     pos,
+    solution,
+    initialCrossings,
+    assisted,
+    glimpse,
+    home,
+    useGuide,
+    useGlimpse,
     phase,
     free,
     /** What the counter reads. Zero the moment the puzzle is solved, before the Unfurl. */

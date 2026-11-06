@@ -1,6 +1,8 @@
 import { type ReactNode, useEffect } from "react";
 import type { Pt } from "~/engine";
 import { NameCard } from "~/game/NameCard";
+import { RescueActions, type RescueControls, type SolveStats } from "~/game/RescueActions";
+import { runPoints } from "~/game/results";
 import { ToolButton } from "~/game/Tools";
 import { type UsePuzzleOptions, usePuzzle } from "~/game/usePuzzle";
 import { CreatureSvg } from "~/render/CreatureSvg";
@@ -21,10 +23,10 @@ export interface PuzzleScreenProps extends UsePuzzleOptions {
    * that drawing to the contract, so it is theirs on chain rather than a layout the game
    * supplied for them.
    */
-  onNext: (moves: number, pos: readonly Pt[]) => void;
+  onNext: (moves: number, pos: readonly Pt[], stats: SolveStats) => void;
   /** Leave an unfinished knot; its starting layout can be tried again later. */
   onBack?: () => void;
-  onPond?: ((moves: number, pos: readonly Pt[]) => void) | undefined;
+  onPond?: ((moves: number, pos: readonly Pt[], stats: SolveStats) => void) | undefined;
   /** Draws attention to Nudge the first time it is available. */
   highlightNudge?: boolean;
   showNudge?: boolean;
@@ -37,6 +39,8 @@ export interface PuzzleScreenProps extends UsePuzzleOptions {
    */
   almostFree?: boolean;
   onSolved?: () => void;
+  rescue?: RescueControls | undefined;
+  supplies?: { guide: number; glimpse: number; onShop: () => void };
 }
 
 export function PuzzleScreen({
@@ -52,10 +56,14 @@ export function PuzzleScreen({
   almostFree = true,
   toast,
   onSolved,
+  rescue,
+  supplies,
   ...options
 }: PuzzleScreenProps) {
   const p = usePuzzle(options);
   const { creature } = options;
+  const solution = p.solution ?? p.pos;
+  const stats = { initialCrossings: p.initialCrossings, assisted: p.assisted };
 
   useEffect(() => {
     if (p.phase === "free") onSolved?.();
@@ -65,7 +73,12 @@ export function PuzzleScreen({
   const liveHint = p.phase === "play" ? (nearlyThere ? "Almost free." : hint) : "";
 
   const shownChips =
-    chips ?? (p.underPar ? ["Shell earned · under par"] : [`Freed in ${p.moves} moves`]);
+    chips ??
+    (p.assisted
+      ? ["Freed with a little help"]
+      : p.underPar
+        ? ["Shell earned · under par"]
+        : [`Freed in ${p.moves} moves`]);
 
   return (
     <>
@@ -112,6 +125,11 @@ export function PuzzleScreen({
           </span>
         </div>
 
+        <p style={{ margin: "5px 0 0", color: "var(--ink2)", fontSize: 12 }}>
+          {p.initialCrossings} starting crossings · {p.initialCrossings * 10} points
+          {" · +25 under par without help"}
+        </p>
+
         {/* The board itself is a drawing a screen reader cannot usefully walk, so the
             count is the thing that speaks, and it speaks whenever it changes. */}
         <div
@@ -155,6 +173,7 @@ export function PuzzleScreen({
         <div
           style={{
             width: "100%",
+            position: "relative",
             aspectRatio: "1 / 1",
             maxHeight: "100%",
             transform: p.phase === "inhale" ? "scale(0.95)" : "scale(1)",
@@ -179,13 +198,30 @@ export function PuzzleScreen({
             sw={1.6}
             hit={6.8}
             svgRef={p.svgRef}
-            onBeadDown={p.onBeadDown}
-            onBeadKeyDown={p.onBeadKeyDown}
-            onBeadFocus={p.onBeadFocus}
+            onBeadDown={p.phase === "play" ? p.onBeadDown : undefined}
+            onBeadKeyDown={p.phase === "play" ? p.onBeadKeyDown : undefined}
+            onBeadFocus={p.phase === "play" ? p.onBeadFocus : undefined}
             onPointerMove={p.onPointerMove}
             onPointerUp={p.onPointerUp}
             onPointerCancel={p.onPointerUp}
           />
+          {p.glimpse && (
+            <div
+              role="img"
+              aria-label="Untangled shape preview"
+              style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.5 }}
+            >
+              <CreatureSvg
+                creature={creature}
+                pos={p.home}
+                state="free"
+                eyes="open"
+                r={4.6}
+                sw={1.6}
+                still
+              />
+            </div>
+          )}
         </div>
       </main>
 
@@ -205,10 +241,12 @@ export function PuzzleScreen({
 
       <div
         data-bottom-stack
+        aria-hidden={p.phase !== "play"}
         style={{
           position: "relative",
           display: "flex",
           justifyContent: "center",
+          flexWrap: "wrap",
           gap: 10,
           padding: "16px 20px calc(20px + env(safe-area-inset-bottom))",
           opacity: p.phase === "play" ? 1 : 0,
@@ -217,10 +255,10 @@ export function PuzzleScreen({
         }}
       >
         {toast}
-        <ToolButton onClick={p.undo} dim={!p.canUndo} disabled={!p.canUndo}>
+        <ToolButton onClick={p.undo} dim={!p.canUndo} disabled={!p.canUndo || p.phase !== "play"}>
           Undo
         </ToolButton>
-        <ToolButton onClick={p.toggleCalm} active={p.calm}>
+        <ToolButton onClick={p.toggleCalm} active={p.calm} disabled={p.phase !== "play"}>
           Calm view
         </ToolButton>
         {showNudge && (
@@ -228,19 +266,58 @@ export function PuzzleScreen({
             onClick={p.requestNudge}
             attention={highlightNudge}
             dim={options.nudgesLeft === 0}
+            disabled={p.phase !== "play"}
           >
             Hint <span className="tnum">{options.nudgesLeft}</span>
           </ToolButton>
+        )}
+        {supplies && (
+          <div className="sn-puzzle-boosts" style={{ flexBasis: "100%" }}>
+            <button
+              type="button"
+              disabled={p.phase !== "play"}
+              onClick={supplies.guide ? p.useGuide : supplies.onShop}
+            >
+              ↗ Helping hand · {supplies.guide || "G$"}
+            </button>
+            <button
+              type="button"
+              disabled={p.glimpse || p.phase !== "play"}
+              onClick={supplies.glimpse ? p.useGlimpse : supplies.onShop}
+            >
+              ◉ Firefly vision · {supplies.glimpse || "G$"}
+            </button>
+            <button type="button" disabled={p.phase !== "play"} onClick={supplies.onShop}>
+              Shop G$ →
+            </button>
+          </div>
         )}
       </div>
 
       {p.card && (
         <NameCard
           creature={creature}
-          chips={shownChips}
+          chips={[
+            ...shownChips,
+            `${p.initialCrossings} crossings cleared · ${runPoints(p.initialCrossings, p.moves, creature.par, p.assisted)} pts`,
+          ]}
           actionLabel={nextLabel}
-          onAction={() => onNext(p.moves, p.pos)}
-          onPond={onPond ? () => onPond(p.moves, p.pos) : undefined}
+          onAction={() => onNext(p.moves, solution, stats)}
+          onPond={onPond ? () => onPond(p.moves, solution, stats) : undefined}
+          actions={
+            rescue && (
+              <RescueActions
+                key={rescue.account?.address ?? "disconnected"}
+                controls={rescue}
+                moves={p.moves}
+                solution={solution}
+                stats={stats}
+                nextLabel={nextLabel}
+                onContinue={() => onNext(p.moves, solution, stats)}
+                onPond={onPond ? () => onPond(p.moves, solution, stats) : undefined}
+              />
+            )
+          }
         />
       )}
     </>

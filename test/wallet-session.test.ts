@@ -11,6 +11,7 @@ const adapter = vi.hoisted(() => ({
 vi.mock("~/wallet/index", () => ({
   ...adapter,
   boardAvailable: () => false,
+  gameAvailable: () => false,
   emailLoginOffered: () => false,
   wantsDemoWallet: () => false,
 }));

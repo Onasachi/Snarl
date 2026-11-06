@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import "./theme/base.css";
 import "./theme/home.css";
+import "./theme/adventure.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("no #root to mount into");

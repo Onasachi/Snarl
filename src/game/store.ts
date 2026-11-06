@@ -14,6 +14,8 @@ import {
   nudgesForDay,
   TUTORIAL_KNOTS,
 } from "./progress";
+import type { GameRun } from "./results";
+import { emptySupplies, type Supply, type SupplyCounts } from "./supplies";
 import { nextWeeklySolves } from "./weekly";
 
 /** One creature in the pond, in the order it was freed. */
@@ -51,6 +53,18 @@ export interface Drawing {
 }
 
 interface GameState {
+  gameRuns: Record<string, GameRun>;
+  saveGameRun: (run: GameRun) => void;
+  adventureLevel: number;
+  adventureResults: Record<
+    number,
+    { moves: number; stars: number; crossings: number; points: number; assisted: boolean }
+  >;
+  completeAdventure: (level: number, result: GameState["adventureResults"][number]) => void;
+  supplyPurchased: Record<string, SupplyCounts>;
+  supplySpent: Record<string, SupplyCounts>;
+  syncSupplies: (wallet: string, counts: SupplyCounts) => void;
+  spendSupply: (wallet: string, item: Supply) => boolean;
   /** False until IndexedDB has been read. The pond must not flash empty before then. */
   hydrated: boolean;
   pondPalette: number;
@@ -109,7 +123,7 @@ interface GameState {
   receiveGift: (creature: Creature, from?: string) => void;
   completeTutorialStep: () => void;
   advancePlay: (nextIndex?: number) => void;
-  spendNudge: () => void;
+  spendNudge: (wallet?: string) => void;
   /** Credited after G$ has actually reached the pool, never before. */
   addExtraNudges: (count: number) => void;
   /** Returns bonus nudges earned, or null when this day was already recorded. */
@@ -152,6 +166,37 @@ export const useGame = create<GameState>()(
   persist(
     (setState, getState) => ({
       hydrated: false,
+      gameRuns: {},
+      saveGameRun: (run) =>
+        setState((s) => ({ gameRuns: { ...s.gameRuns, [run.id]: s.gameRuns[run.id] ?? run } })),
+      adventureLevel: 1,
+      adventureResults: {},
+      completeAdventure: (level, result) =>
+        setState((s) => {
+          if (level > s.adventureLevel || level < 1) return {};
+          const previous = s.adventureResults[level];
+          return {
+            adventureLevel: Math.max(s.adventureLevel, level + 1),
+            adventureResults: {
+              ...s.adventureResults,
+              [level]: previous && previous.stars > result.stars ? previous : result,
+            },
+          };
+        }),
+      supplyPurchased: {},
+      supplySpent: {},
+      syncSupplies: (wallet, counts) =>
+        setState((s) => ({
+          supplyPurchased: { ...s.supplyPurchased, [wallet.toLowerCase()]: counts },
+        })),
+      spendSupply: (wallet, item) => {
+        const key = wallet.toLowerCase();
+        const s = getState();
+        const used = s.supplySpent[key] ?? emptySupplies();
+        if ((s.supplyPurchased[key]?.[item] ?? 0) <= used[item]) return false;
+        setState({ supplySpent: { ...s.supplySpent, [key]: { ...used, [item]: used[item] + 1 } } });
+        return true;
+      },
       pondPalette: 0,
       unlockedPalettes: [0],
       completedTrails: [],
@@ -229,10 +274,12 @@ export const useGame = create<GameState>()(
       advancePlay: (nextIndex) => setState((s) => ({ playIndex: nextIndex ?? s.playIndex + 1 })),
 
       // The day's free ones first. Something bought should still be there tomorrow.
-      spendNudge: () =>
-        setState((s) =>
-          s.nudges > 0 ? { nudges: s.nudges - 1 } : { extraNudges: Math.max(0, s.extraNudges - 1) },
-        ),
+      spendNudge: (wallet) => {
+        const s = getState();
+        if (s.nudges > 0) setState({ nudges: s.nudges - 1 });
+        else if (s.extraNudges > 0) setState({ extraNudges: s.extraNudges - 1 });
+        else if (wallet) s.spendSupply(wallet, "hint");
+      },
 
       addExtraNudges: (count) => setState((s) => ({ extraNudges: s.extraNudges + count })),
 
@@ -293,6 +340,9 @@ export const useGame = create<GameState>()(
       clearProgress: async () => {
         await del(KEY);
         setState({
+          adventureLevel: 1,
+          adventureResults: {},
+          gameRuns: {},
           pondPalette: 0,
           unlockedPalettes: [0],
           completedTrails: [],

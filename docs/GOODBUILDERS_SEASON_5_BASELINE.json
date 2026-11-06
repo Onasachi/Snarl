@@ -1,0 +1,78 @@
+{
+  "chain": "Celo",
+  "chainId": 42220,
+  "block": "82059830",
+  "checkedAt": "2026-11-06T10:23:08.000Z",
+  "contracts": {
+    "SnarlTrails": {
+      "address": "0xF55E8f7330B89659c7B835eA1043657A45393bdA",
+      "hasBytecode": true
+    },
+    "SnarlGifts": {
+      "address": "0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B",
+      "hasBytecode": true
+    },
+    "SnarlNames": {
+      "address": "0x608e899633239d46055838BB267Bbf13b067975b",
+      "hasBytecode": true
+    },
+    "SnarlBoard": {
+      "address": "0xa0478a7fAE7917D42B0D99E0f3a307cfe9C01342",
+      "hasBytecode": true
+    },
+    "SnarlWeekly": {
+      "address": "0x4B901584C3AdD752a1bc25415D2a1997A7701612",
+      "hasBytecode": true
+    }
+  },
+  "market": {
+    "count": "0",
+    "sales": "0",
+    "buyers": "0",
+    "verifiedBuyers": "0",
+    "creators": "0",
+    "repeatBuyers": "0",
+    "volume": "0",
+    "creatorRevenue": "0",
+    "protocolRevenue": "0",
+    "volumeG$": "0",
+    "creatorRevenueG$": "0",
+    "protocolRevenueG$": "0"
+  },
+  "boardPlayers": "0",
+  "weeklyPlayers": "0",
+  "gameDeploymentCheck": {
+    "chain": "Celo",
+    "chainId": 42220,
+    "block": "82064989",
+    "checkedOn": "2026-11-06",
+    "address": "0x153ebE103cBB8E8C1fc4F3346f4504B6DeCDe071",
+    "token": "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
+    "treasury": "0xf6928F774B993588D76c30c380058Aa0A6c26684",
+    "runtimeMatchesLocalSource": true,
+    "unverifiedWalletRecordSimulationPassed": true,
+    "simulationWasReadOnly": true,
+    "runCount": "0",
+    "sales": "0",
+    "volume": "0",
+    "volumeG$": "0",
+    "offers": [
+      {
+        "item": 0,
+        "units": 5,
+        "priceG$": "100"
+      },
+      {
+        "item": 1,
+        "units": 3,
+        "priceG$": "150"
+      },
+      {
+        "item": 2,
+        "units": 3,
+        "priceG$": "75"
+      }
+    ],
+    "note": "Separate later deployment check; the initial snapshot above predates SnarlGame. No guest-user or retention inference is made from these counters."
+  }
+}

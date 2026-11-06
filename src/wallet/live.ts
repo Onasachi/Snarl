@@ -23,6 +23,7 @@ import { snarlNamesAbi } from "~/chain/snarlNames";
 import { snarlWeeklyAbi } from "~/chain/snarlWeekly";
 import { planFor, WEEK_PLANS, WEEKLY_KNOT } from "~/chain/weeks";
 import { liveMarket } from "~/market/live";
+import { liveGame } from "./game";
 import type {
   Address,
   AdminState,
@@ -36,6 +37,7 @@ import type {
   WeekStatus,
 } from "./port";
 import type { AnnouncedProvider, Eip1193Provider } from "./provider";
+import { rescueRecorder } from "./rescue";
 import {
   connectSocially,
   SOCIAL_ID,
@@ -291,7 +293,24 @@ export function createLiveWallet(): WalletPort {
     return { provider, address, claimSdk, identitySdk };
   }
 
+  const transactionSigner = async () => {
+    const { provider } = await ready();
+    if (Number(await provider.request({ method: "eth_chainId" })) !== CELO_ID)
+      throw new Error("wrong-chain");
+    if (!walletClient) throw new Error("no-wallet");
+    return walletClient as unknown as WalletClient;
+  };
+  const recordRescue = BOARD_ADDRESS
+    ? rescueRecorder(publicClient as unknown as PublicClient, BOARD_ADDRESS, transactionSigner)
+    : null;
+
   return {
+    ...liveGame(
+      publicClient as unknown as PublicClient,
+      contracts!.g$Contract,
+      () => address,
+      transactionSigner,
+    ),
     ...liveMarket(
       publicClient as unknown as PublicClient,
       contracts!.g$Contract,
@@ -694,20 +713,28 @@ export function createLiveWallet(): WalletPort {
       // offering them a name they already took.
       let mine = rows.find((row) => row.root === root) ?? null;
       if (!mine && root) {
-        const name = NAMES_ADDRESS
-          ? await publicClient.readContract({
-              address: NAMES_ADDRESS,
-              abi: snarlNamesAbi,
-              functionName: "nameOf",
-              args: [root],
-            })
-          : "";
+        const [name, record] = await Promise.all([
+          NAMES_ADDRESS
+            ? await publicClient.readContract({
+                address: NAMES_ADDRESS,
+                abi: snarlNamesAbi,
+                functionName: "nameOf",
+                args: [root],
+              })
+            : "",
+          publicClient.readContract({
+            address: BOARD_ADDRESS,
+            abi: snarlBoardAbi,
+            functionName: "records",
+            args: [root],
+          }),
+        ]);
         mine = {
           root,
           name,
-          untangles: 0,
-          distinct: 0,
-          freed: 0n,
+          untangles: record[0],
+          distinct: record[1],
+          freed: record[3],
           weeks: 0,
           streak: 0,
           bestStreak: 0,
@@ -733,20 +760,9 @@ export function createLiveWallet(): WalletPort {
       await publicClient.waitForTransactionReceipt({ hash });
     },
 
-    async proveUntangle(creature: number, xs: bigint[], ys: bigint[]) {
-      if (!BOARD_ADDRESS) throw new Error("no-contract");
-      const { address: account } = await ready();
-      if (!walletClient) throw new Error("wallet not connected");
-
-      const hash = await walletClient.writeContract({
-        address: BOARD_ADDRESS,
-        abi: snarlBoardAbi,
-        functionName: "prove",
-        args: [creature, xs, ys],
-        account,
-        chain: celo,
-      });
-      await publicClient.waitForTransactionReceipt({ hash });
+    async proveUntangle(creature, xs, ys, options) {
+      if (!recordRescue) throw new Error("no-contract");
+      return recordRescue(creature, xs, ys, options);
     },
 
     async backWeek(week: number, amount: bigint) {

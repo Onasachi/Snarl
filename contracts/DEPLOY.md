@@ -21,6 +21,7 @@ with each one being absent.
 
 | contract | address | owner |
 |---|---|---|
+| `SnarlGame` | [`0x153ebE103cBB8E8C1fc4F3346f4504B6DeCDe071`](https://celoscan.io/address/0x153ebE103cBB8E8C1fc4F3346f4504B6DeCDe071) | none; immutable treasury `0xf6928F774B993588D76c30c380058Aa0A6c26684` |
 | `SnarlTrails` | [`0xF55E8f7330B89659c7B835eA1043657A45393bdA`](https://celoscan.io/address/0xF55E8f7330B89659c7B835eA1043657A45393bdA) | none, ever; immutable treasury `0xf6928F774B993588D76c30c380058Aa0A6c26684` |
 | `SnarlGifts` | [`0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B`](https://celoscan.io/address/0x06Cf5deeB69D331DCdf37897BDc5337ba663Ed2B) | none, ever |
 | `SnarlNames` | [`0x608e899633239d46055838BB267Bbf13b067975b`](https://celoscan.io/address/0x608e899633239d46055838BB267Bbf13b067975b) | none, ever |
@@ -28,6 +29,18 @@ with each one being absent.
 | `SnarlWeekly` | [`0x4B901584C3AdD752a1bc25415D2a1997A7701612`](https://celoscan.io/address/0x4B901584C3AdD752a1bc25415D2a1997A7701612) | the deployer, for now |
 
 Check any of them back against this repository at any time — read-only, no key:
+
+For the gameplay records and supply shop (see [the launch guide](../docs/ADVENTURE_AND_GD_LAUNCH.md)):
+
+```sh
+env -u PRIVATE_KEY GAME=0x153ebE103cBB8E8C1fc4F3346f4504B6DeCDe071 GAME_TREASURY=0xf6928F774B993588D76c30c380058Aa0A6c26684 pnpm exec hardhat run scripts/check-live.ts --network celo
+```
+
+Checked November 6, 2026 at block 82,064,989: runtime bytecode matched the local
+source, token and treasury matched, all three prices and unit counts matched, and
+an unverified wallet successfully simulated `recordRun` using `eth_call`.
+There were zero recorded runs, sales and G$ volume at this check. This bytecode
+comparison is separate from publishing verified source on CeloScan.
 
 For the newly deployed trail market:
 

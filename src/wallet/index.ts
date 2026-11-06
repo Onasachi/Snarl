@@ -32,6 +32,8 @@ export const wantsDemoWallet = (): boolean =>
  */
 export const boardAvailable = (): boolean =>
   wantsDemoWallet() || import.meta.env.VITE_SNARL_BOARD !== undefined;
+export const gameAvailable = (): boolean =>
+  wantsDemoWallet() || Boolean(import.meta.env.VITE_SNARL_GAME);
 
 /**
  * Loaded on demand, never at startup. Most players never open a wallet, and they should

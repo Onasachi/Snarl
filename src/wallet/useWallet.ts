@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { GameRun } from "~/game/results";
 import type { Trail, TrailDraft } from "~/market/types";
 import {
   boardAvailable,
   createWallet,
   emailLoginOffered,
+  gameAvailable,
   walletAvailable,
   wantsDemoWallet,
 } from "./index";
 import type {
   AdminState,
   ClaimStatus,
+  RescueOptions,
+  RescueReceipt,
   Standing,
   TipStatus,
   WalletAccount,
@@ -82,7 +86,15 @@ export const returningFromVerification = (): boolean => {
   }
 };
 
-export type WalletError = "wallet-changed" | "no-wallet" | "wrong-chain" | "rejected" | "failed";
+export type WalletError =
+  | "wallet-changed"
+  | "no-wallet"
+  | "wrong-chain"
+  | "rejected"
+  | "not-verified"
+  | "insufficient-gas"
+  | "reverted"
+  | "failed";
 
 const asError = (cause: unknown): WalletError => {
   // The screen can only ever say one of four things, and "that did not go through" is a
@@ -94,8 +106,12 @@ const asError = (cause: unknown): WalletError => {
   if (message.includes("wallet-changed")) return "wallet-changed";
   if (message.includes("no-wallet")) return "no-wallet";
   if (message.includes("wrong-chain")) return "wrong-chain";
+  if (/not-verified|NotVerified/.test(message)) return "not-verified";
+  if (/insufficient funds|insufficient-gas/i.test(message)) return "insufficient-gas";
+  if (message.includes("transaction-reverted")) return "reverted";
   // EIP-1193: 4001 is the user saying no, which is not a failure.
-  if (message.includes("4001") || /reject|denied/i.test(message)) return "rejected";
+  if (message.includes("4001") || /reject|denied|transaction-cancelled/i.test(message))
+    return "rejected";
   return "failed";
 };
 
@@ -115,10 +131,13 @@ export function useWallet() {
   const [week, setWeek] = useState<WeekStatus | null>(null);
   const [tipsSupported, setTipsSupported] = useState(false);
   const [boardSupported, setBoardSupported] = useState(boardAvailable);
+  const [gameSupported] = useState(gameAvailable);
   const [standing, setStanding] = useState<Standing | null>(null);
   const [admin, setAdmin] = useState<AdminState | null>(null);
   const generation = useRef(0);
   const statusRequest = useRef(0);
+  const boardRequest = useRef(0);
+  const proving = useRef(false);
   const port = useRef<WalletPort | null>(null);
   const loadingPort = useRef<Promise<WalletPort> | null>(null);
 
@@ -186,6 +205,7 @@ export function useWallet() {
         const connected = await wallet.connect(walletId);
         if (version !== generation.current) return;
         setAccount(connected);
+        setStanding(null);
         remember(walletId);
         setStatus(null);
         setStatusError(false);
@@ -345,13 +365,17 @@ export function useWallet() {
    * one is not a leaderboard, it is a membership card.
    */
   const loadBoard = useCallback(async () => {
+    const version = generation.current;
+    const request = ++boardRequest.current;
     try {
       const wallet = await load();
+      const result = await wallet.board();
+      if (version !== generation.current || request !== boardRequest.current) return;
       setBoardSupported(wallet.boardSupported);
-      setStanding(await wallet.board());
+      setStanding(result);
     } catch {
       // A failed read leaves the screen saying it cannot reach the board, which is true.
-      setStanding(null);
+      if (version === generation.current && request === boardRequest.current) setStanding(null);
     }
   }, [load]);
 
@@ -372,22 +396,36 @@ export function useWallet() {
   }, []);
 
   const proveUntangle = useCallback(
-    async (creature: number, xs: bigint[], ys: bigint[]): Promise<boolean> => {
-      if (!port.current) return false;
+    async (
+      creature: number,
+      xs: bigint[],
+      ys: bigint[],
+      options?: RescueOptions,
+    ): Promise<RescueReceipt | null> => {
+      if (!port.current || proving.current) return null;
+      const version = generation.current;
+      proving.current = true;
       setBusy(true);
       setError(null);
       try {
-        await port.current.proveUntangle(creature, xs, ys);
-        setStanding(await port.current.board());
-        return true;
+        const receipt = await port.current.proveUntangle(creature, xs, ys, {
+          onSubmitted: (hash) => {
+            if (version === generation.current) options?.onSubmitted?.(hash);
+          },
+        });
+        if (version !== generation.current) return null;
+        // A failed leaderboard read must not turn a confirmed transaction into a retry.
+        await loadBoard();
+        return version === generation.current ? receipt : null;
       } catch (cause) {
-        setError(asError(cause));
-        return false;
+        if (version === generation.current) setError(asError(cause));
+        return null;
       } finally {
-        setBusy(false);
+        proving.current = false;
+        if (version === generation.current) setBusy(false);
       }
     },
-    [],
+    [loadBoard],
   );
 
   /**
@@ -450,31 +488,34 @@ export function useWallet() {
    * Hands the player to GoodDollar's own face check and leaves the page. They come back
    * to the same URL, and the status read on their return is what decides anything.
    */
-  const verify = useCallback(async () => {
-    if (!port.current) return;
-    const version = generation.current;
-    setBusy(true);
-    setError(null);
-    try {
-      // A previously unverified wallet may now be verified in GoodDollar, another tab,
-      // or through its linked identity. Never request a signature using an old result.
-      const current = await readStatus(port.current);
-      if (!current || current.verified) return;
-      const link = await port.current.verificationLink(window.location.href);
-      if (version !== generation.current) return;
-      remember(rememberedWallet());
+  const verify = useCallback(
+    async (returnTo = window.location.href) => {
+      if (!port.current) return;
+      const version = generation.current;
+      setBusy(true);
+      setError(null);
       try {
-        sessionStorage.setItem(RETURNING_KEY, "1");
-      } catch {
-        // Without storage they land on the splash instead. Not worth blocking the check.
+        // A previously unverified wallet may now be verified in GoodDollar, another tab,
+        // or through its linked identity. Never request a signature using an old result.
+        const current = await readStatus(port.current);
+        if (!current || current.verified) return;
+        const link = await port.current.verificationLink(returnTo);
+        if (version !== generation.current) return;
+        remember(rememberedWallet());
+        try {
+          sessionStorage.setItem(RETURNING_KEY, "1");
+        } catch {
+          // Without storage they land on the splash instead. Not worth blocking the check.
+        }
+        window.location.assign(link);
+      } catch (cause) {
+        if (version === generation.current) setError(asError(cause));
+      } finally {
+        if (version === generation.current) setBusy(false);
       }
-      window.location.assign(link);
-    } catch (cause) {
-      if (version === generation.current) setError(asError(cause));
-    } finally {
-      if (version === generation.current) setBusy(false);
-    }
-  }, [readStatus]);
+    },
+    [readStatus],
+  );
 
   // Verification can finish in another tab or while this page is in the back/forward
   // cache. Neither path remounts the hook, so the initial connection read is not enough.
@@ -544,6 +585,40 @@ export function useWallet() {
   }, [account]);
 
   const readMarket = useCallback(async (offset = 0) => (await load()).market(offset), [load]);
+  const readGameMarket = useCallback(async () => (await load()).gameMarket(), [load]);
+  const readGameBoard = useCallback(async (offset = 0) => (await load()).gameBoard(offset), [load]);
+  const hasRecordedRun = useCallback(
+    async (id: `0x${string}`) => (await load()).hasRecordedRun(id),
+    [load],
+  );
+  const recordGameRun = useCallback(
+    async (run: GameRun, options?: RescueOptions): Promise<RescueReceipt | null> => {
+      if (!port.current || proving.current) return null;
+      const version = generation.current;
+      proving.current = true;
+      setBusy(true);
+      setError(null);
+      try {
+        const result = await port.current.recordGameRun(run, {
+          onSubmitted: (hash) => {
+            if (version === generation.current) options?.onSubmitted?.(hash);
+          },
+        });
+        return version === generation.current ? result : null;
+      } catch (cause) {
+        if (version === generation.current) setError(asError(cause));
+        return null;
+      } finally {
+        proving.current = false;
+        if (version === generation.current) setBusy(false);
+      }
+    },
+    [],
+  );
+  const buySupply = useCallback(
+    async (item: number, options?: RescueOptions) => (await load()).buySupply(item, options),
+    [load],
+  );
   const buyTrail = useCallback(
     async (trail: Trail) => {
       await (await load()).buyTrail(trail);
@@ -561,6 +636,12 @@ export function useWallet() {
   }, [load, refresh]);
 
   return {
+    gameSupported,
+    readGameMarket,
+    readGameBoard,
+    hasRecordedRun,
+    recordGameRun,
+    buySupply,
     readMarket,
     buyTrail,
     publishTrail,

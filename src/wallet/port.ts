@@ -1,5 +1,15 @@
 import type { MarketPort } from "~/market/types";
+import type { GamePort } from "./game";
 export type Address = `0x${string}`;
+
+export type RescueReceipt =
+  | { kind: "confirmed"; hash: Address }
+  | { kind: "already-recorded" }
+  | { kind: "demo" };
+
+export interface RescueOptions {
+  onSubmitted?: (hash: Address) => void;
+}
 
 export interface WalletAccount {
   address: Address;
@@ -124,7 +134,7 @@ export interface AdminState {
   weeks: AdminWeek[];
 }
 
-export interface WalletPort extends MarketPort {
+export interface WalletPort extends MarketPort, GamePort {
   /**
    * The wallets this device offers, when there is more than one and a choice to make.
    * Empty inside MiniPay, or where only one answered: a list of one is not a choice.
@@ -182,7 +192,12 @@ export interface WalletPort extends MarketPort {
   /** Takes a name for this person. Lowercase, digits and underscore, 3–20 characters. */
   claimName(name: string): Promise<void>;
   /** Files one untangled drawing against a creature's number on the roster. */
-  proveUntangle(creature: number, xs: bigint[], ys: bigint[]): Promise<void>;
+  proveUntangle(
+    creature: number,
+    xs: bigint[],
+    ys: bigint[],
+    options?: RescueOptions,
+  ): Promise<RescueReceipt>;
 
   /**
    * Puts G$ into a week's pool. Anyone may: the contract's `fund` is open, so a week can

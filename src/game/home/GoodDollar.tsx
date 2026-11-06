@@ -42,15 +42,15 @@ export function GoodDollar({ claim, onTrails }: { claim: HomeClaim; onTrails: ()
       title: status
         ? `${formatAmount(status.entitlement, status.decimals)} is ready.`
         : "Your G$ is ready.",
-      detail: "Your daily basic income. Put it toward a trail.",
+      detail: "Your daily basic income. Use it for hints, boosts or a trail.",
       action: "Claim G$",
     },
     claimed: {
       title: "Today's G$ collected.",
       detail: status?.nextClaimAt
-        ? `Next claim in ${formatCountdown(status.nextClaimAt.getTime() - Date.now())}. Find a trail meanwhile.`
-        : "Find a new trail. Come back tomorrow for more.",
-      action: "Find a trail",
+        ? `Next claim in ${formatCountdown(status.nextClaimAt.getTime() - Date.now())}. Explore the G$ shop meanwhile.`
+        : "Your hints and boosts are in the G$ shop.",
+      action: "Shop G$",
     },
   }[state];
   return (

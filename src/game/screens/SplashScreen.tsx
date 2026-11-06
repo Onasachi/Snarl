@@ -1,7 +1,7 @@
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { audio } from "~/audio";
-import { CREATURES, TUTORIAL } from "~/data";
+import { TUTORIAL } from "~/data";
 import { crossings, type Pt, scramble, solvedLayout } from "~/engine";
 import { useReducedMotion } from "~/hooks/useReducedMotion";
 import { CreatureSvg } from "~/render/CreatureSvg";
@@ -188,9 +188,9 @@ export function SplashScreen({
           }}
         >
           {[
-            ["knot", `${CREATURES.length} creatures to free, and a pond to keep them in`],
-            ["moon", "A rare one every day, and a knot the whole pond shares each week"],
-            ["coin", "Discover player-made trails. Buy and sell your favourites with G$"],
+            ["knot", "100 story levels. Five places to restore. A pond full of friends."],
+            ["moon", "Daily challenges and endless expeditions. Always another rescue."],
+            ["coin", "Use G$ for hints, helpful boosts and player-made trails."],
           ].map(([icon, text]) => (
             <li
               key={text}

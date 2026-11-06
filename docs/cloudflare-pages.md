@@ -75,9 +75,13 @@ so the existing wallet and contract features remain available:
 | `VITE_SNARL_BOARD` | Existing deployed board contract address |
 | `VITE_SNARL_WEEKLY` | Existing deployed weekly contract address |
 | `VITE_SNARL_TRAILS` | `0xF55E8f7330B89659c7B835eA1043657A45393bdA` |
+| `VITE_SNARL_GAME` | `0x153ebE103cBB8E8C1fc4F3346f4504B6DeCDe071` — any-wallet gameplay records and the G$ supply shop |
 
 The existing contract addresses are also recorded in `contracts/DEPLOY.md`.
 Configure Preview variables separately if those deployments need these features.
+`SnarlGame` is a separate deployment from the legacy Board. Its Celo deployment
+was checked against the local source on November 6, 2026; follow
+[the adventure and shop launch guide](ADVENTURE_AND_GD_LAUNCH.md).
 
 To change the client ID later, update its production build variable, save, and
 redeploy the latest production commit. No source change or Git push is required.

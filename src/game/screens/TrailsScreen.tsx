@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { parseUnits } from "viem";
 import { CREATURES } from "~/data";
+import { Shop } from "~/game/Shop";
 import {
   type MarketState,
   PALETTES,
@@ -62,7 +63,7 @@ export function TrailsScreen({
       Math.max(0, Number(new URLSearchParams(window.location.search).get("trail")) || 0) / 20,
     ),
   );
-  const [view, setView] = useState<"browse" | "create" | "impact">(() => {
+  const [view, setView] = useState<"browse" | "create" | "impact" | "supplies">(() => {
     try {
       if (new URLSearchParams(window.location.search).has("trail")) return "browse";
       return sessionStorage.getItem("snarl.market.view") === "create" ? "create" : "browse";
@@ -166,7 +167,7 @@ export function TrailsScreen({
         <button type="button" className="sn-pill" onClick={onBack}>
           ← Pond
         </button>
-        <span>Trail market</span>
+        <span>G$ marketplace</span>
         <button className="sn-pill" type="button" disabled={busy || loading} onClick={refresh}>
           Refresh
         </button>
@@ -176,7 +177,7 @@ export function TrailsScreen({
           <p className="sn-demo">Demo market · sample trails · simulated G$, no real payments</p>
         )}
         <nav className="sn-tabs" aria-label="Market views">
-          {(["browse", "create", "impact"] as const).map((v) => (
+          {(["supplies", "browse", "create", "impact"] as const).map((v) => (
             <button
               key={v}
               type="button"
@@ -186,10 +187,17 @@ export function TrailsScreen({
                 setQuote(null);
               }}
             >
-              {v === "browse" ? "Explore" : v === "create" ? "Make a trail" : "Activity"}
+              {v === "supplies"
+                ? "Supplies"
+                : v === "browse"
+                  ? "Trails"
+                  : v === "create"
+                    ? "Create"
+                    : "Activity"}
             </button>
           ))}
         </nav>
+        {view === "supplies" && <Shop wallet={wallet} onConnect={onConnect} onClaim={onClaim} />}
         {error && (
           <p role="alert" className="sn-notice">
             {error}

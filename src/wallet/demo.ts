@@ -1,5 +1,6 @@
 import { WEEK_PLANS } from "~/chain/weeks";
 import { demoMarket } from "~/market/demo";
+import { demoGame } from "./game";
 import type {
   AdminState,
   AdminWeek,
@@ -113,6 +114,11 @@ export const markDemoVerified = (): void => write(VERIFIED_KEY, "yes");
 
 export function createDemoWallet(): WalletPort {
   return {
+    ...demoGame(
+      DEMO_ADDRESS,
+      () => BigInt(read(BALANCE_KEY) ?? "0"),
+      (amount) => write(BALANCE_KEY, String(BigInt(read(BALANCE_KEY) ?? "0") - amount)),
+    ),
     ...demoMarket(
       DEMO_ADDRESS,
       () => BigInt(read(BALANCE_KEY) ?? "0"),
@@ -290,10 +296,13 @@ export function createDemoWallet(): WalletPort {
 
     async proveUntangle(creature: number) {
       await sleep(800);
+      if (read(VERIFIED_KEY) !== "yes") throw new Error("not-verified");
       const freed = new Set(JSON.parse(read(FREED_KEY) ?? "[]") as number[]);
+      if (freed.has(creature)) return { kind: "already-recorded" };
       freed.add(creature);
       write(FREED_KEY, JSON.stringify([...freed]));
       write(UNTANGLES_KEY, String(Number(read(UNTANGLES_KEY) ?? "0") + 1));
+      return { kind: "demo" };
     },
 
     async backWeek(_week: number, amount: bigint) {

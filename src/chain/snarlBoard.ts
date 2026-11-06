@@ -16,6 +16,13 @@ const record = {
 export const snarlBoardAbi = [
   {
     type: "function",
+    name: "identity",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "address" }],
+  },
+  {
+    type: "function",
     name: "records",
     stateMutability: "view",
     inputs: [{ name: "root", type: "address" }],

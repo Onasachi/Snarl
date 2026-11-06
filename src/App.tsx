@@ -3,15 +3,20 @@ import { chainIdOf } from "~/chain/roster";
 import { CREATURES, creatureById } from "~/data";
 import type { Pt } from "~/engine";
 import { solvedLayout, toChainPositions } from "~/engine";
-import { nextExplorationIndex } from "~/game/collection";
+import { adventureLevel, rescueStars, storyMoment } from "~/game/adventure";
 import { DAILY_CREATURE, dailySeed, isDailySolved } from "~/game/daily";
 import { giftedCreature, giftFromHash } from "~/game/gift";
 import { MoreSheet } from "~/game/MoreSheet";
 import { PhoneFrame } from "~/game/PhoneFrame";
-import { creatureForPlay, nudgesForPot, playCaption, TUTORIAL_KNOTS } from "~/game/progress";
+import { nudgesForPot, TUTORIAL_KNOTS } from "~/game/progress";
+import type { SolveStats } from "~/game/RescueActions";
+import { gameRun, runId, runPoints } from "~/game/results";
+import { ShopSheet } from "~/game/Shop";
 import { AdminScreen } from "~/game/screens/AdminScreen";
+import { AdventureScreen } from "~/game/screens/AdventureScreen";
 import { BoardScreen } from "~/game/screens/BoardScreen";
 import { DailySolved } from "~/game/screens/DailySolved";
+import { GameBoardScreen } from "~/game/screens/GameBoardScreen";
 import { GiftReceived } from "~/game/screens/GiftReceived";
 import { GiftScreen } from "~/game/screens/GiftScreen";
 import { GreatUntangle } from "~/game/screens/GreatUntangle";
@@ -22,6 +27,7 @@ import { PuzzleScreen } from "~/game/screens/PuzzleScreen";
 import { SplashScreen } from "~/game/screens/SplashScreen";
 import { TrailsScreen } from "~/game/screens/TrailsScreen";
 import { useGame } from "~/game/store";
+import { emptySupplies } from "~/game/supplies";
 import { Toast, useToast } from "~/game/Toast";
 import { freedByLabel, useDailyCount } from "~/game/useDailyCount";
 import { VerifySheet } from "~/game/VerifySheet";
@@ -29,7 +35,7 @@ import { WalletSheet } from "~/game/WalletSheet";
 import { WEEKLY_CREATURE, weekId, weeklySeed } from "~/game/weekly";
 import { useCalendar } from "~/hooks/useCalendar";
 import { type Trail, trailSeed } from "~/market/types";
-import { claimCardState, formatAmount, type TipStatus } from "~/wallet";
+import { claimCardState, formatAmount, type TipStatus, wantsDemoWallet } from "~/wallet";
 import { returningFromVerification, useWallet } from "~/wallet/useWallet";
 
 type Screen =
@@ -42,7 +48,9 @@ type Screen =
   | "weeks"
   | "you"
   | "journal"
-  | "trails";
+  | "trails"
+  | "adventure"
+  | "leaderboard";
 /** Ordinary progress through World 1, today's rare knot, or a pass at the week's. */
 type Mode = "progress" | "daily" | "weekly" | "trail";
 
@@ -84,11 +92,15 @@ export function App() {
   // creature is going into that pond, so that is what should be behind it. For someone
   // whose first ever sight of snarl is a gift, that pond is empty and says so.
   const [screen, setScreen] = useState<Screen>(
-    new URLSearchParams(window.location.search).has("trail")
-      ? "trails"
-      : RETURNED_FROM_VERIFICATION || ARRIVED_WITH_GIFT
-        ? "pond"
-        : "splash",
+    new URLSearchParams(window.location.search).has("leaderboard")
+      ? "leaderboard"
+      : new URLSearchParams(window.location.search).has("board")
+        ? "board"
+        : new URLSearchParams(window.location.search).has("trail")
+          ? "trails"
+          : RETURNED_FROM_VERIFICATION || ARRIVED_WITH_GIFT
+            ? "pond"
+            : "splash",
   );
   const [trailRun, setTrailRun] = useState<{ trail: Trail; step: number; preview: boolean } | null>(
     null,
@@ -98,6 +110,9 @@ export function App() {
   const [intro, setIntro] = useState(false);
   const [dailyRecap, setDailyRecap] = useState(false);
   const [verifySheet, setVerifySheet] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
+  const [runRecorded, setRunRecorded] = useState(false);
   const [moreSheet, setMoreSheet] = useState(false);
   const [gift, setGift] = useState(ARRIVED_WITH_GIFT);
   /**
@@ -112,11 +127,16 @@ export function App() {
 
   const hydrated = useGame((s) => s.hydrated);
   const tutorialStep = useGame((s) => s.tutorialStep);
-  const storedPlayIndex = useGame((s) => s.playIndex);
-  const freed = useGame((s) => s.freed);
-  const playIndex = useMemo(
-    () => nextExplorationIndex(storedPlayIndex, freed),
-    [storedPlayIndex, freed],
+  const nextLevel = useGame((s) => s.adventureLevel);
+  const completeAdventure = useGame((s) => s.completeAdventure);
+  const saveGameRun = useGame((s) => s.saveGameRun);
+  const supplyPurchased = useGame((s) => s.supplyPurchased);
+  const supplySpent = useGame((s) => s.supplySpent);
+  const spendSupply = useGame((s) => s.spendSupply);
+  const syncSupplies = useGame((s) => s.syncSupplies);
+  const adventure = useMemo(
+    () => adventureLevel(selectedLevel ?? nextLevel),
+    [selectedLevel, nextLevel],
   );
   const nudges = useGame((s) => s.nudges);
   const lastDailyDay = useGame((s) => s.lastDailyDay);
@@ -129,7 +149,6 @@ export function App() {
   const extraNudges = useGame((s) => s.extraNudges);
   const addExtraNudges = useGame((s) => s.addExtraNudges);
   const completeTutorialStep = useGame((s) => s.completeTutorialStep);
-  const advancePlay = useGame((s) => s.advancePlay);
   const spendNudge = useGame((s) => s.spendNudge);
   const recordDailySolved = useGame((s) => s.recordDailySolved);
   const recordWeeklySolve = useGame((s) => s.recordWeeklySolve);
@@ -160,7 +179,7 @@ export function App() {
           ? WEEKLY_CREATURE
           : inTutorial
             ? TUTORIAL_KNOTS[tutorialStep]!
-            : creatureForPlay(playIndex);
+            : adventure.creature;
   const seed =
     mode === "trail" && trailRun
       ? trailSeed(trailRun.trail, trailRun.step)
@@ -170,12 +189,29 @@ export function App() {
           ? weeklySeed(week)
           : inTutorial
             ? tutorialStep
-            : playIndex;
+            : adventure.id;
   const lastTutorialKnot = tutorialStep === TUTORIAL_KNOTS.length - 1;
+  const puzzleKey =
+    mode === "trail" && trailRun
+      ? `trail:${trailRun.trail.creator}:${trailRun.trail.id}:${trailRun.trail.seed}:${trailRun.step}`
+      : isDaily
+        ? `daily:${today}`
+        : isWeekly
+          ? `weekly:${week}`
+          : inTutorial
+            ? `tutorial:${tutorialStep}`
+            : `adventure:${adventure.id}`;
+  const storyLevel = mode === "progress" && !inTutorial ? adventure.id : 0;
+  const eligibleRun = !(
+    mode === "trail" &&
+    trailRun &&
+    (trailRun.preview || trailRun.trail.id < 0)
+  );
 
   const toPond = useCallback((withIntro: boolean) => {
     setIntro(withIntro);
     setMode("progress");
+    setSelectedLevel(null);
     setScreen("pond");
     if (withIntro) window.setTimeout(() => setIntro(false), INTRO_MS);
   }, []);
@@ -186,7 +222,24 @@ export function App() {
   }, [tutorialStep]);
 
   const next = useCallback(
-    (moves: number, pos: readonly Pt[]) => {
+    (moves: number, pos: readonly Pt[], stats: SolveStats) => {
+      if (eligibleRun) {
+        try {
+          saveGameRun(
+            gameRun(
+              puzzleKey,
+              storyLevel,
+              creature,
+              pos,
+              stats.initialCrossings,
+              moves,
+              stats.assisted,
+            ),
+          );
+        } catch {
+          toast.show("Your rescue stays in the game. We couldn't prepare its Celo record.");
+        }
+      }
       if (mode === "trail" && trailRun) {
         const { xs, ys } = toChainPositions(pos);
         recordFreed(creature, moves, { xs: xs.map(String), ys: ys.map(String) });
@@ -268,11 +321,23 @@ export function App() {
         return;
       }
 
-      advancePlay(playIndex + 1);
+      completeAdventure(adventure.id, {
+        moves,
+        stars: rescueStars(moves, creature.par, stats.assisted),
+        crossings: stats.initialCrossings,
+        points: runPoints(stats.initialCrossings, moves, creature.par, stats.assisted),
+        assisted: stats.assisted,
+      });
+      setSelectedLevel(null);
+      if (storyMoment(adventure.id)) setScreen("adventure");
     },
     [
-      advancePlay,
-      playIndex,
+      adventure.id,
+      completeAdventure,
+      saveGameRun,
+      puzzleKey,
+      storyLevel,
+      eligibleRun,
       trailRun,
       completeTrail,
       completeTutorialStep,
@@ -318,6 +383,43 @@ export function App() {
   // The G$ layer. Nothing above this line knows it exists, and the game is complete
   // without it: no puzzle, pond or streak asks whether a wallet is connected.
   const wallet = useWallet();
+  const supplyAccount = wallet.account?.address.toLowerCase();
+  const purchased = supplyAccount
+    ? (supplyPurchased[supplyAccount] ?? emptySupplies())
+    : emptySupplies();
+  const spent = supplyAccount ? (supplySpent[supplyAccount] ?? emptySupplies()) : emptySupplies();
+  const supplies = {
+    hint: Math.max(0, purchased.hint - spent.hint),
+    guide: Math.max(0, purchased.guide - spent.guide),
+    glimpse: Math.max(0, purchased.glimpse - spent.glimpse),
+  };
+  useEffect(() => {
+    let current = true;
+    if (supplyAccount)
+      void wallet
+        .readGameMarket()
+        .then((market) => {
+          if (current && market) syncSupplies(supplyAccount, market.supplies);
+        })
+        .catch(() => {});
+    return () => {
+      current = false;
+    };
+  }, [supplyAccount, syncSupplies, wallet.readGameMarket]);
+  useEffect(() => {
+    let current = true;
+    setRunRecorded(false);
+    if (wallet.account && wallet.gameSupported && screen === "puzzle")
+      void wallet
+        .hasRecordedRun(runId(puzzleKey))
+        .then((recorded) => {
+          if (current) setRunRecorded(recorded);
+        })
+        .catch(() => {});
+    return () => {
+      current = false;
+    };
+  }, [wallet.account, wallet.gameSupported, wallet.hasRecordedRun, puzzleKey, screen]);
   const claimState = claimCardState(wallet.account, wallet.checkingStatus ? null : wallet.status);
 
   const requestVerification = useCallback(async () => {
@@ -390,7 +492,13 @@ export function App() {
             ? "Your wallet needs to be on Celo for that."
             : wallet.error === "rejected"
               ? "Left as it was."
-              : "Could not confirm that request. Refresh your wallet status before retrying.",
+              : wallet.error === "not-verified"
+                ? "Refresh your GoodDollar verification before recording this rescue."
+                : wallet.error === "insufficient-gas"
+                  ? "Your wallet needs CELO for the network fee."
+                  : wallet.error === "reverted"
+                    ? "The transaction reverted. This rescue was not recorded."
+                    : "Could not confirm that request. Refresh your wallet status before retrying.",
     );
   }, [wallet.emailOffered, wallet.error, toast]);
 
@@ -478,9 +586,10 @@ export function App() {
 
   // The board reads without a wallet, so it is loaded when the screen opens and not
   // before: a player who never looks at it never asks a chain for anything.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reconnecting changes the adapter's current identity.
   useEffect(() => {
     if (screen === "board") void wallet.loadBoard();
-  }, [screen, wallet.loadBoard]);
+  }, [screen, wallet.loadBoard, wallet.account]);
 
   useEffect(() => {
     if (screen === "weeks") void wallet.loadAdmin();
@@ -564,7 +673,9 @@ export function App() {
                   ? "Daily Snarl · rare"
                   : inTutorial
                     ? `Tutorial · ${tutorialStep + 1} of ${TUTORIAL_KNOTS.length}`
-                    : playCaption(playIndex)
+                    : adventure.expedition
+                      ? `Expedition ${Math.floor((adventure.id - 101) / 20) + 1} · stage ${((adventure.id - 101) % 20) + 1}`
+                      : `${adventure.chapter.name} · ${adventure.id}/100`
           }
           hint={
             isDaily
@@ -580,9 +691,19 @@ export function App() {
           almostFree={!inTutorial || tutorialStep > 0}
           showNudge={isDaily || !inTutorial || lastTutorialKnot}
           highlightNudge={!isDaily && inTutorial && lastTutorialKnot}
-          nudgesLeft={nudges + extraNudges}
-          onSpendNudge={spendNudge}
-          onNoNudges={noNudges}
+          nudgesLeft={nudges + extraNudges + supplies.hint}
+          onSpendNudge={() => spendNudge(supplyAccount)}
+          onSpendGuide={() => !!supplyAccount && spendSupply(supplyAccount, "guide")}
+          onSpendGlimpse={() => !!supplyAccount && spendSupply(supplyAccount, "glimpse")}
+          supplies={{
+            guide: supplies.guide,
+            glimpse: supplies.glimpse,
+            onShop: () => setShopOpen(true),
+          }}
+          onNoNudges={() => {
+            noNudges();
+            setShopOpen(true);
+          }}
           nextLabel={
             mode === "trail" && trailRun
               ? trailRun.preview
@@ -595,14 +716,41 @@ export function App() {
                 : !isDaily && inTutorial && !lastTutorialKnot
                   ? "Next knot"
                   : !isDaily && !inTutorial
-                    ? "Keep & free the next one"
+                    ? storyMoment(adventure.id)
+                      ? "See what you've restored"
+                      : "Continue adventure"
                     : "Release to the pond"
           }
           onNext={next}
+          rescue={
+            wallet.gameSupported && eligibleRun
+              ? {
+                  account: wallet.account,
+                  busy: wallet.busy,
+                  error: wallet.error,
+                  demo: wantsDemoWallet(),
+                  recorded: runRecorded,
+                  onConnect: () => void startConnect(),
+                  onRecord: (moves, pos, stats, options) => {
+                    const run = gameRun(
+                      puzzleKey,
+                      storyLevel,
+                      creature,
+                      pos,
+                      stats.initialCrossings,
+                      moves,
+                      stats.assisted,
+                    );
+                    saveGameRun(run);
+                    return wallet.recordGameRun(run, options);
+                  },
+                }
+              : undefined
+          }
           onPond={
             mode === "progress" && !inTutorial
-              ? (moves, pos) => {
-                  next(moves, pos);
+              ? (moves, pos, stats) => {
+                  next(moves, pos, stats);
                   toPond(false);
                 }
               : undefined
@@ -617,7 +765,14 @@ export function App() {
 
       {screen === "pond" && (
         <PondScreen
-          onPlay={() => setScreen("puzzle")}
+          onPlay={() => {
+            setSelectedLevel(null);
+            setMode("progress");
+            setScreen("puzzle");
+          }}
+          onAdventure={() => setScreen("adventure")}
+          onLeaderboard={() => setScreen("leaderboard")}
+          onShop={() => setShopOpen(true)}
           intro={intro}
           onToast={toast.show}
           dailySolved={dailySolved}
@@ -646,6 +801,32 @@ export function App() {
             onRefresh: () => void wallet.refresh(),
           }}
           toast={<Toast message={toast.message} />}
+        />
+      )}
+
+      {screen === "adventure" && (
+        <AdventureScreen
+          onBack={() => toPond(false)}
+          onPlay={(level) => {
+            setSelectedLevel(level);
+            setMode("progress");
+            setScreen("puzzle");
+          }}
+        />
+      )}
+      {screen === "leaderboard" && <GameBoardScreen wallet={wallet} onBack={() => toPond(false)} />}
+      {shopOpen && (
+        <ShopSheet
+          wallet={wallet}
+          onConnect={() => {
+            setShopOpen(false);
+            void startConnect();
+          }}
+          onClaim={() => {
+            setShopOpen(false);
+            void onClaimAction();
+          }}
+          onClose={() => setShopOpen(false)}
         />
       )}
 

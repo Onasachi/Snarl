@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { creatureColor } from "~/data";
 import type { Creature } from "~/engine";
 import { CreatureSvg } from "~/render/CreatureSvg";
@@ -13,12 +14,14 @@ export function NameCard({
   actionLabel,
   onAction,
   onPond,
+  actions,
 }: {
   creature: Creature;
   chips: readonly string[];
   actionLabel: string;
   onAction: () => void;
   onPond?: (() => void) | undefined;
+  actions?: ReactNode;
 }) {
   const themeId = useThemeId();
   return (
@@ -28,6 +31,8 @@ export function NameCard({
         left: 0,
         right: 0,
         bottom: 0,
+        maxHeight: "90%",
+        overflowY: "auto",
         padding: "24px 20px calc(24px + env(safe-area-inset-bottom))",
         background: "var(--bg2)",
         borderTop: "1px solid var(--card-line)",
@@ -88,33 +93,37 @@ export function NameCard({
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={onAction}
-        style={{
-          width: "100%",
-          minHeight: 52,
-          marginTop: 20,
-          border: "none",
-          borderRadius: 16,
-          background: "var(--accent)",
-          color: "var(--on-accent)",
-          fontSize: 18,
-          fontWeight: 500,
-          cursor: "pointer",
-        }}
-      >
-        {actionLabel}
-      </button>
-      {onPond && (
-        <button
-          type="button"
-          className="sn-link"
-          style={{ width: "100%", marginTop: 8 }}
-          onClick={onPond}
-        >
-          Keep it & visit the pond
-        </button>
+      {actions ?? (
+        <>
+          <button
+            type="button"
+            onClick={onAction}
+            style={{
+              width: "100%",
+              minHeight: 52,
+              marginTop: 20,
+              border: "none",
+              borderRadius: 16,
+              background: "var(--accent)",
+              color: "var(--on-accent)",
+              fontSize: 18,
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            {actionLabel}
+          </button>
+          {onPond && (
+            <button
+              type="button"
+              className="sn-link"
+              style={{ width: "100%", marginTop: 8 }}
+              onClick={onPond}
+            >
+              Keep it & visit the pond
+            </button>
+          )}
+        </>
       )}
     </div>
   );

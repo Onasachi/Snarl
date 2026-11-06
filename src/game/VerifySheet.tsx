@@ -45,8 +45,8 @@ export function VerifySheet({
       >
         <h2 style={{ fontSize: 30, fontWeight: 600, margin: 0 }}>Claim free G$ every day</h2>
         <p style={{ fontSize: 17, lineHeight: 1.4, color: "var(--ink2)", margin: "12px 0 0" }}>
-          Play and explore without a wallet. GoodDollar verification lets you claim daily G$ and
-          publish trails for other players.
+          Verify with GoodDollar to claim daily G$ and publish trails for other players. Playing,
+          buying supplies and recording gameplay do not require this check.
         </p>
 
         <p style={{ fontSize: 13, lineHeight: 1.4, color: "var(--ink2)", margin: "12px 0 0" }}>
@@ -70,7 +70,7 @@ export function VerifySheet({
           {[
             "A daily G$ claim (UBI)",
             "Publish trails and earn G$ from sales",
-            "Nothing in the puzzles changes",
+            "Spend your G$ on hints, boosts and player-made trails",
           ].map((item) => (
             <li key={item} style={{ display: "flex", gap: 10, fontSize: 15, color: "var(--ink)" }}>
               <span aria-hidden="true" style={{ color: "var(--ink2)" }}>
