@@ -281,3 +281,12 @@ regressions cover existing verification, tab/browser returns, network recovery, 
 reads, pre-verification checks, out-of-order responses and account changes. Browser QA
 also checks the simulated verified/unverified states and the verification return flow.
 No real signatures or transactions were requested.
+
+## 2026-11-06 · Keep environment configuration local
+
+Stopped tracking the root `.env` while preserving the developer's local copy.
+Ignored `.env` and its variants, with `.env.example` templates remaining tracked.
+Added a root template with no configured client ID or contract addresses and updated
+the Cloudflare Pages guide to use production build variables. All existing wallet
+and contract values must be configured in Pages before deploying this removal.
+This change removes the file from future commits; it does not rewrite Git history.

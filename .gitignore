@@ -4,7 +4,7 @@ dev-dist
 .DS_Store
 *.local
 
-# Local overrides and anything private. `*.local` above already covers .env.local;
-# this spells it out so nobody has to work that out from a glob.
-.env.local
-.env.*.local
+# Local configuration stays on the developer's machine. Commit examples only.
+.env
+.env.*
+!.env.example

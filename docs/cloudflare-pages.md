@@ -56,25 +56,39 @@ Cloudflare assigns to the project, or attach the project's custom domain.
 
 ## Frontend environment
 
-The committed root `.env` contains public Vite build settings, including the
-deployed Celo contract addresses and Web3Auth's public client ID. Cloudflare's
-build reads this file. The current production values include:
+The root `.env` is local-only and ignored by Git. For a new checkout, copy
+`.env.example` to `.env` and fill in the settings needed locally. Leave unused
+optional variables unset rather than assigning empty strings. Do not commit `.env`.
 
-```dotenv
-VITE_GOODDOLLAR_ENV=production
-VITE_SNARL_TRAILS=0xF55E8f7330B89659c7B835eA1043657A45393bdA
-```
+Configure the deployed app in **Cloudflare Pages > your project > Settings >
+Environment variables > Production**. Before deploying the commit that removes
+the tracked `.env`, populate all of the following values from your local setup
+so the existing wallet and contract features remain available:
 
-Cloudflare build variables override `.env`. If an existing Pages project already
-has `VITE_` variables, check that they match this release, especially the two
-values above. The other existing contract addresses remain configured in `.env`.
+| Variable | Production value |
+| --- | --- |
+| `VITE_GOODDOLLAR_ENV` | `production` |
+| `VITE_WEB3AUTH_CLIENT_ID` | The public client ID for your Web3Auth project |
+| `VITE_WEB3AUTH_NETWORK` | That project's network: `sapphire_mainnet` or `sapphire_devnet` |
+| `VITE_SNARL_GIFTS` | Existing deployed gifts contract address |
+| `VITE_SNARL_NAMES` | Existing deployed names contract address |
+| `VITE_SNARL_BOARD` | Existing deployed board contract address |
+| `VITE_SNARL_WEEKLY` | Existing deployed weekly contract address |
+| `VITE_SNARL_TRAILS` | `0xF55E8f7330B89659c7B835eA1043657A45393bdA` |
 
-The existing Web3Auth client ID is paired with `VITE_WEB3AUTH_NETWORK=sapphire_devnet`.
-The hosting setup preserves that pair. To use Sapphire Mainnet, create/select the
-matching Web3Auth project and change **both** the client ID and network before
-rebuilding. Add the final Pages/custom-domain origin to that Web3Auth project's
-allowed origins before testing email or social login. Preview origins need their
-own allowance if social login is tested on previews.
+The existing contract addresses are also recorded in `contracts/DEPLOY.md`.
+Configure Preview variables separately if those deployments need these features.
+
+To change the client ID later, update its production build variable, save, and
+redeploy the latest production commit. No source change or Git push is required.
+Vite embeds these values during the build, so an existing deployment does not
+change until it is rebuilt. Cloudflare build variables override any `.env` values
+in older commits.
+
+The client ID and `VITE_WEB3AUTH_NETWORK` must match the same Web3Auth project.
+Add the final Pages/custom-domain origin to that project's allowed origins before
+testing email or social login. Preview origins need their own allowance if social
+login is tested on previews.
 
 `VITE_` values are embedded into browser JavaScript. Deployment private keys,
 GitLab tokens and Cloudflare API tokens do not belong in these settings. The native
