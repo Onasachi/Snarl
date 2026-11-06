@@ -318,7 +318,16 @@ export function App() {
   // The G$ layer. Nothing above this line knows it exists, and the game is complete
   // without it: no puzzle, pond or streak asks whether a wallet is connected.
   const wallet = useWallet();
-  const claimState = claimCardState(wallet.account, wallet.status);
+  const claimState = claimCardState(wallet.account, wallet.checkingStatus ? null : wallet.status);
+
+  const requestVerification = useCallback(async () => {
+    const current = await wallet.refresh();
+    if (current && !current.verified) setVerifySheet(true);
+  }, [wallet.refresh]);
+
+  useEffect(() => {
+    if (!wallet.account || wallet.status?.verified) setVerifySheet(false);
+  }, [wallet.account, wallet.status?.verified]);
 
   const noNudges = useCallback(
     () =>
@@ -355,7 +364,7 @@ export function App() {
       return;
     }
     if (claimState === "unverified" || claimState === "expired") {
-      setVerifySheet(true);
+      await requestVerification();
       return;
     }
     if (claimState === "ready") {
@@ -364,7 +373,7 @@ export function App() {
         toast.show(`${formatAmount(amount, wallet.status.decimals)} claimed. See you tomorrow.`);
       }
     }
-  }, [claimState, startConnect, toast, wallet]);
+  }, [claimState, requestVerification, startConnect, toast, wallet]);
 
   useEffect(() => {
     if (!wallet.error) return;
@@ -632,8 +641,9 @@ export function App() {
           claim={{
             state: claimState,
             status: wallet.status,
-            busy: wallet.busy,
+            busy: wallet.busy || wallet.checkingStatus,
             onAction: () => void onClaimAction(),
+            onRefresh: () => void wallet.refresh(),
           }}
           toast={<Toast message={toast.message} />}
         />
@@ -647,7 +657,7 @@ export function App() {
           wallet={wallet}
           onBack={() => toPond(false)}
           onConnect={() => void startConnect()}
-          onVerify={() => setVerifySheet(true)}
+          onVerify={() => void requestVerification()}
           onClaim={() => void onClaimAction()}
           onPlay={(trail, preview) => {
             setTrailRun({ trail, step: 0, preview });
@@ -715,7 +725,10 @@ export function App() {
 
       {verifySheet && (
         <VerifySheet
-          busy={wallet.busy}
+          busy={wallet.busy || wallet.checkingStatus}
+          account={wallet.account}
+          statusError={wallet.statusError}
+          onRefresh={() => void wallet.refresh()}
           onStart={() => void wallet.verify()}
           onClose={() => setVerifySheet(false)}
         />
@@ -728,7 +741,7 @@ export function App() {
           statusError={wallet.statusError}
           onRefresh={() => void wallet.refresh()}
           standing={wallet.standing}
-          busy={wallet.busy}
+          busy={wallet.busy || wallet.checkingStatus}
           onBack={() => setScreen("pond")}
           onCopy={() => {
             void navigator.clipboard

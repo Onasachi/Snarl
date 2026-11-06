@@ -19,9 +19,9 @@ import type {
 import { SOCIAL_ID } from "./social";
 
 /** Set once the player has connected, so a reload or a verification trip can resume. */
-const RESUME_KEY = "snarl.wallet.resume";
+const RESUME_KEY = wantsDemoWallet() ? "snarl.demo.wallet.resume" : "snarl.wallet.resume";
 /** Set while the player is away at the face check, so they come back where they left. */
-const RETURNING_KEY = "snarl.wallet.returning";
+const RETURNING_KEY = wantsDemoWallet() ? "snarl.demo.wallet.returning" : "snarl.wallet.returning";
 
 /**
  * Which door was used, so a reload comes back through the same one.
@@ -108,6 +108,7 @@ export function useWallet() {
   const [account, setAccount] = useState<WalletAccount | null>(null);
   const [statusError, setStatusError] = useState(false);
   const [status, setStatus] = useState<ClaimStatus | null>(null);
+  const [checkingStatus, setCheckingStatus] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<WalletError | null>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
@@ -117,6 +118,7 @@ export function useWallet() {
   const [standing, setStanding] = useState<Standing | null>(null);
   const [admin, setAdmin] = useState<AdminState | null>(null);
   const generation = useRef(0);
+  const statusRequest = useRef(0);
   const port = useRef<WalletPort | null>(null);
   const loadingPort = useRef<Promise<WalletPort> | null>(null);
 
@@ -133,18 +135,34 @@ export function useWallet() {
     }
   }, []);
 
-  const refresh = useCallback(async () => {
-    if (!port.current || !account) return;
+  // Read failures are unknown status, never evidence that a face check is needed.
+  // Only the latest read for the current account may update the UI or allow a redirect.
+  const readStatus = useCallback(async (wallet: WalletPort): Promise<ClaimStatus | null> => {
     const version = generation.current;
+    const request = ++statusRequest.current;
+    const current = () => version === generation.current && request === statusRequest.current;
+    setCheckingStatus(true);
+    setStatusError(false);
     try {
-      const result = await port.current.getClaimStatus();
-      if (version !== generation.current) return;
+      const result = await wallet.getClaimStatus();
+      if (!current()) return null;
       setStatus(result);
-      setStatusError(false);
+      return result;
     } catch {
-      if (version === generation.current) setStatusError(true);
+      if (current()) {
+        setStatus(null);
+        setStatusError(true);
+      }
+      return null;
+    } finally {
+      if (current()) setCheckingStatus(false);
     }
-  }, [account]);
+  }, []);
+
+  const refresh = useCallback(async () => {
+    if (!port.current || !account) return null;
+    return readStatus(port.current);
+  }, [account, readStatus]);
 
   /** The wallets worth offering a choice between. Empty when there is no choice. */
   const listWallets = useCallback(async () => {
@@ -159,6 +177,7 @@ export function useWallet() {
     async ({ silent = false, walletId }: { silent?: boolean; walletId?: string } = {}) => {
       const version = ++generation.current;
       setBusy(true);
+      setCheckingStatus(false);
       setError(null);
       try {
         const wallet = await load();
@@ -170,12 +189,7 @@ export function useWallet() {
         remember(walletId);
         setStatus(null);
         setStatusError(false);
-        try {
-          const result = await wallet.getClaimStatus();
-          if (version === generation.current) setStatus(result);
-        } catch {
-          if (version === generation.current) setStatusError(true);
-        }
+        await readStatus(wallet);
       } catch (cause) {
         // Resuming is something this session decided to try, not something the player
         // just asked for. Failing at it quietly is better than greeting them with an
@@ -183,10 +197,10 @@ export function useWallet() {
         if (!silent) setError(asError(cause));
         else forget();
       } finally {
-        setBusy(false);
+        if (version === generation.current) setBusy(false);
       }
     },
-    [load],
+    [load, readStatus],
   );
 
   /** Ends the session here and wherever it came from, and forgets the door. */
@@ -201,6 +215,7 @@ export function useWallet() {
       forget();
       setAccount(null);
       setStatus(null);
+      setCheckingStatus(false);
       setWeek(null);
       setStanding(null);
       setAdmin(null);
@@ -437,10 +452,16 @@ export function useWallet() {
    */
   const verify = useCallback(async () => {
     if (!port.current) return;
+    const version = generation.current;
     setBusy(true);
     setError(null);
     try {
+      // A previously unverified wallet may now be verified in GoodDollar, another tab,
+      // or through its linked identity. Never request a signature using an old result.
+      const current = await readStatus(port.current);
+      if (!current || current.verified) return;
       const link = await port.current.verificationLink(window.location.href);
+      if (version !== generation.current) return;
       remember(rememberedWallet());
       try {
         sessionStorage.setItem(RETURNING_KEY, "1");
@@ -449,10 +470,34 @@ export function useWallet() {
       }
       window.location.assign(link);
     } catch (cause) {
-      setError(asError(cause));
-      setBusy(false);
+      if (version === generation.current) setError(asError(cause));
+    } finally {
+      if (version === generation.current) setBusy(false);
     }
-  }, []);
+  }, [readStatus]);
+
+  // Verification can finish in another tab or while this page is in the back/forward
+  // cache. Neither path remounts the hook, so the initial connection read is not enough.
+  useEffect(() => {
+    if (!account) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const recheck = () => {
+      if (document.visibilityState === "hidden") return;
+      clearTimeout(timer);
+      timer = setTimeout(() => void refresh(), 100);
+    };
+    window.addEventListener("focus", recheck);
+    window.addEventListener("pageshow", recheck);
+    window.addEventListener("online", recheck);
+    document.addEventListener("visibilitychange", recheck);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("focus", recheck);
+      window.removeEventListener("pageshow", recheck);
+      window.removeEventListener("online", recheck);
+      document.removeEventListener("visibilitychange", recheck);
+    };
+  }, [account, refresh]);
 
   // Is there anything to connect to at all? Checked once, lazily, and never acted on.
   useEffect(() => {
@@ -489,6 +534,7 @@ export function useWallet() {
       forget();
       setAccount(null);
       setStatus(null);
+      setCheckingStatus(false);
       setWeek(null);
       setStanding(null);
       setAdmin(null);
@@ -520,6 +566,7 @@ export function useWallet() {
     publishTrail,
     withdrawTrailEarnings,
     statusError,
+    checkingStatus,
     account,
     status,
     busy,

@@ -258,3 +258,26 @@ next rescue, a featured trail preview, the daily route, both themes and an exact
 320×568 CSS viewport without horizontal overflow. Simulated connection, verification
 and daily claiming reached the expected home states; no real funds moved. The existing
 wallet SDK build warnings remain.
+
+## 2026-11-06 · Refresh existing GoodDollar verification
+
+Fixed a stale-status path: returning from GoodDollar in another tab or through the
+browser's back/forward cache did not refresh the connected wallet. Snarl now rechecks
+on return and reconnecting to the network, before opening the verification sheet, and
+again before requesting a verification link. A currently verified result skips that
+flow and dismisses an open sheet. Failed reads clear stale status and offer a retry;
+older responses cannot overwrite a newer result or a different wallet's session.
+
+Added an explicit existing-verification retry and the connected address to the sheet.
+The home G$ card identifies the development demo as simulated and offers a real-wallet
+link. Demo resume/return flags are separate from live-wallet flags. The open preview was
+using `?wallet=demo`. A subsequent read-only check of the supplied test wallet found no
+active or linked identity in Celo production (block 82,053,462), Fuse production, or Celo
+staging/development. The verification prompt is appropriate for that test address. Live
+registry and eligibility rules are unchanged.
+
+Validation: 277 tests, lint, typecheck and production build passed. Ten new React hook
+regressions cover existing verification, tab/browser returns, network recovery, failed
+reads, pre-verification checks, out-of-order responses and account changes. Browser QA
+also checks the simulated verified/unverified states and the verification return flow.
+No real signatures or transactions were requested.

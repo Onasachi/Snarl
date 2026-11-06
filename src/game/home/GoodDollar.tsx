@@ -1,26 +1,31 @@
 import { formatCountdown } from "~/game/daily";
 import { Icon } from "~/render/Icon";
-import { type ClaimCardState, type ClaimStatus, formatAmount } from "~/wallet";
+import { type ClaimCardState, type ClaimStatus, formatAmount, wantsDemoWallet } from "~/wallet";
 
 export interface HomeClaim {
   state: ClaimCardState;
   status: ClaimStatus | null;
   busy: boolean;
   onAction: () => void;
+  onRefresh: () => void;
 }
 
 /** G$ belongs beside the things it buys; this never gates a rescue. */
 export function GoodDollar({ claim, onTrails }: { claim: HomeClaim; onTrails: () => void }) {
   const { state, status, busy } = claim;
+  const demo = wantsDemoWallet();
+  const liveUrl = new URL(window.location.href);
+  liveUrl.searchParams.delete("wallet");
+  liveUrl.searchParams.delete("demo-verified");
   const copy = {
     disconnected: {
       title: "Daily G$. More adventures.",
-      detail: "Connect, verify, then claim daily G$ for trails.",
+      detail: "Connect your GoodDollar wallet. We'll check your existing verification.",
       action: "Get started",
     },
     unverified: {
       title: "Your daily G$ starts here.",
-      detail: "Verify with GoodDollar to start claiming.",
+      detail: "No active GoodDollar verification found for this wallet.",
       action: "Verify",
     },
     expired: {
@@ -75,6 +80,19 @@ export function GoodDollar({ claim, onTrails }: { claim: HomeClaim; onTrails: ()
           {!busy && <Icon name={state === "claimed" ? "check" : "chevron"} size={14} />}
         </button>
       </div>
+      {(state === "unverified" || state === "expired") && (
+        <button className="sn-link" type="button" disabled={busy} onClick={claim.onRefresh}>
+          Already verified? Check again
+        </button>
+      )}
+      {demo && (
+        <p>
+          Demo wallet · simulated G$. Your real verification isn't checked here.{" "}
+          <a className="sn-link" href={liveUrl.href}>
+            Use a real wallet
+          </a>
+        </p>
+      )}
     </section>
   );
 }

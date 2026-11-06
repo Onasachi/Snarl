@@ -424,12 +424,22 @@ export function TrailsScreen({
                 <button type="button" className="sn-primary" onClick={onConnect}>
                   Connect to publish
                 </button>
-              ) : !wallet.status ? (
-                <button type="button" className="sn-primary" onClick={() => void wallet.refresh()}>
-                  Retry verification check
+              ) : wallet.checkingStatus || !wallet.status ? (
+                <button
+                  type="button"
+                  className="sn-primary"
+                  disabled={wallet.checkingStatus || wallet.busy}
+                  onClick={() => void wallet.refresh()}
+                >
+                  {wallet.checkingStatus ? "Checking verification…" : "Retry verification check"}
                 </button>
               ) : !wallet.status.verified ? (
-                <button type="button" className="sn-primary" onClick={onVerify}>
+                <button
+                  type="button"
+                  className="sn-primary"
+                  disabled={wallet.busy}
+                  onClick={onVerify}
+                >
                   Verify with GoodDollar to publish
                 </button>
               ) : (

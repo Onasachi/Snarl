@@ -1,4 +1,4 @@
-import { wantsDemoWallet } from "~/wallet";
+import { type WalletAccount, wantsDemoWallet } from "~/wallet";
 /**
  * Screen 12: the one time the game asks for anything. Everything it says here has to be
  * true — the check is GoodDollar's, it happens on their site, it only proves the player
@@ -6,10 +6,16 @@ import { wantsDemoWallet } from "~/wallet";
  */
 export function VerifySheet({
   busy,
+  account,
+  statusError,
+  onRefresh,
   onStart,
   onClose,
 }: {
   busy: boolean;
+  account: WalletAccount | null;
+  statusError: boolean;
+  onRefresh: () => void;
   onStart: () => void;
   onClose: () => void;
 }) {
@@ -29,6 +35,8 @@ export function VerifySheet({
       <div
         style={{
           padding: "24px 20px calc(24px + env(safe-area-inset-bottom))",
+          maxHeight: "100%",
+          overflowY: "auto",
           background: "var(--bg2)",
           borderTop: "1px solid var(--card-line)",
           borderRadius: "28px 28px 0 0",
@@ -40,6 +48,23 @@ export function VerifySheet({
           Play and explore without a wallet. GoodDollar verification lets you claim daily G$ and
           publish trails for other players.
         </p>
+
+        <p style={{ fontSize: 13, lineHeight: 1.4, color: "var(--ink2)", margin: "12px 0 0" }}>
+          Already verified with GoodDollar? Use that same wallet, or one linked to its identity.
+          {account && (
+            <span style={{ display: "block", overflowWrap: "anywhere" }}>
+              Connected: {account.address}
+            </span>
+          )}
+          <button className="sn-link" type="button" disabled={busy} onClick={onRefresh}>
+            Check existing verification
+          </button>
+        </p>
+        {statusError && (
+          <p role="status" style={{ color: "var(--ink2)", fontSize: 13 }}>
+            We couldn't check GoodDollar. Retry the check before continuing.
+          </p>
+        )}
 
         <ul style={{ margin: "18px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
           {[
@@ -65,7 +90,7 @@ export function VerifySheet({
         <button
           type="button"
           onClick={onStart}
-          disabled={busy}
+          disabled={busy || statusError}
           style={{
             width: "100%",
             minHeight: 52,
