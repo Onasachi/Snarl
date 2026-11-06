@@ -235,3 +235,26 @@ network listing and the installed plugin's chain resolution / endpoint selection
 The owner retried and received successful CeloScan source verification for
 `contracts/SnarlTrails.sol:SnarlTrails` at the deployed address. Explorer verification
 is complete: https://celoscan.io/address/0xF55E8f7330B89659c7B835eA1043657A45393bdA#code.
+
+## 2026-11-06 · A clearer, livelier home
+
+Rebuilt the pond home around a compact illustrated habitat and one next action: finish
+learning, rescue the next creature for an early collection, play the daily challenge,
+or explore trails after completing the original collection and today's puzzle. The
+pond has a shoreline, ripples, species-specific movement and tap greetings. GoodDollar
+now explains how daily G$ connects to player-made trails, with separate connection,
+verification, claim, retry and collected states. Featured cards read the market and open
+free previews; unavailable/empty markets do not invent listings. Fixed navigation keeps
+collection, trails and settings reachable on short phones. Player-facing hints now use
+"hint" consistently across the puzzle controls, home rewards and weekly contributions.
+
+Kept the night/paper palettes, existing progress, free guest play and financial flows.
+Concurrent market reads and login now share one wallet adapter initialization, avoiding
+an adapter replacement during a resumed connection. No contract or hosting changes.
+
+Validation: 267 app tests, lint, typecheck and production build. Browser play-through
+covered all three tutorial rescues, the new early-player home, creature greetings, the
+next rescue, a featured trail preview, the daily route, both themes and an exact
+320×568 CSS viewport without horizontal overflow. Simulated connection, verification
+and daily claiming reached the expected home states; no real funds moved. The existing
+wallet SDK build warnings remain.

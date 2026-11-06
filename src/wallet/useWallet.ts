@@ -118,10 +118,19 @@ export function useWallet() {
   const [admin, setAdmin] = useState<AdminState | null>(null);
   const generation = useRef(0);
   const port = useRef<WalletPort | null>(null);
+  const loadingPort = useRef<Promise<WalletPort> | null>(null);
 
   const load = useCallback(async (): Promise<WalletPort> => {
-    port.current ??= await createWallet();
-    return port.current;
+    if (port.current) return port.current;
+    // Featured trails and a resumed login can request the adapter together.
+    // Both must receive the same instance so a late read cannot replace a connected wallet.
+    loadingPort.current ??= createWallet();
+    try {
+      port.current = await loadingPort.current;
+      return port.current;
+    } finally {
+      loadingPort.current = null;
+    }
   }, []);
 
   const refresh = useCallback(async () => {

@@ -229,7 +229,7 @@ export function PuzzleScreen({
             attention={highlightNudge}
             dim={options.nudgesLeft === 0}
           >
-            Nudge <span className="tnum">{options.nudgesLeft}</span>
+            Hint <span className="tnum">{options.nudgesLeft}</span>
           </ToolButton>
         )}
       </div>

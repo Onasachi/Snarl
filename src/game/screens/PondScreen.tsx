@@ -1,60 +1,37 @@
-import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { type CSSProperties, type ReactNode, useState } from "react";
 import { audio, buzz, HAPTIC } from "~/audio";
 import { CREATURES, creatureById } from "~/data";
-import type { Creature, MoveKind } from "~/engine";
-import { ActivityTile } from "~/game/ActivityTile";
-import { ClaimCard } from "~/game/ClaimCard";
-import { collection } from "~/game/collection";
-import { Intro } from "~/game/Intro";
-import { Moon } from "~/game/Moon";
-import { MOON_PHASES, MOON_REWARD_NUDGES } from "~/game/progress";
-import { type FreedCreature, useGame } from "~/game/store";
+import type { MoveKind } from "~/engine";
+import { collection, nextExplorationIndex } from "~/game/collection";
+import { DAILY_CREATURE } from "~/game/daily";
+import { nextHomeAction } from "~/game/home";
+import { FeaturedTrails } from "~/game/home/FeaturedTrails";
+import { GoodDollar, type HomeClaim } from "~/game/home/GoodDollar";
+import { creatureForPlay, MOON_PHASES, MOON_REWARD_NUDGES, TUTORIAL_KNOTS } from "~/game/progress";
+import { useGame } from "~/game/store";
 import { endsLabel } from "~/game/weekly";
-import { useReducedMotion } from "~/hooks/useReducedMotion";
-import { PALETTES } from "~/market/types";
+import { type MarketState, PALETTES, type Trail } from "~/market/types";
 import { CreatureSvg } from "~/render/CreatureSvg";
 import { Icon } from "~/render/Icon";
 import { useThemeId } from "~/theme/ThemeProvider";
-import type { ClaimCardState, ClaimStatus } from "~/wallet";
 
-/**
- * Ten places to be, in the order they fill.
- *
- * Ordered, not just spread: the first creature takes the middle of the pond and the next
- * few balance around it, so a pond with one creature in it looks like a pond with a
- * creature in it rather than a blank panel with something parked in the corner. Beyond
- * ten, creatures share.
- */
-const SLOTS: readonly (readonly [number, number])[] = [
-  [50, 44],
-  [28, 28],
-  [72, 58],
-  [70, 20],
-  [24, 64],
-  [50, 76],
-  [84, 40],
-  [14, 44],
-  [62, 70],
-  [36, 32],
-];
-
-/**
- * How much bigger everything is when the pond is nearly empty.
- *
- * The creatures are the best thing here and the reward for everything else, so they
- * should not be small just because there are not many yet. They shrink back as the pond
- * fills and the space is genuinely needed.
- */
-const roominessFor = (count: number): number =>
-  count <= 2 ? 1.55 : count <= 4 ? 1.3 : count <= 6 ? 1.15 : 1;
-
-/** Each creature idles the way its own body would. */
-const IDLE: Record<MoveKind, readonly [string, number]> = {
-  swim: ["sn-swim", 16],
-  bob: ["sn-bob", 5],
-  walk: ["sn-walk", 14],
-  sit: ["sn-sit", 4],
+const SLOTS = [
+  [50, 50],
+  [25, 39],
+  [76, 62],
+  [71, 22],
+  [28, 73],
+  [50, 78],
+  [85, 37],
+  [13, 57],
+  [49, 20],
+  [64, 51],
+] as const;
+const IDLE: Record<MoveKind, string> = {
+  swim: "sn-home-swim",
+  bob: "sn-home-bob",
+  walk: "sn-home-walk",
+  sit: "sn-home-sit",
 };
 
 export function PondScreen({
@@ -62,429 +39,370 @@ export function PondScreen({
   intro,
   onToast,
   dailySolved,
-  dailySubtitle,
   onOpenDaily,
   onGift,
   onUntangle,
   onMore,
+  onSettings,
   onJournal,
   onTrails,
+  onPreviewTrail,
+  readMarket,
   accountLabel,
+  marketAccount,
   showWelcome = false,
-  onDismissWelcome = () => {},
-  onWelcomeDaily = onOpenDaily,
-  playLabel = "Play · World 1",
+  onDismissWelcome,
   claim,
   toast,
 }: {
   onPlay: () => void;
-  /** True just after the tutorial, when the first creatures rise into the water. */
   intro: boolean;
   onToast: (message: string) => void;
   dailySolved: boolean;
-  dailySubtitle: string | null;
   onOpenDaily: () => void;
   onGift: () => void;
   onUntangle: () => void;
   onMore: () => void;
+  onSettings: () => void;
   onJournal: () => void;
   onTrails: () => void;
-  /** A name or a short address, shown in place of "More" once somebody is signed in. */
+  onPreviewTrail: (trail: Trail) => void;
+  readMarket: () => Promise<MarketState | null>;
   accountLabel?: string;
+  marketAccount?: string;
   showWelcome?: boolean;
-  onDismissWelcome?: () => void;
-  onWelcomeDaily?: () => void;
-  playLabel?: string;
-  /** Rendered above the bottom stack. */
+  onDismissWelcome: () => void;
+  claim: HomeClaim;
   toast: ReactNode;
-  /** The G$ layer. Entirely optional: with no wallet the pond is exactly as it was. */
-  claim: {
-    state: ClaimCardState;
-    status: ClaimStatus | null;
-    hasWallet: boolean;
-    busy: boolean;
-    onAction: () => void;
-  };
 }) {
-  const reduce = useReducedMotion();
   const themeId = useThemeId();
   const freed = useGame((s) => s.freed);
   const palette = useGame((s) => s.pondPalette);
-  const { residents, next: milestone } = collection(freed);
-
-  /** How much of World 1 is in the pond, counting each creature once. */
-  const worldFreed = useMemo(() => {
-    const kinds = new Set(freed.map((entry) => entry.id));
-    return CREATURES.filter((creature) => kinds.has(creature.id)).length;
-  }, [freed]);
+  const tutorialStep = useGame((s) => s.tutorialStep);
+  const storedPlayIndex = useGame((s) => s.playIndex);
   const moon = useGame((s) => s.moon);
+  const { residents, known, world, next: milestone } = collection(freed);
+  const nextCreature =
+    TUTORIAL_KNOTS[tutorialStep] ?? creatureForPlay(nextExplorationIndex(storedPlayIndex, freed));
+  const action = nextHomeAction({
+    tutorialStep,
+    residents: known.size,
+    worldCount: world,
+    dailySolved,
+  });
   const [reacted, setReacted] = useState<Record<string, number>>({});
-
-  const tap = (entry: FreedCreature, creature: Creature) => {
-    audio.init();
-    audio.creature(creature.sound);
-    buzz(HAPTIC.tap);
-    setReacted((r) => ({ ...r, [entry.key]: Date.now() }));
-  };
-
-  const moonTap = () =>
-    onToast(
-      moon >= MOON_PHASES
-        ? "Full moon. Your next Daily starts a new cycle."
-        : `${MOON_PHASES - moon} more Daily Snarls for a full moon and ${MOON_REWARD_NUDGES} nudges. Missing a day only dims it one phase.`,
-    );
+  const [greeting, setGreeting] = useState<string | null>(null);
+  const actionCopy = {
+    learn: {
+      eyebrow: "YOUR NEXT LITTLE WIN",
+      title: `Rescue ${nextCreature.name}`,
+      detail: "Move the beads. Untangle a new friend.",
+      onClick: onPlay,
+    },
+    rescue: {
+      eyebrow: "YOUR NEXT ADVENTURE",
+      title: `Rescue ${nextCreature.name}`,
+      detail: "There's room for one more friend.",
+      onClick: onPlay,
+    },
+    daily: {
+      eyebrow: "TODAY'S ADVENTURE",
+      title: "Rescue the Moon Moth",
+      detail: "A fresh daily puzzle. A rare little friend.",
+      onClick: onOpenDaily,
+    },
+    trails: {
+      eyebrow: "KEEP EXPLORING",
+      title: "Find your next adventure",
+      detail: "Discover a trail made by another player.",
+      onClick: onTrails,
+    },
+  }[action];
+  const rewardDetail =
+    moon >= MOON_PHASES
+      ? `${MOON_REWARD_NUDGES} extra hints earned! Your next daily puzzle starts a new cycle.`
+      : `Finish daily puzzles to earn ${MOON_REWARD_NUDGES} extra hints. ${moon} of ${MOON_PHASES} complete. A missed day only sets you back one step.`;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        flex: 1,
-        minHeight: 0,
-        overflowY: "auto",
-        overflowX: "hidden",
-      }}
-    >
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-          padding: "calc(12px + env(safe-area-inset-top)) 12px 12px",
-        }}
-      >
-        <Moon moon={moon} onTap={moonTap} />
-        <div style={{ display: "flex", gap: 6 }}>
-          <HeaderButton onClick={onGift} muted={false} label="Gift a creature">
-            <Icon name="gift" size={16} />
-          </HeaderButton>
-          {/* Who you are, where you can see it. The game asks for a login before it
-              will start, so "which account am I in?" should not be a question answered
-              three taps deep under a theme picker. */}
-          <HeaderButton onClick={onMore}>
-            <Icon name="person" size={16} />
-            {accountLabel ?? "Connect"}
-          </HeaderButton>
-        </div>
-      </header>
-
-      {showWelcome && (
-        <Intro onDone={onDismissWelcome} onDaily={onWelcomeDaily} dailySolved={dailySolved} />
-      )}
-
-      <main
-        className="sn-water"
-        style={{
-          flex: "1 0 200px",
-          minHeight: 200,
-          ...(palette > 0
-            ? {
-                background:
-                  themeId === "paper" ? PALETTES[palette]?.lightWater : PALETTES[palette]?.water,
-              }
-            : {}),
-        }}
-      >
-        <svg
-          className="sn-habitat"
-          viewBox="0 0 390 250"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <g fill="none" stroke="var(--leaf)" strokeWidth=".7" opacity=".24">
-            <ellipse cx="48" cy="202" rx="35" ry="14" />
-            <ellipse cx="318" cy="48" rx="29" ry="12" />
-          </g>
-          <g fill="var(--moon)" className="sn-pond-motes">
-            <circle cx="56" cy="48" r="1.5" />
-            <circle cx="345" cy="117" r="1.2" />
-            <circle cx="184" cy="216" r="1.4" />
-          </g>
-          {worldFreed >= 3 && (
-            <g fill="var(--leaf)" opacity=".65">
-              <path d="M28 200a24 10 0 1 0 3-2l-3 2 10 3Z" />
-              <path d="M300 46a20 8 0 1 0 3-2l-3 2 10 3Z" />
-              <ellipse cx="340" cy="214" rx="28" ry="10" />
-            </g>
-          )}
-          {worldFreed >= 6 && (
-            <g fill="none" stroke="var(--leaf)" strokeWidth="2" opacity=".65">
-              <path d="M0 245Q25 190 16 153M8 250Q36 215 31 177M390 245Q365 180 377 143M382 250Q355 218 359 175" />
-            </g>
-          )}
-          {worldFreed >= 10 && (
-            <g fill="var(--lotus)" opacity=".9">
-              <path d="M333 210Q309 193 323 189Q335 190 333 210Q339 183 349 193Q354 202 333 210Q326 182 335 179Q345 187 333 210Z" />
-            </g>
-          )}
-        </svg>
-        {freed.length === 0 ? (
-          <EmptyPond onPlay={onPlay} />
-        ) : (
-          residents.map((entry, k) => {
-            const creature = creatureById(entry.id);
-            if (!creature) return null;
-            const slot = SLOTS[k % SLOTS.length]!;
-            const size = Math.round(
-              (62 + creature.nodes.length * 1.6) * roominessFor(residents.length),
-            );
-            const [idleName, idleSeconds] = IDLE[creature.move];
-            const reactedAt = reacted[entry.key];
-
-            return (
-              <div
-                key={entry.key}
-                style={{
-                  position: "absolute",
-                  left: `${slot[0]}%`,
-                  top: `${slot[1]}%`,
-                  width: size,
-                  height: size,
-                  marginLeft: -size / 2,
-                  marginTop: -size / 2,
-                  animation:
-                    intro && !reduce
-                      ? `sn-enter 1.6s ${(k * 0.25).toFixed(2)}s cubic-bezier(.2,.8,.2,1) both`
-                      : "none",
-                }}
-              >
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    animation: reduce
-                      ? "none"
-                      : `${idleName} ${idleSeconds + k * 1.3}s ease-in-out ${-k * 2.1}s infinite`,
-                  }}
-                >
-                  <button
-                    type="button"
-                    // Remounting on each tap is what replays the hop.
-                    key={`react-${reactedAt ?? 0}`}
-                    onClick={() => tap(entry, creature)}
-                    aria-label={`${creature.name}, ${creature.shape}`}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      padding: 0,
-                      border: "none",
-                      background: "transparent",
-                      cursor: "pointer",
-                      animation: reactedAt && !reduce ? "sn-react .65s ease" : "none",
-                    }}
-                  >
-                    <CreatureSvg
-                      creature={creature}
-                      state="free"
-                      eyes="open"
-                      r={5.4}
-                      sw={2.4}
-                      still
-                    />
-                  </button>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </main>
-
-      {/* The toast hangs off the top of this stack, so it can never cover the cards. */}
-      <footer
-        data-bottom-stack
-        style={{
-          position: "relative",
-          display: "grid",
-          gap: 10,
-          padding: "12px 20px calc(20px + env(safe-area-inset-bottom))",
-        }}
-      >
-        {toast}
-
-        {/* Two places to go, side by side, rather than two more bars across the screen. */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <ActivityTile
-            icon="knot"
-            label="Great Untangle"
-            status={endsLabel()}
-            onClick={onUntangle}
-          />
-          <ActivityTile
-            icon="moon"
-            accent="discovery"
-            label="Daily Snarl"
-            status={
-              dailySolved
-                ? "Freed · back tomorrow"
-                : (dailySubtitle ??
-                  `Rare knot · ${moon >= MOON_PHASES ? 0 : moon}/${MOON_PHASES} to bonus`)
-            }
-            tone={dailySolved ? "done" : "plain"}
-            onClick={onOpenDaily}
-          />
-        </div>
-
-        <div className="sn-pond-nav">
-          <button className="sn-link" type="button" onClick={onJournal}>
-            <Icon name="journal" size={16} />
-            Journal · {worldFreed}/{CREATURES.length}
-          </button>
-          <button className="sn-link" type="button" onClick={onTrails}>
-            <Icon name="shop" size={16} />
-            Trail market · G$
-          </button>
-        </div>
-
-        <ClaimCard
-          state={claim.state}
-          status={claim.status}
-          hasWallet={claim.hasWallet}
-          busy={claim.busy}
-          onAction={claim.onAction}
-        />
-
-        {/* An empty pond already offers "Free your first Snarl"; two buttons for one
-            action is one too many. */}
-        {freed.length > 0 && (
-          <>
-            {/* Somewhere to be going. A pond fills, and until now nothing said how full. */}
-            <div style={{ display: "grid", gap: 5 }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 12,
-                  color: "var(--ink2)",
-                }}
-              >
-                <span>
-                  {milestone
-                    ? `${milestone.name} at ${milestone.count} creatures`
-                    : "Lotus pond restored"}
-                </span>
-                <span className="tnum">
-                  {worldFreed} of {CREATURES.length}
-                </span>
-              </div>
-              <div
-                style={{
-                  height: 4,
-                  borderRadius: 999,
-                  background: "var(--card-line)",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${Math.round((worldFreed / CREATURES.length) * 100)}%`,
-                    height: "100%",
-                    borderRadius: 999,
-                    background: "var(--accent)",
-                    transition: "width .6s cubic-bezier(.2,.8,.2,1)",
-                  }}
-                />
-              </div>
-            </div>
-
+    <div className="sn-home">
+      <div className="sn-home-scroll">
+        <header className="sn-home-header">
+          <span className="sn-home-wordmark">
+            snarl<span aria-hidden="true">.</span>
+          </span>
+          <div className="sn-home-header-actions">
             <button
+              className="sn-home-icon-button"
               type="button"
-              className="sn-primary"
-              onClick={onPlay}
-              style={{
-                width: "100%",
-                minHeight: 52,
-                border: "none",
-                borderRadius: 16,
-                fontSize: 18,
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
+              aria-label="Gift a creature"
+              onClick={onGift}
             >
-              {playLabel}
+              <Icon name="gift" size={20} />
             </button>
-          </>
-        )}
-      </footer>
-    </div>
-  );
-}
+            <button
+              className="sn-home-account"
+              type="button"
+              onClick={onMore}
+              aria-label={accountLabel ? `Your profile, ${accountLabel}` : "Connect your wallet"}
+            >
+              <Icon name="person" size={17} />
+              <span>{accountLabel ?? "Connect"}</span>
+            </button>
+          </div>
+        </header>
 
-function HeaderButton({
-  children,
-  onClick,
-  muted = true,
-  label,
-}: {
-  children: ReactNode;
-  onClick: () => void;
-  muted?: boolean;
-  label?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 5,
-        minWidth: 44,
-        justifyContent: "center",
-        minHeight: 44,
-        padding: "0 10px",
-        border: "1px solid var(--card-line)",
-        borderRadius: 999,
-        background: "transparent",
-        color: muted ? "var(--ink2)" : "var(--accent2)",
-        fontSize: 13,
-        whiteSpace: "nowrap",
-        cursor: "pointer",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
+        <main className="sn-home-main">
+          <section className="sn-home-habitat" aria-labelledby="home-title">
+            <div className="sn-home-pond-heading">
+              <div>
+                <span className="sn-home-eyebrow">YOUR LITTLE WORLD</span>
+                <h1 id="home-title">
+                  {known.size === 0 ? "Room for a little magic." : "Look who's settling in."}
+                </h1>
+              </div>
+              <span className="sn-home-resident-count">
+                <strong>{known.size}</strong>
+                <span>{known.size === 1 ? "friend" : "friends"}</span>
+              </span>
+            </div>
+            <div
+              className="sn-home-pond"
+              data-intro={intro || undefined}
+              style={
+                palette > 0
+                  ? ({
+                      "--home-water":
+                        themeId === "paper"
+                          ? PALETTES[palette]?.lightWater
+                          : PALETTES[palette]?.water,
+                    } as CSSProperties)
+                  : undefined
+              }
+            >
+              <svg
+                className="sn-home-landscape"
+                viewBox="0 0 350 155"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path
+                  className="sn-home-shore"
+                  d="M23 34C46 8 103 25 131 15S204 2 231 17 303 8 326 31 350 93 323 122 245 131 218 140 150 133 124 140 43 137 23 117-3 59 23 34Z"
+                />
+                <path
+                  className="sn-home-water-shape"
+                  d="M28 38C51 15 104 31 135 22S204 10 232 24 301 15 322 38 339 90 316 115 246 124 217 133 151 127 124 133 49 130 29 111 7 62 28 38Z"
+                />
+                <g className="sn-home-ripples" fill="none">
+                  <ellipse cx="174" cy="82" rx="77" ry="29" />
+                  <ellipse cx="174" cy="82" rx="100" ry="39" />
+                  <path d="M65 61q18-10 34-3M254 97q18 8 31-2" />
+                </g>
+                <g className="sn-home-reeds">
+                  <path d="M17 108q-8-24-6-39m8 43q6-32 19-39m-18 36q-4-21 2-33M326 48q-5-23 3-35m-1 37q9-26 20-27" />
+                </g>
+                <g className="sn-home-stones">
+                  <ellipse cx="30" cy="127" rx="11" ry="6" />
+                  <ellipse cx="47" cy="133" rx="7" ry="4" />
+                  <ellipse cx="309" cy="28" rx="9" ry="5" />
+                </g>
+                {world >= 3 && (
+                  <g className="sn-home-lilies">
+                    <path d="M59 45a18 9 0 1 0 3-1l-3 1 9 4Z" />
+                    <path d="M289 111a21 10 0 1 0 3-1l-3 1 11 4Z" />
+                  </g>
+                )}
+                {world >= 6 && (
+                  <g className="sn-home-reeds">
+                    <path d="M292 140q6-27-1-41m5 42q12-28 21-30" />
+                  </g>
+                )}
+                {world >= 10 && (
+                  <path
+                    className="sn-home-lotus"
+                    d="M286 111q-19-8-14-17 12-2 14 17-7-20 2-24 9 6-2 24 10-18 18-12 0 9-18 12Z"
+                  />
+                )}
+                <g className="sn-home-fireflies">
+                  <circle cx="87" cy="26" r="1.7" />
+                  <circle cx="267" cy="48" r="2" />
+                  <circle cx="228" cy="125" r="1.5" />
+                </g>
+              </svg>
+              {residents.map((entry, i) => {
+                const creature = creatureById(entry.id);
+                if (!creature) return null;
+                const slot = SLOTS[i]!;
+                const size = residents.length <= 3 ? 71 : residents.length <= 6 ? 58 : 46;
+                return (
+                  <div
+                    className="sn-home-resident"
+                    key={entry.key}
+                    style={
+                      {
+                        left: `${slot[0]}%`,
+                        top: `${slot[1]}%`,
+                        width: size,
+                        height: size,
+                        "--idle": IDLE[creature.move],
+                        "--duration": `${9 + i * 2}s`,
+                        "--delay": `${-i * 2}s`,
+                      } as CSSProperties
+                    }
+                  >
+                    <div className="sn-home-resident-swim">
+                      <button
+                        key={`${entry.key}-${reacted[entry.key] ?? 0}`}
+                        data-reacted={reacted[entry.key] ? true : undefined}
+                        type="button"
+                        aria-label={`Say hello to ${creature.name}, ${creature.shape}`}
+                        onClick={() => {
+                          audio.init();
+                          audio.creature(creature.sound);
+                          buzz(HAPTIC.tap);
+                          setReacted((r) => ({ ...r, [entry.key]: Date.now() }));
+                          setGreeting(`${creature.name} says hello!`);
+                        }}
+                      >
+                        <CreatureSvg
+                          creature={creature}
+                          state="free"
+                          eyes="open"
+                          r={5.4}
+                          sw={2.6}
+                          still
+                        />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              <span className="sn-home-pond-caption" aria-live="polite">
+                {greeting ??
+                  (showWelcome
+                    ? "Your first friends are home. Tap to say hello."
+                    : known.size
+                      ? "Tap a friend. Make their day."
+                      : "Your first friend is waiting below.")}
+              </span>
+            </div>
+            <div className="sn-home-growth">
+              <span>
+                {milestone ? (
+                  <>
+                    <strong>Next upgrade:</strong> {milestone.name.toLowerCase()}
+                  </>
+                ) : (
+                  <>
+                    <Icon name="check" size={13} /> Your pond is fully restored
+                  </>
+                )}
+              </span>
+              <span
+                className="sn-home-growth-dots"
+                role="img"
+                aria-label={`${world} of ${CREATURES.length} original creatures rescued`}
+              >
+                {CREATURES.map((c) => (
+                  <i key={c.id} data-filled={known.has(c.id) || undefined} />
+                ))}
+              </span>
+            </div>
+          </section>
 
-function EmptyPond({ onPlay }: { onPlay: () => void }) {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        padding: 24,
-        textAlign: "center",
-      }}
-    >
-      <h2 style={{ fontSize: 30, fontWeight: 600, margin: 0 }}>Your pond is empty</h2>
-      <p style={{ fontSize: 19, color: "var(--ink2)", margin: 0 }}>
-        Everyone you free will swim here.
-      </p>
-      <button
-        type="button"
-        className="sn-primary"
-        onClick={onPlay}
-        style={{
-          marginTop: 16,
-          minHeight: 48,
-          padding: "0 22px",
-          border: "1px solid var(--card-line)",
-          borderRadius: 16,
-          fontSize: 17,
-          fontWeight: 500,
-          cursor: "pointer",
-        }}
-      >
-        Free your first Snarl
-      </button>
+          <button
+            className="sn-home-next"
+            type="button"
+            onClick={() => {
+              onDismissWelcome();
+              actionCopy.onClick();
+            }}
+          >
+            <span className="sn-home-play-icon" aria-hidden="true">
+              ▶
+            </span>
+            <span className="sn-home-next-copy">
+              <span>{actionCopy.eyebrow}</span>
+              <strong>{actionCopy.title}</strong>
+              <small>{actionCopy.detail}</small>
+            </span>
+            <span className="sn-home-next-creature" aria-hidden="true">
+              <CreatureSvg
+                creature={action === "daily" ? DAILY_CREATURE : nextCreature}
+                themeId="paper"
+                state="free"
+                eyes="open"
+                r={4.6}
+                sw={2}
+                still
+              />
+            </span>
+          </button>
+
+          <GoodDollar claim={claim} onTrails={onTrails} />
+          <FeaturedTrails
+            readMarket={readMarket}
+            {...(marketAccount ? { account: marketAccount } : {})}
+            onBrowse={onTrails}
+            onPreview={onPreviewTrail}
+          />
+
+          <section className="sn-home-challenges" aria-label="Daily and weekly challenges">
+            <button type="button" className="sn-home-challenge" onClick={onOpenDaily}>
+              <Icon name={dailySolved ? "check" : "moon"} size={20} />
+              <span className="sn-home-challenge-copy">
+                <strong>Daily puzzle</strong>
+                <small>{dailySolved ? "Done! Back tomorrow" : "Meet the Moon Moth"}</small>
+              </span>
+              <Icon name="chevron" size={13} />
+            </button>
+            <button type="button" className="sn-home-challenge" onClick={onUntangle}>
+              <Icon name="knot" size={20} />
+              <span className="sn-home-challenge-copy">
+                <strong>Weekly puzzle</strong>
+                <small>{endsLabel()}</small>
+              </span>
+              <Icon name="chevron" size={13} />
+            </button>
+          </section>
+          <button
+            type="button"
+            className="sn-home-daily-progress"
+            onClick={() => onToast(rewardDetail)}
+            aria-label={rewardDetail}
+          >
+            <span className="sn-home-week-dots" aria-hidden="true">
+              {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+                <i key={day} data-filled={day <= moon || undefined}>
+                  {day <= moon ? "✓" : "·"}
+                </i>
+              ))}
+            </span>
+            <span>
+              {moon >= MOON_PHASES ? "+7 hints earned!" : `${moon}/7 daily puzzles → 7 extra hints`}
+            </span>
+          </button>
+        </main>
+      </div>
+      <div className="sn-home-toast">{toast}</div>
+      <nav className="sn-home-nav" aria-label="Main navigation">
+        <span aria-current="page">
+          <Icon name="pond" size={21} />
+          Home
+        </span>
+        <button type="button" onClick={onJournal}>
+          <Icon name="journal" size={21} />
+          Collection
+        </button>
+        <button type="button" onClick={onTrails}>
+          <Icon name="shop" size={21} />
+          Trails
+        </button>
+        <button type="button" onClick={onSettings}>
+          <Icon name="settings" size={21} />
+          Settings
+        </button>
+      </nav>
     </div>
   );
 }

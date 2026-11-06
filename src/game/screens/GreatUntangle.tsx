@@ -368,8 +368,8 @@ function Pot({ chain }: { chain: WeeklyChain }) {
         {amount && !affordable
           ? `More than the ${formatAmount(balance, decimals)} you have.`
           : nudges > 0
-            ? `${nudges} ${nudges === 1 ? "nudge" : "nudges"}, yours to keep, and the rest of the pool is everyone's on Sunday.`
-            : `The pool is whatever players put in. ${POT_MINIMUM_G$} G$ or more earns a nudge per ${G$_PER_NUDGE}; the free three a day never change.`}
+            ? `${nudges} ${nudges === 1 ? "hint" : "hints"}, yours to keep, and the rest of the pool is everyone's on Sunday.`
+            : `The pool is whatever players put in. ${POT_MINIMUM_G$} G$ or more earns a hint per ${G$_PER_NUDGE}; the free three a day never change.`}
       </span>
     </div>
   );

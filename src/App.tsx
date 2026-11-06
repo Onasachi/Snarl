@@ -227,8 +227,8 @@ export function App() {
           () =>
             toast.show(
               earned > 0
-                ? `Full moon. ${earned} nudges are yours.`
-                : "Your moon grew a phase. A new knot arrives tomorrow.",
+                ? `Daily bonus! ${earned} extra hints are yours.`
+                : "Daily puzzle complete. One step closer to 7 extra hints.",
             ),
           900,
         );
@@ -326,8 +326,8 @@ export function App() {
         // Only mention the pot where it exists and could actually be used. Everywhere
         // else the sentence is the one it always was.
         wallet.week && wallet.account
-          ? "Out of Nudges today. Calm view still helps, or back the week for more."
-          : "Out of Nudges for today. Calm view still helps.",
+          ? "Out of hints today. Calm view still helps, or back the week for more."
+          : "Out of hints for today. Calm view still helps.",
       ),
     [toast, wallet.account, wallet.week],
   );
@@ -424,7 +424,7 @@ export function App() {
       if (await wallet.backWeek(weekNumber, amount)) {
         addExtraNudges(earned);
         toast.show(
-          `In the pot. ${earned} ${earned === 1 ? "nudge" : "nudges"} for you, the rest for whoever frees it.`,
+          `In the pot. ${earned} ${earned === 1 ? "hint" : "hints"} for you, the rest for whoever frees it.`,
         );
       }
     },
@@ -563,7 +563,7 @@ export function App() {
               : inTutorial && tutorialStep === 0
                 ? "Drag a bead until no strings cross."
                 : lastTutorialKnot && inTutorial
-                  ? "Stuck? Nudge shows one bead to move."
+                  ? "Stuck? Hint shows one bead to move."
                   : ""
           }
           chips={isDaily ? dailyChips : undefined}
@@ -612,29 +612,26 @@ export function App() {
           intro={intro}
           onToast={toast.show}
           dailySolved={dailySolved}
-          dailySubtitle={dailySolved ? null : freedByLabel(freedToday)}
           onOpenDaily={openDaily}
           onGift={() => setScreen("gift")}
           onUntangle={() => setScreen("untangle")}
           onMore={() => (wallet.account ? setScreen("you") : void startConnect())}
+          onSettings={() => setMoreSheet(true)}
           onJournal={() => setScreen("journal")}
           onTrails={() => setScreen("trails")}
+          readMarket={wallet.readMarket}
+          marketAccount={wallet.account?.address}
+          onPreviewTrail={(trail) => {
+            setTrailRun({ trail, step: 0, preview: true });
+            setMode("trail");
+            setScreen("puzzle");
+          }}
           showWelcome={hydrated && !introSeen && !inTutorial && !gift}
           onDismissWelcome={markIntroSeen}
-          onWelcomeDaily={() => {
-            markIntroSeen();
-            openDaily();
-          }}
-          playLabel={
-            inTutorial
-              ? "Continue learning"
-              : `Free ${creatureForPlay(playIndex).name} · ${playIndex < 10 ? "Explore" : "Mastery"}`
-          }
           {...(wallet.account ? { accountLabel: shortAddress(wallet.account.address) } : {})}
           claim={{
             state: claimState,
             status: wallet.status,
-            hasWallet: wallet.available !== false,
             busy: wallet.busy,
             onAction: () => void onClaimAction(),
           }}
